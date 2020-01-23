@@ -1,0 +1,88 @@
+{
+  "graphs" : [ {
+    "nodes" : [ {
+      "id" : "http://purl.obolibrary.org/obo/OBI_0000312",
+      "type" : "PROPERTY",
+      "lbl" : "is_specified_output_of"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/CARO_0030002",
+      "type" : "CLASS",
+      "lbl" : "expression pattern"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/RO_0002350",
+      "type" : "PROPERTY",
+      "lbl" : "member_of"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000001",
+      "type" : "PROPERTY",
+      "lbl" : "has_channel"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/RO_0002351",
+      "type" : "PROPERTY",
+      "lbl" : "has_member"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/C888C3DB-AEFA-447F-BD4C-858DFE33DBE7",
+      "type" : "PROPERTY",
+      "lbl" : "has_exemplar"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000002",
+      "type" : "PROPERTY",
+      "lbl" : "has_background_channel"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000003",
+      "type" : "PROPERTY",
+      "lbl" : "has_signal_channel"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000014",
+      "type" : "CLASS",
+      "lbl" : "channel"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/c099d9d6-4ef3-11e3-9da7-b1ad5291e0b0",
+      "type" : "PROPERTY",
+      "lbl" : "exemplar_of"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000005",
+      "type" : "PROPERTY",
+      "lbl" : "source_data_link"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000006",
+      "type" : "CLASS",
+      "lbl" : "multi channel image"
+    }, {
+      "id" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFB_10000005",
+      "type" : "CLASS",
+      "lbl" : "cluster"
+    } ],
+    "edges" : [ {
+      "sub" : "http://purl.obolibrary.org/obo/c099d9d6-4ef3-11e3-9da7-b1ad5291e0b0",
+      "pred" : "subPropertyOf",
+      "obj" : "http://purl.obolibrary.org/obo/RO_0002350"
+    }, {
+      "sub" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000006",
+      "pred" : "is_a",
+      "obj" : "http://xmlns.com/foaf/0.1/image"
+    }, {
+      "sub" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000014",
+      "pred" : "is_a",
+      "obj" : "http://xmlns.com/foaf/0.1/image"
+    }, {
+      "sub" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000002",
+      "pred" : "subPropertyOf",
+      "obj" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000001"
+    }, {
+      "sub" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000003",
+      "pred" : "subPropertyOf",
+      "obj" : "http://purl.obolibrary.org/obo/fbbt/vfb/VFBext_0000001"
+    } ],
+    "id" : "http://purl.obolibrary.org/obo/fbbt/vfb/vfb_ext.owl",
+    "meta" : {
+      "subsets" : [ ],
+      "xrefs" : [ ],
+      "basicPropertyValues" : [ ]
+    },
+    "equivalentNodesSets" : [ ],
+    "logicalDefinitionAxioms" : [ ],
+    "domainRangeAxioms" : [ ],
+    "propertyChainAxioms" : [ ]
+  } ]
+}
