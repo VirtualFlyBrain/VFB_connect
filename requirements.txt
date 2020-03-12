@@ -1,0 +1,6 @@
+requests
+psycopg2
+pandas
+pandasql
+
+
