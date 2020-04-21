@@ -171,41 +171,61 @@ def dict_cursor(results):
     return dc
 
 def escape_string(strng):
+    # Simple escaping for strings used in neo queries.
     if type(strng) == str:
         strng = re.sub(r'\\', r'\\\\', strng)
         strng = re.sub("'", "\\'", strng)
         strng = re.sub('"', '\\"', strng)        
     return strng
 
-def dict_2_mapString(d):
-    """Converts a Python dict into a cypher map string.
-    Only supports values of type: int, float, list, bool, string."""
-    # Surely one of the fancier libraries comes with this built in!
-    map_pairs = []
-    for k,v in d.items():  
-        if type(v) == (int):
-            map_pairs.append("%s : %d" % (k,v))
-        elif type(v) == float:   
-            map_pairs.append("%s : %f " % (k,v))                   
-        elif type(v) == str:
-            map_pairs.append('%s : "%s"' % (k, escape_string(v)))           
-        elif type(v) == list:                        
-            map_pairs.append('%s : %s' % (k, str([escape_string(i) for i in v])))
-        elif type(v) == bool:
-            map_pairs.append("%s : %s" % (k, str(v)))                
-        else: 
-            warnings.warn("Can't use a %s as an attribute value in Cypher. Key %s Value :%s" 
-                          % (type(v), k, (str(v))))
-    
-    return "{ " + ' , '.join(map_pairs) + " }"
+
+def gen_simple_report(terms):
+    nc = Neo4jConnect("https://pdb.virtualflybrain.org", "neo4j", "neo4j")
+    query = """MATCH (n:Class) WHERE n.iri in %s WITH n 
+                OPTIONAL MATCH  (n)-[r]->(p:pub) WHERE r.typ = 'syn' 
+                WITH n, 
+                COLLECT({ synonym: r.synonym, PMID: 'PMID:' + p.PMID, 
+                    miniref: p.label}) AS syns 
+                OPTIONAL MATCH (n)-[r]-(p:pub) WHERE r.typ = 'def' 
+                with n, syns, 
+                collect({ PMID: 'PMID:' + p.PMID, miniref: p.label}) as pubs
+                OPTIONAL MATCH (n)-[:SUBCLASSOF]->(super:Class)
+                RETURN n.short_form as short_form, n.label as label, 
+                n.description as description, syns, pubs,
+                super.label, super.short_form
+                 """ % str(terms)
+    #print(query)
+    q = nc.commit_list([query])
+    # add check
+    return dict_cursor(q)
 
 
-            
+def get_lookup(limit_by_prefix=None,
+               credentials=("https://pdb.virtualflybrain.org", "neo4j", "neo4j"),
+               include_individuals=False):
 
-
-        
-            
-                
-        
-    
-    
+    """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a lost of prefixes
+    limit_by_prefix -  Optional list of id prefixes for limiting lookup.
+    credentials - default = production DB
+    include_individuals: If true, individuals included in lookup.
+    """
+    if limit_by_prefix:
+        regex_string = ':.+|'.join(limit_by_prefix) + ':.+'
+        where = " AND a.obo_id =~ '%s' " % regex_string
+    else:
+        where = ''
+    nc = Neo4jConnect(*credentials)
+    neo_labels = ['Class', 'Property']
+    if include_individuals:
+        neo_labels.append('Individual')
+    lookup_query = "MATCH (a:Class) WHERE exists (a.obo_id)" + where + " RETURN a.obo_id as id, a.label as name"
+    q = nc.commit_list([lookup_query])
+    r = dict_cursor(q)
+    lookup = {x['name']: x['id'] for x in r}
+    #print(lookup['neuron'])
+    property_query = "MATCH (p:Property) WHERE exists(p.obo_id) RETURN p.obo_id as id, p.label as name"
+    q = nc.commit_list([property_query])
+    r = dict_cursor(q)
+    lookup.update({x['name']: x['id'] for x in r})
+    #print(lookup['neuron'])
+    return lookup
