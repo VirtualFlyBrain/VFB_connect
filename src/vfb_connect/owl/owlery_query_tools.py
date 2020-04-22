@@ -6,6 +6,10 @@ import json
 ## MVP: queries when passed a curie map
 ## desireable: obo curies automatically generated from query string.
 
+
+
+
+
 class OWLeryConnect:
 
     def __init__(self,
@@ -66,10 +70,19 @@ class OWLeryConnect:
                           query=query, query_by_label=query_by_label,
                           direct=direct)
 
+
     def labels_2_ids(self, query_string):
         """Substitutes labels for IDs in a query string"""
-        return re.sub(r"'(.+?)'", lambda m: self.lookup.get(m.group(1)), query_string)
 
+        def subgp1_or_fail(m):
+            out = self.lookup.get(m.group(1))
+            if not out:
+                raise ValueError("Query includes unknown term label: " + query_string)
+            else:
+                return out
+
+        # This doesn't deal well with failure -> lambda too separate function
+        return re.sub(r"'(.+?)'", lambda m: subgp1_or_fail(m), query_string)
 
 
 

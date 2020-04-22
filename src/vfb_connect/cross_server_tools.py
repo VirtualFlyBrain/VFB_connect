@@ -1,5 +1,5 @@
 from .owl.owlery_query_tools import OWLeryConnect
-from .neo.neo4j_tools import Neo4jConnect,get_lookup, gen_simple_report
+from .neo.neo4j_tools import Neo4jConnect, get_lookup, gen_simple_report
 
 class VfbConnect():
     def __init__(self, neo_connection = None,
