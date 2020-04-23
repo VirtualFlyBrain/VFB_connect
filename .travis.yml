@@ -17,9 +17,6 @@ install:
   - pip install -r requirements.txt
 
 script:
-  - export PDB=http://localhost:7474/
-  - export USR=neo4j
-  - export PWD=neo4j
   - cd src
-  - python -m vfb_connect.owl.test.query_tools_tests
-  - python -m vfb_connect.neo.neo_tools_tests
+  - python -m vfb_connect.owl.owlery_query_tools
+#  - python -m vfb_connect.neo.neo_tools_tests
