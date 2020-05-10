@@ -51,7 +51,7 @@ class OWLeryConnect:
         r = requests.get(url=owl_endpoint, params=payload)
         print("Query URL: " + r.url)
         if r.status_code == 200:
-            print(json.dumps(r.json(), indent=4, sort_keys=False))
+            print("Query results: " + r.json()[return_type])
             return r.json()[return_type]
         else:
             warnings.warn(str(r.content))
