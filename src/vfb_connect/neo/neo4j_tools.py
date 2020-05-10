@@ -194,7 +194,7 @@ def gen_simple_report(terms):
                 n.description as description, syns, pubs,
                 super.label, super.short_form
                  """ % str(terms)
-    #print(query)
+    print("Run Query: " + query)
     q = nc.commit_list([query])
     # add check
     return dict_cursor(q)
