@@ -8,6 +8,7 @@ import time
 from datetime import timedelta
 import math
 import argparse
+from string import Template
 
 
 '''
@@ -58,8 +59,8 @@ class Neo4jConnect():
     # Not connection with original query is kept.
     
     
-    def __init__(self, base_uri, usr, pwd):
-        self.base_uri=base_uri
+    def __init__(self, endpoint, usr, pwd):
+        self.base_uri = endpoint
         self.usr = usr
         self.pwd = pwd
         self.test_connection()
@@ -229,3 +230,36 @@ def get_lookup(limit_by_prefix=None,
     lookup.update({x['name']: x['id'] for x in r})
     #print(lookup['neuron'])
     return lookup
+
+class QueryWrapper(Neo4jConnect):
+
+    def __init__(self, *args, **kwargs):
+        super(QueryWrapper, self).__init__(*args, **kwargs)
+        with open('../resources/VFB_TermInfo_queries.json', 'r') as f:
+            self.queries = json.loads(f.read())
+
+    def _get_TermInfo(self, typ, short_form):
+        qs = Template(self.queries[typ]).substitute(ID=short_form)
+        
+        q = self.commit_list([qs])
+        if q:
+            r = dict_cursor(q)
+            return r[0]
+        else:
+            return False
+            warnings.warn('') # Better to throw exception here.
+            
+    def get_anatomical_individual_TermInfo(self, short_form):
+        return self._get_TermInfo(typ='Get JSON for Individual:Anatomy')
+    
+    def get_type_TermInfo(self, short_form):
+        return self._get_TermInfo(typ='Get JSON for Class')
+
+    def get_DataSet_TermInfo(self, short_form):
+        return self._get_TermInfo(typ='Get JSON for DataSet')
+
+    def get_template_TermInfo(self, short_form):
+        return self._get_TermInfo(typ='Get JSON for Template')
+
+       
+

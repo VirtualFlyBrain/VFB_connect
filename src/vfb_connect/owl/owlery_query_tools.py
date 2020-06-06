@@ -8,8 +8,6 @@ import json
 
 
 
-
-
 class OWLeryConnect:
 
     def __init__(self,
