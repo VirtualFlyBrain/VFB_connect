@@ -1,14 +1,12 @@
 sudo: required
 dist: xenial
 
-before_install:
-<<<<<<< HEAD:.travis.yaml
- virtualflybrain/docker-vfb-neo4j:enterprise
-  - docker run -d --name pdb -p 7474:7475 -p 7688:7687 --env=NEO4J_AUTH=none --env=NEOREADONLY=True --env=NEO4J_CACHE_MEMORY=1G --env=NEO4J_HEAP_MEMORY=2560 --volume=$TRAVIS_BUILD_DIR/src/:/import/ virtualflybrain/docker-vfb-neo4j-productiondb
-=======
-  - docker run -d --name pdb -p 7474:7474 -p 7688:7687 --env=NEO4J_AUTH=none --env=NEOREADONLY=false --env=NEO4J_CACHE_MEMORY=1G --env=NEO4J_HEAP_MEMORY=2560 --volume=$TRAVIS_BUILD_DIR/src/:/import/ virtualflybrain/docker-vfb-neo4j-productiondb
->>>>>>> master:.travis.yml
-  - sleep 50s
+#before_install:
+# virtualflybrain/docker-vfb-neo4j:enterprise
+#  - docker run -d --name pdb -p 7474:7475 -p 7688:7687 --env=NEO4J_AUTH=none --env=NEOREADONLY=True --env=NEO4J_CACHE_MEMORY=1G #--env=NEO4J_HEAP_MEMORY=2560 --volume=$TRAVIS_BUILD_DIR/src/:/import/ virtualflybrain/docker-vfb-neo4j-productiondb
+#  - docker run -d --name pdb -p 7474:7474 -p 7688:7687 --env=NEO4J_AUTH=none --env=NEOREADONLY=false --env=NEO4J_CACHE_MEMORY=1G #--env=NEO4J_HEAP_MEMORY=2560 --volume=$TRAVIS_BUILD_DIR/src/:/import/ virtualflybrain/docker-vfb-neo4j-productiondb
+#
+#  - sleep 50s
 
 services:
   - docker
@@ -23,9 +21,5 @@ install:
 
 script:
   - cd src
-<<<<<<< HEAD:.travis.yaml
-  - python -m vfb_connect.owl.test.query_tools_tests
-=======
-  - python -m vfb_connect.owl.owlery_query_tools
->>>>>>> master:.travis.yml
-#  - python -m vfb_connect.neo.neo_tools_tests
+  - python -m vfb_connect.owl.test.query_tools_test
+  - python -m vfb_connect.test.cross_server_tools_test
