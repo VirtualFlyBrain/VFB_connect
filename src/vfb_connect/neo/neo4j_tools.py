@@ -238,7 +238,7 @@ class QueryWrapper(Neo4jConnect):
         with open('../resources/VFB_TermInfo_queries.json', 'r') as f:
             self.queries = json.loads(f.read())
 
-    def _get_TermInfo(self, typ, short_form):
+    def _get_TermInfo(self, short_form, typ):
         qs = Template(self.queries[typ]).substitute(ID=short_form)
         
         q = self.commit_list([qs])
@@ -250,15 +250,15 @@ class QueryWrapper(Neo4jConnect):
             warnings.warn('') # Better to throw exception here.
             
     def get_anatomical_individual_TermInfo(self, short_form):
-        return self._get_TermInfo(typ='Get JSON for Individual:Anatomy')
+        return self._get_TermInfo(short_form, typ='Get JSON for Individual:Anatomy')
     
     def get_type_TermInfo(self, short_form):
-        return self._get_TermInfo(typ='Get JSON for Class')
+        return self._get_TermInfo(short_form, typ='Get JSON for Class')
 
     def get_DataSet_TermInfo(self, short_form):
-        return self._get_TermInfo(typ='Get JSON for DataSet')
+        return self._get_TermInfo(short_form, typ='Get JSON for DataSet', )
 
     def get_template_TermInfo(self, short_form):
-        return self._get_TermInfo(typ='Get JSON for Template')
+        return self._get_TermInfo(short_form, typ='Get JSON for Template')
 
 
