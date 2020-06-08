@@ -28,4 +28,4 @@ vc.get_terms_by_region('fan-shaped body')
 
 ```
 
-TermInfo return values conform to [VFB_json_schema](https://github.com/VirtualFlyBrain/VFB_json_schema/blob/master/src/json_schema/vfb_termInfo.json) - see also [mod.json](https://github.com/VirtualFlyBrain/VFB_json_schema/blob/master/src/json_schema/mod.json)
+TermInfo return values conform to [VFB_json_schema](https://virtualflybrain.github.io/schema_doc.html)
