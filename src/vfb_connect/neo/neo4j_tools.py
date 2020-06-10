@@ -233,22 +233,40 @@ def get_lookup(limit_by_prefix=None,
 
 class QueryWrapper(Neo4jConnect):
 
+    def get_TermInfo(self, short_form):
+        pre_query = "MATCH (e:Entity { short_form: '%s'}) return labels(e) as elabs"
+        q = self.commit_list([pre_query])
+        if not q:
+            raise Exception('Query failed.')
+        else:
+            r = dict_cursor(q)
+            if not r:
+                warnings.warn('No results returned')
+                return False
+            else:
+                if 'Class' in r[0]['labels']:
+                    self.get_type_TermInfo(['short_form'])
+
     def __init__(self, *args, **kwargs):
         super(QueryWrapper, self).__init__(*args, **kwargs)
         with open('../resources/VFB_TermInfo_queries.json', 'r') as f:
             self.queries = json.loads(f.read())
 
-    def _get_TermInfo(self, short_form, typ):
-        qs = Template(self.queries[typ]).substitute(ID=short_form)
-        
+    def _get_TermInfo(self, short_form: list, typ):
+        sfl = "', '".join(short_form)
+        qs = Template(self.queries[typ]).substitute(ID=sfl)
+        print(qs)
         q = self.commit_list([qs])
         if q:
             r = dict_cursor(q)
-            return r[0]
+            if r:
+                return r
+            else:
+                warnings.warn('No results returned')
+                return False
         else:
-            return False
-            warnings.warn('') # Better to throw exception here.
-            
+            raise Exception('Query failed.')
+
     def get_anatomical_individual_TermInfo(self, short_form):
         return self._get_TermInfo(short_form, typ='Get JSON for Individual:Anatomy')
     
