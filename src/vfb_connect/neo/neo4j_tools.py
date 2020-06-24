@@ -265,9 +265,10 @@ class QueryWrapper(Neo4jConnect):
         clause2 = ''
         if acc:
             clause2 = "AND r.id_type = '%s'" % id_type
-        ret = "RETURN i.short_form as subject_id"
-        query = ' '.join([match, clause1, clause2, ret])
-        q = self.commit_list([query])
+        ret = "RETURN i.short_form as short_form"
+        q = ' '.join([match, clause1, clause2, ret])
+        dc = self.query(q)
+        return self.get_TermInfo([d['short_form'] for d in dc])
 
     def get_TermInfo(self, short_forms):
         pre_query = "MATCH (e:Entity) " \
