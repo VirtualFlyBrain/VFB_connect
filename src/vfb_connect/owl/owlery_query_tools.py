@@ -39,6 +39,19 @@ class OWLeryConnect:
 
     def query(self, query_type, return_type,
               query, query_by_label=False, direct=False):
+        """
+        A wrapper for querying Owlery Endpoints.  See
+        https://owlery.phenoscape.org/api/ for doc
+        :param query_type: Options: subclasses, superclasses,
+        equivalent, instances, types
+        :param return_type:
+        :param query: 'Manchester syntax query with owl entities as <iri>,
+         curie (supporting curies declared on object)
+         or single quoted label (if query_by_label isTrue)
+        :param query_by_label: Boolean. Default False.
+        :param direct: Boolean. Default False. Determines T/F
+        :return:
+        """
         owl_endpoint = self.owlery_endpoint + query_type +"?"
         if query_by_label:
             query = self.labels_2_ids(query)
