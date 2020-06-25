@@ -263,11 +263,12 @@ class QueryWrapper(Neo4jConnect):
         if db:
             clause1 = "AND s.short_form = '%s'"
         clause2 = ''
-        if acc:
+        if id_type:
             clause2 = "AND r.id_type = '%s'" % id_type
         ret = "RETURN i.short_form as short_form"
         q = ' '.join([match, clause1, clause2, ret])
-        dc = self.query(q)
+        print(q)
+        dc = self._query(q)
         return self.get_TermInfo([d['short_form'] for d in dc])
 
     def get_TermInfo(self, short_forms):

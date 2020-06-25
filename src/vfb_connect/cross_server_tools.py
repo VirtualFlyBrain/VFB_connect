@@ -19,7 +19,7 @@ class VfbConnect():
             self.nc = Neo4jConnect(**defaults['neo'])
             self.neo_query_wrapper = QueryWrapper(**defaults['neo'])
         else:
-            self.nc = Neo4jConnect(**neo_connection)
+            self.neo_query_wrapper = QueryWrapper(**neo_connection)
         if not owlery_connection:
             self.oc = OWLeryConnect(**defaults['owlery'])
 
