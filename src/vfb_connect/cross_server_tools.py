@@ -22,6 +22,8 @@ class VfbConnect():
             self.neo_query_wrapper = QueryWrapper(**neo_connection)
         if not owlery_connection:
             self.oc = OWLeryConnect(**defaults['owlery'])
+        else:
+            self.oc = QueryWrapper(**owlery_connection)
 
 
 
