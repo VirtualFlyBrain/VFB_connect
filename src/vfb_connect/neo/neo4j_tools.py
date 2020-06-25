@@ -276,13 +276,16 @@ class QueryWrapper(Neo4jConnect):
                     "WHERE e.short_form in %s " \
                     "RETURN e.short_form as short_form, labels(e) as labs " % str(short_forms)
         r = self._query(pre_query)
+        out = []
         for e in r:
             if 'Class' in e['labs']:
-               return self.get_type_TermInfo([e['short_form']])
+               out.extend(self.get_type_TermInfo([e['short_form']]))
             elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
-                return self.get_anatomical_individual_TermInfo([e['short_form']])
+                out.extend(self.get_anatomical_individual_TermInfo([e['short_form']]))
             elif 'DataSet' in e['labs']:
-                return self._get_TermInfo([e['short_form']], typ='Get JSON for DataSet')
+                out.extend(self.get_DataSet_TermInfo([e['short_form']]))
+        return out
+
 
 
 
