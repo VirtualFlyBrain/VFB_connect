@@ -195,7 +195,6 @@ def gen_simple_report(terms):
                 n.description as description, syns, pubs,
                 super.label, super.short_form
                  """ % str(terms)
-    print("Run Query: " + query)
     q = nc.commit_list([query])
     # add check
     return dict_cursor(q)
@@ -254,20 +253,19 @@ class QueryWrapper(Neo4jConnect):
         query = "MATCH (i:Individual) " \
                 "WHERE 'Site' in labels(i) OR 'API' in labels(i)" \
                 "return i.short_form"
-        return self._query(query)
+        return [d['i.short_form'] for d in self._query(query)]
 
     def get_terms_by_xref(self, acc, db='', id_type=''):
         match = "MATCH (s:Individual)<-[r:hasDbXref]-(i:Individual) " \
                 "WHERE r.accession in %s" % str(acc)
         clause1 = ''
         if db:
-            clause1 = "AND s.short_form = '%s'"
+            clause1 = "AND s.short_form = '%s'" % db
         clause2 = ''
         if id_type:
             clause2 = "AND r.id_type = '%s'" % id_type
         ret = "RETURN i.short_form as short_form"
         q = ' '.join([match, clause1, clause2, ret])
-        print(q)
         dc = self._query(q)
         return self.get_TermInfo([d['short_form'] for d in dc])
 
@@ -292,7 +290,6 @@ class QueryWrapper(Neo4jConnect):
     def _get_TermInfo(self, short_forms: list, typ):
         sfl = "', '".join(short_forms)
         qs = Template(self.queries[typ]).substitute(ID=sfl)
-        print(qs)
         return self._query(qs)
 
     def get_anatomical_individual_TermInfo(self, short_forms):
