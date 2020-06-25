@@ -14,7 +14,7 @@ from vfb_connect.cross_server_tools import VfbConnect
 
 vc=VfbConnect()
 
-# Get TermInfo for Types/Classes, DataSets and anatomical individuals:
+# Get TermInfo for Types/Classes, DataSets and anatomical individuals.
 
 vc.neo_query_wrapper.get_type_TermInfo('FBbt_00003686')
 
@@ -28,3 +28,4 @@ vc.get_terms_by_region('fan-shaped body')
 
 ```
 
+TermInfo return values conform to [VFB_json_schema](https://virtualflybrain.github.io/schema_doc.html)
