@@ -33,7 +33,7 @@ class OwleryConnectTest(unittest.TestCase):
                           'fan-shaped body': 'FBbt:00003679'}
         ofbl = self.oc.get_subclasses(query=self.test_query_labels, query_by_label=True)
         self.assertTrue(ofb, "Query failed.")
-        self.assertEqual(ofb, ofbl)
+        self.assertTrue(set(ofb) == set(ofbl))
 
 
 
