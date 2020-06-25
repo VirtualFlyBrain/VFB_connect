@@ -238,27 +238,73 @@ class QueryWrapper(Neo4jConnect):
         with open('../resources/VFB_TermInfo_queries.json', 'r') as f:
             self.queries = json.loads(f.read())
 
-    def _get_TermInfo(self, short_form, typ):
-        qs = Template(self.queries[typ]).substitute(ID=short_form)
-        
-        q = self.commit_list([qs])
-        if q:
-            r = dict_cursor(q)
-            return r[0]
+    def _query(self, q):
+        qr = self.commit_list([q])
+        if not qr:
+            raise Exception('Query failed.')
         else:
-            return False
-            warnings.warn('') # Better to throw exception here.
-            
-    def get_anatomical_individual_TermInfo(self, short_form):
-        return self._get_TermInfo(short_form, typ='Get JSON for Individual:Anatomy')
+            r = dict_cursor(qr)
+            if not r:
+                warnings.warn('No results returned')
+                return False
+            else:
+                return r
+
+    def get_dbs(self):
+        query = "MATCH (i:Individual) " \
+                "WHERE 'Site' in labels(i) OR 'API' in labels(i)" \
+                "return i.short_form"
+        return self._query(query)
+
+    def get_terms_by_xref(self, acc, db='', id_type=''):
+        match = "MATCH (s:Individual)<-[r:hasDbXref]-(i:Individual) " \
+                "WHERE r.accession in %s" % str(acc)
+        clause1 = ''
+        if db:
+            clause1 = "AND s.short_form = '%s'"
+        clause2 = ''
+        if id_type:
+            clause2 = "AND r.id_type = '%s'" % id_type
+        ret = "RETURN i.short_form as short_form"
+        q = ' '.join([match, clause1, clause2, ret])
+        print(q)
+        dc = self._query(q)
+        return self.get_TermInfo([d['short_form'] for d in dc])
+
+    def get_TermInfo(self, short_forms):
+        pre_query = "MATCH (e:Entity) " \
+                    "WHERE e.short_form in %s " \
+                    "RETURN e.short_form as short_form, labels(e) as labs " % str(short_forms)
+        r = self._query(pre_query)
+        out = []
+        for e in r:
+            if 'Class' in e['labs']:
+               out.extend(self.get_type_TermInfo([e['short_form']]))
+            elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
+                out.extend(self.get_anatomical_individual_TermInfo([e['short_form']]))
+            elif 'DataSet' in e['labs']:
+                out.extend(self.get_DataSet_TermInfo([e['short_form']]))
+        return out
+
+
+
+
+    def _get_TermInfo(self, short_forms: list, typ):
+        sfl = "', '".join(short_forms)
+        qs = Template(self.queries[typ]).substitute(ID=sfl)
+        print(qs)
+        return self._query(qs)
+
+    def get_anatomical_individual_TermInfo(self, short_forms):
+        return self._get_TermInfo(short_forms, typ='Get JSON for Individual:Anatomy')
     
-    def get_type_TermInfo(self, short_form):
-        return self._get_TermInfo(short_form, typ='Get JSON for Class')
+    def get_type_TermInfo(self, short_forms):
+        return self._get_TermInfo(short_forms, typ='Get JSON for Class')
 
-    def get_DataSet_TermInfo(self, short_form):
-        return self._get_TermInfo(short_form, typ='Get JSON for DataSet', )
+    def get_DataSet_TermInfo(self, short_forms):
+        return self._get_TermInfo(short_forms, typ='Get JSON for DataSet')
 
-    def get_template_TermInfo(self, short_form):
-        return self._get_TermInfo(short_form, typ='Get JSON for Template')
+    def get_template_TermInfo(self, short_forms):
+        return self._get_TermInfo(short_forms, typ='Get JSON for Template')
 
 
