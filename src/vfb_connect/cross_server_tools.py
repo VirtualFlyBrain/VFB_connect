@@ -1,5 +1,11 @@
 from .owl.owlery_query_tools import OWLeryConnect
-from .neo.neo4j_tools import Neo4jConnect, QueryWrapper, get_lookup, gen_simple_report
+from .neo.neo4j_tools import Neo4jConnect, QueryWrapper, get_lookup, gen_simple_report, re
+
+def gen_short_form(iri):
+    """Generate short_form (string) from an iri string
+    iri: An iri string"""
+    return re.split('/|#', iri)[-1]
+    
 
 class VfbConnect():
     def __init__(self, neo_connection=None,
@@ -23,7 +29,7 @@ class VfbConnect():
         if not owlery_connection:
             self.oc = OWLeryConnect(**defaults['owlery'])
         else:
-            self.oc = QueryWrapper(**owlery_connection)
+            self.oc = OWLeryConnect(**owlery_connection)
 
 
 
@@ -41,18 +47,17 @@ class VfbConnect():
         terms = self.oc.get_subclasses(owl_query, query_by_label=query_by_label)
         if verbose:
             print("Found: %d terms" % len(terms))
-        return gen_simple_report(terms)
+        return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)))
 
     def get_subclasses(self, term, query_by_label=True, direct=False):
         """Generate JSON report of all subclasses of the submitted term."""
         terms = self.oc.get_subclasses("'%s'" % term, query_by_label=query_by_label)
-        return gen_simple_report(terms)
+        return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)))
 
     def get_superclasses(self, term, query_by_label=True, direct=False):
         """Generate JSON report of all subclasses of the submitted term."""
         terms = self.oc.get_subclasses("'%s'" % term, query_by_label=True)
-        return gen_simple_report(terms)
-
+        return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)))
 
 
 

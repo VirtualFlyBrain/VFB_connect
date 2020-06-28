@@ -9,6 +9,7 @@ from datetime import timedelta
 import math
 import argparse
 from string import Template
+import pkg_resources
 
 
 '''
@@ -234,7 +235,10 @@ class QueryWrapper(Neo4jConnect):
 
     def __init__(self, *args, **kwargs):
         super(QueryWrapper, self).__init__(*args, **kwargs)
-        with open('../resources/VFB_TermInfo_queries.json', 'r') as f:
+        query_json = pkg_resources.resource_filename(
+                            "vfb_connect",
+                            "resources/VFB_TermInfo_queries.json")
+        with open(query_json, 'r') as f:
             self.queries = json.loads(f.read())
 
     def _query(self, q):
@@ -285,11 +289,11 @@ class QueryWrapper(Neo4jConnect):
         return out
 
 
-
-
-    def _get_TermInfo(self, short_forms: list, typ):
+    def _get_TermInfo(self, short_forms: list, typ, show_query=False):
         sfl = "', '".join(short_forms)
         qs = Template(self.queries[typ]).substitute(ID=sfl)
+        if show_query:
+            print(qs)
         return self._query(qs)
 
     def get_anatomical_individual_TermInfo(self, short_forms):

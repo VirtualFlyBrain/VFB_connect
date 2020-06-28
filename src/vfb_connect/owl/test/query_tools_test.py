@@ -35,5 +35,6 @@ class OwleryConnectTest(unittest.TestCase):
         self.assertTrue(ofb, "Query failed.")
         self.assertTrue(set(ofb) == set(ofbl))
 
+
 if __name__ == '__main__':
     unittest.main()

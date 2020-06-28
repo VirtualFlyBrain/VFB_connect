@@ -21,14 +21,6 @@ class Test_commit(unittest.TestCase):
         self.nc.commit_list(["MATCH (t:Test { fu: 'bar' }) DELETE t"])
 
 
-
-
-
-
-
-
-
-
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
