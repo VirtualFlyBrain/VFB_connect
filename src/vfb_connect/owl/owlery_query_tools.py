@@ -69,9 +69,16 @@ class OWLeryConnect:
             return False
 
     def get_subclasses(self, query, query_by_label=False, direct=False):
-        """Get subclasses of
+        """Get subclasses satisfying  query, where query is an OWL DL query
            """
         return self.query(query_type='subclasses', return_type='superClassOf',
+                          query=query, query_by_label=query_by_label,
+                          direct=direct)
+
+    def get_instances(self, query, query_by_label=False, direct=False):
+        """Get instances satisfying query, where query is an OWL DL query
+           """
+        return self.query(query_type='instances', return_type='hasInstance',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
 
