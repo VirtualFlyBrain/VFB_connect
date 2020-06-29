@@ -30,7 +30,7 @@ setup(name='vfb_connect',  # Required
           #   5 - Production/Stable
           'Development Status :: 3 - Alpha',
           'Intended Audience :: Science/Research',
-          'License :: OSI Approved :: Apache Software License',
+          'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
           'Programming Language :: Python :: 3',
        ],
       project_urls={  # Optional
