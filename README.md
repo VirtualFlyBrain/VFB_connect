@@ -1,6 +1,6 @@
 # VFB_connect [![Build Status](https://travis-ci.com/VirtualFlyBrain/VFB_connect.svg?branch=master)](https://travis-ci.com/VirtualFlyBrain/VFB_connect)
 
-VFB connect is a Python lib that wraps data/knowledgeBase query endpoints and returns VFB_json.
+VFB_connect is a Python lib that wraps data/knowledgeBase query endpoints and returns VFB_json.
   
   
   ## Some examples:
