@@ -59,6 +59,12 @@ class VfbConnect():
         terms = self.oc.get_subclasses("'%s'" % term, query_by_label=True)
         return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)))
 
+    def get_images(self, term, query_by_label = True, direct = False):
+        """Generate JSON report of all images of the submitted type."""
+        terms = self.oc.get_instances("'%s'" % term, query_by_label=True)
+        return self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)))
+
+
 
 
 

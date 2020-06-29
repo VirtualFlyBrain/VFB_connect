@@ -22,7 +22,7 @@ setup(name='vfb_connect',  # Required
       # This should be a valid email address corresponding to the author listed
       # above.
       author_email='dosumis@gmail.com',  # Optional
-      data_files=[('json_schema', ['src/resources/VFB_TermInfo_queries.json'])],
+      data_files=[('json_schema', ['src/vfb_connect/resources/VFB_TermInfo_queries.json'])],
       classifiers=[  # Optional
           # How mature is this project? Common values are
           #   3 - Alpha
@@ -30,7 +30,7 @@ setup(name='vfb_connect',  # Required
           #   5 - Production/Stable
           'Development Status :: 3 - Alpha',
           'Intended Audience :: Science/Research',
-          'License :: OSI Approved :: Apache Software License',
+          'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
           'Programming Language :: Python :: 3',
        ],
       project_urls={  # Optional
