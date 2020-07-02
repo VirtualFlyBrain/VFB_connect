@@ -34,7 +34,7 @@ setup(name='vfb_connect',  # Required
           'Programming Language :: Python :: 3',
        ],
       project_urls={  # Optional
-          'Bug Reports': 'https://github.com/VirtualFlyBrain/VFB_connectissues',
+          'Bug Reports': 'https://github.com/VirtualFlyBrain/VFB_connect/issues',
           'Source': 'https://github.com/VirtualFlyBrain/VFB_connect/src',
        },
 )

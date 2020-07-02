@@ -38,7 +38,7 @@ class OWLeryConnect:
         self.curies.update(c)
 
     def query(self, query_type, return_type,
-              query, query_by_label=False, direct=False):
+              query, query_by_label=False, direct=False, verbose=False):
         """
         A wrapper for querying Owlery Endpoints.  See
         https://owlery.phenoscape.org/api/ for doc
@@ -50,6 +50,7 @@ class OWLeryConnect:
          or single quoted label (if query_by_label isTrue)
         :param query_by_label: Boolean. Default False.
         :param direct: Boolean. Default False. Determines T/F
+        :param verbose - print verbose output to stdout for debugging purposes.
         :return:
         """
         owl_endpoint = self.owlery_endpoint + query_type +"?"

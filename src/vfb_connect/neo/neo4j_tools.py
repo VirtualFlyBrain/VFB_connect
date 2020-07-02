@@ -249,7 +249,7 @@ class QueryWrapper(Neo4jConnect):
             r = dict_cursor(qr)
             if not r:
                 warnings.warn('No results returned')
-                return False
+                return []
             else:
                 return r
 
@@ -259,8 +259,42 @@ class QueryWrapper(Neo4jConnect):
                 "return i.short_form"
         return [d['i.short_form'] for d in self._query(query)]
 
-    def get_terms_by_xref(self, acc, db='', id_type=''):
-        match = "MATCH (s:Individual)<-[r:hasDbXref]-(i:Individual) " \
+    def vfb_id_2_xrefs(self, vfb_id, db='', id_type='', reverse_return=False):
+        """Map a list of node short_form IDs in VFB to external DB IDs
+        Args:
+         vfb_id: list of short_form IDs of nodes in the VFB KB
+         db: {optional} database identifier (short_form) in VFB
+         id_type: {optional} name of external id type (e.g. bodyId)
+        Return:
+            dict { VFB_id : [{ db: <db> : acc : <acc> }
+        """
+        match = "MATCH (s:Individual)<-[r:hasDbXref]-(i:Entity) " \
+                "WHERE i.short_form in %s" % str(vfb_id)
+        clause1 = ''
+        if db:
+            clause1 = "AND s.short_form = '%s'" % db
+        clause2 = ''
+        if id_type:
+            clause2 = "AND r.id_type = '%s'" % id_type
+        ret = "RETURN i.short_form as key, " \
+              "collect({ db: s.short_form, acc: r.accession}) as mapping"
+        if reverse_return:
+            ret = "RETURN r.accession as key, " \
+                  "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
+        q = ' '.join([match, clause1, clause2, ret])
+        dc = self._query(q)
+
+        return {d['key']: d['mapping'] for d in dc}
+
+    def xref_2_vfb_id(self, acc, db='', id_type='', reverse_return=False):
+        """Map an external ID (acc) to a VFB_id
+        args:
+            acc: list of external DB IDs (accessions)
+            db: {optional} database identifier (short_form) in VFB
+            id_type: {optional} name of external id type (e.g. bodyId)
+        Return:
+            dict { VFB_id : [{ db: <db> : acc : <acc> }]}"""
+        match = "MATCH (s:Individual)<-[r:hasDbXref]-(i:Entity) " \
                 "WHERE r.accession in %s" % str(acc)
         clause1 = ''
         if db:
@@ -268,10 +302,22 @@ class QueryWrapper(Neo4jConnect):
         clause2 = ''
         if id_type:
             clause2 = "AND r.id_type = '%s'" % id_type
-        ret = "RETURN i.short_form as short_form"
+        ret = "RETURN r.accession as key, " \
+              "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
+        if reverse_return:
+            ret = "RETURN i.short_form as key, " \
+                  "collect({ db: s.short_form, acc: r.accession}) as mapping"
         q = ' '.join([match, clause1, clause2, ret])
+        print(q)
         dc = self._query(q)
-        return self.get_TermInfo([d['short_form'] for d in dc])
+        return {d['key']: d['mapping'] for d in dc}
+
+    def get_terms_by_xref(self, acc, db='', id_type=''):
+        """Get terms in VFB corresponding to a
+            acc: list of external DB IDs (accession)
+            db: {optional} database identifier (short_form) in VFB
+            id_type: {optional} name of external id type (e.g. bodyId)"""
+        return self.get_TermInfo(list(self.xref_2_vfb_id(acc, db=db, id_type=id_type, reverse_return=True).keys()))
 
     def get_TermInfo(self, short_forms):
         pre_query = "MATCH (e:Entity) " \
