@@ -319,6 +319,17 @@ class QueryWrapper(Neo4jConnect):
             id_type: {optional} name of external id type (e.g. bodyId)"""
         return self.get_TermInfo(list(self.xref_2_vfb_id(acc, db=db, id_type=id_type, reverse_return=True).keys()))
 
+    def get_images_by_filename(self, filename, dataset=None):
+        m = "MATCH (ds:DataSet)<-[has_source]-(ai:Individual)<-[:depicts]" \
+            "-(channel:Individual)-[irw:in_register_with]-(tc:Template)"
+        w = "WHERE irw.filename = '%s'" % escape_string(filename)
+        if dataset:
+            w += "AND ds.short_form = '%s'" % dataset
+        r = "RETURN ai.short_form"
+        dc = self._query(' '.join([m, w, r]))
+        return self.get_anatomical_individual_TermInfo([d['ai.short_form']
+                                                        for d in dc])
+
     def get_TermInfo(self, short_forms):
         pre_query = "MATCH (e:Entity) " \
                     "WHERE e.short_form in %s " \
