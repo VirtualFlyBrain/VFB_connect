@@ -286,7 +286,7 @@ class QueryWrapper(Neo4jConnect):
 
         return {d['key']: d['mapping'] for d in dc}
 
-    def xref_2_vfb_id(self, acc, db='', id_type='', reverse_return=False):
+    def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
         """Map an external ID (acc) to a VFB_id
         args:
             acc: list of external DB IDs (accessions)
@@ -294,20 +294,21 @@ class QueryWrapper(Neo4jConnect):
             id_type: {optional} name of external id type (e.g. bodyId)
         Return:
             dict { VFB_id : [{ db: <db> : acc : <acc> }]}"""
-        match = "MATCH (s:Individual)<-[r:hasDbXref]-(i:Entity) " \
-                "WHERE r.accession in %s" % str(acc)
-        clause1 = ''
+        match = "MATCH (s:Individual)<-[r:hasDbXref]-(i:Entity) WHERE"
+        conditions = []
+        if not (acc is None):
+            conditions.append("r.accession in %s" % str(acc))
         if db:
-            clause1 = "AND s.short_form = '%s'" % db
-        clause2 = ''
+            conditions.append("s.short_form = '%s'" % db)
         if id_type:
-            clause2 = "AND r.id_type = '%s'" % id_type
+            conditions.append("r.id_type = '%s'" % id_type)
+        condition_clauses = ' AND '.join(conditions)
         ret = "RETURN r.accession as key, " \
               "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
         if reverse_return:
             ret = "RETURN i.short_form as key, " \
                   "collect({ db: s.short_form, acc: r.accession}) as mapping"
-        q = ' '.join([match, clause1, clause2, ret])
+        q = ' '.join([match, condition_clauses, ret])
         print(q)
         dc = self._query(q)
         return {d['key']: d['mapping'] for d in dc}
@@ -344,7 +345,6 @@ class QueryWrapper(Neo4jConnect):
             elif 'DataSet' in e['labs']:
                 out.extend(self.get_DataSet_TermInfo([e['short_form']]))
         return out
-
 
     def _get_TermInfo(self, short_forms: list, typ, show_query=False):
         sfl = "', '".join(short_forms)
