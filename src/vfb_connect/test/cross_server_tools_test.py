@@ -17,5 +17,5 @@ class VfbConnectTest(unittest.TestCase):
 
     def test_get_images(self):
         self.assertTrue(
-            self.vc.get_subclasses("fan-shaped body"))
+            self.vc.get_images("fan-shaped body"))
 
