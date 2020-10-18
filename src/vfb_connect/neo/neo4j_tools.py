@@ -50,10 +50,23 @@ def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
         yield l[i:i+n]
- 
 
-        
-class Neo4jConnect():
+
+def batch_query(func):
+    # Assumes first arg is to be batches and that return value is list
+    def wrapper_batch(*args, **kwargs):
+        cs = chunks(*args[1], 1000)
+        out = []
+        for c in cs:
+            arglist = list(args)
+            arglist[1] = c
+            subargs = tuple(arglist)
+            out.append(func(*subargs, **kwargs))
+        return out  # gets lost!
+    return wrapper_batch
+
+
+class Neo4jConnect:
     """Thin layer over REST API to hold connection details, 
     handle multi-statement POST queries, return results and report errors."""
     # Return results might be better handled in the case of multiple statements - especially when chunked.
@@ -331,9 +344,10 @@ class QueryWrapper(Neo4jConnect):
         return self.get_anatomical_individual_TermInfo([d['ai.short_form']
                                                         for d in dc])
 
+    @batch_query
     def get_TermInfo(self, short_forms):
         pre_query = "MATCH (e:Entity) " \
-                    "WHERE e.short_form in %s " \
+                    "WHERE e.short_form in ['%s'] " \
                     "RETURN e.short_form as short_form, labels(e) as labs " % str(short_forms)
         r = self._query(pre_query)
         out = []
@@ -353,15 +367,21 @@ class QueryWrapper(Neo4jConnect):
             print(qs)
         return self._query(qs)
 
+
+
+    @batch_query
     def get_anatomical_individual_TermInfo(self, short_forms):
         return self._get_TermInfo(short_forms, typ='Get JSON for Individual:Anatomy')
-    
+
+    @batch_query
     def get_type_TermInfo(self, short_forms):
         return self._get_TermInfo(short_forms, typ='Get JSON for Class')
 
+    @batch_query
     def get_DataSet_TermInfo(self, short_forms):
         return self._get_TermInfo(short_forms, typ='Get JSON for DataSet')
 
+    @batch_query
     def get_template_TermInfo(self, short_forms):
         return self._get_TermInfo(short_forms, typ='Get JSON for Template')
 
