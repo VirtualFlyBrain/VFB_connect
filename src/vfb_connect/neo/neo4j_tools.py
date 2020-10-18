@@ -55,14 +55,29 @@ def chunks(l, n):
 def batch_query(func):
     # Assumes first arg is to be batches and that return value is list
     def wrapper_batch(*args, **kwargs):
-        cs = chunks(*args[1], 1000)
+        cs = chunks(args[1], 1000)
         out = []
         for c in cs:
             arglist = list(args)
             arglist[1] = c
             subargs = tuple(arglist)
-            out.append(func(*subargs, **kwargs))
+            out.extend(func(*subargs, **kwargs))
         return out  # gets lost!
+    return wrapper_batch
+
+def batch_query_dict(func):
+    # Assumes first arg is to be batched and that return value is dict
+    def wrapper_batch(*args, **kwargs):
+        if not (args[1] is None):
+            cs = chunks(args[1], 1000)
+        else:
+            cs = [None]
+        out = dict()
+        for c in cs:
+            arglist = list(args)
+            arglist[1] = c
+            subargs = tuple(arglist)
+            out.update(func(*subargs, **kwargs))
     return wrapper_batch
 
 
@@ -299,6 +314,7 @@ class QueryWrapper(Neo4jConnect):
 
         return {d['key']: d['mapping'] for d in dc}
 
+#    @batch_query_dict
     def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
         """Map an external ID (acc) to a VFB_id
         args:
@@ -326,12 +342,16 @@ class QueryWrapper(Neo4jConnect):
         dc = self._query(q)
         return {d['key']: d['mapping'] for d in dc}
 
+    @batch_query
     def get_terms_by_xref(self, acc, db='', id_type=''):
         """Get terms in VFB corresponding to a
             acc: list of external DB IDs (accession)
             db: {optional} database identifier (short_form) in VFB
             id_type: {optional} name of external id type (e.g. bodyId)"""
-        return self.get_TermInfo(list(self.xref_2_vfb_id(acc, db=db, id_type=id_type, reverse_return=True).keys()))
+        return self.get_TermInfo(list(self.xref_2_vfb_id(acc,
+                                                         db=db,
+                                                         id_type=id_type,
+                                                         reverse_return=True).keys()))
 
     def get_images_by_filename(self, filename, dataset=None):
         m = "MATCH (ds:DataSet)<-[has_source]-(ai:Individual)<-[:depicts]" \
@@ -347,7 +367,7 @@ class QueryWrapper(Neo4jConnect):
     @batch_query
     def get_TermInfo(self, short_forms):
         pre_query = "MATCH (e:Entity) " \
-                    "WHERE e.short_form in ['%s'] " \
+                    "WHERE e.short_form in %s " \
                     "RETURN e.short_form as short_form, labels(e) as labs " % str(short_forms)
         r = self._query(pre_query)
         out = []
