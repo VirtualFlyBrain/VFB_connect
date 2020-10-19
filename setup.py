@@ -35,6 +35,6 @@ setup(name='vfb_connect',  # Required
        ],
       project_urls={  # Optional
           'Bug Reports': 'https://github.com/VirtualFlyBrain/VFB_connect/issues',
-          'Source': 'https://github.com/VirtualFlyBrain/VFB_connect/src',
+          'Source': 'https://github.com/VirtualFlyBrain/VFB_connect',
        },
 )
