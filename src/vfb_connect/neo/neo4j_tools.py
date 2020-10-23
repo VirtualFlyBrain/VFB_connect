@@ -65,20 +65,20 @@ def batch_query(func):
         return out  # gets lost!
     return wrapper_batch
 
-def batch_query_dict(func):
-    # Assumes first arg is to be batched and that return value is dict
-    def wrapper_batch(*args, **kwargs):
-        if not (args[1] is None):
-            cs = chunks(args[1], 1000)
-        else:
-            cs = [None]
-        out = dict()
-        for c in cs:
-            arglist = list(args)
-            arglist[1] = c
-            subargs = tuple(arglist)
-            out.update(func(*subargs, **kwargs))
-    return wrapper_batch
+# def batch_query_dict_opt(func):
+#      # Assumes first arg is to be batched and that return value is dict
+#      def wrapper_batch(*args, **kwargs):
+#          if not (args[1] is None):
+#              cs = chunks(args[1], 1000)
+#          else:
+#              return func(*args, **kwargs)
+#          out = dict()
+#          for c in cs:
+#              arglist = list(args)
+#              arglist[1] = c
+#              subargs = tuple(arglist)
+#              out.update(func(*subargs, **kwargs))
+#      return wrapper_batch
 
 
 class Neo4jConnect:
@@ -311,10 +311,8 @@ class QueryWrapper(Neo4jConnect):
                   "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
         q = ' '.join([match, clause1, clause2, ret])
         dc = self._query(q)
-
         return {d['key']: d['mapping'] for d in dc}
 
-#    @batch_query_dict
     def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
         """Map an external ID (acc) to a VFB_id
         args:
@@ -353,10 +351,12 @@ class QueryWrapper(Neo4jConnect):
                                                          id_type=id_type,
                                                          reverse_return=True).keys()))
 
-    def get_images_by_filename(self, filename, dataset=None):
+    def get_images_by_filename(self, filenames, dataset=None):
+        """Takes a list of filenames as input and returns a list of image terminfo.
+        Optionally restrict by dataset (improves speed)"""
         m = "MATCH (ds:DataSet)<-[has_source]-(ai:Individual)<-[:depicts]" \
             "-(channel:Individual)-[irw:in_register_with]-(tc:Template)"
-        w = "WHERE irw.filename = '%s'" % escape_string(filename)
+        w = "WHERE irw.filename in %s" % str([escape_string(f) for f in filenames])
         if dataset:
             w += "AND ds.short_form = '%s'" % dataset
         r = "RETURN ai.short_form"
