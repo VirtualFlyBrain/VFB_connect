@@ -10,7 +10,7 @@ import math
 import argparse
 from string import Template
 import pkg_resources
-
+from inspect import getfullargspec
 
 '''
 Created on 4 Feb 2016
@@ -52,17 +52,32 @@ def chunks(l, n):
         yield l[i:i+n]
 
 
+
+
 def batch_query(func):
-    # Assumes first arg is to be batches and that return value is list
+    # Assumes first arg is to be batches and that return value is list. Only works on class methods.
+    # There has to be a better way to work with the values of args and kwargs than this!!!!
     def wrapper_batch(*args, **kwargs):
-        cs = chunks(args[1], 1000)
+        arg_names = getfullargspec(func).args
+        if len(args) > 1:
+            arg1v = args[1]
+            arg1typ = 'a'
+        else:
+            arg1v = kwargs[arg_names[1]]
+            arg1typ = 'k'
+        cs = chunks(arg1v, 2500)
         out = []
         for c in cs:
-            arglist = list(args)
-            arglist[1] = c
-            subargs = tuple(arglist)
-            out.extend(func(*subargs, **kwargs))
-        return out  # gets lost!
+            if arg1typ == 'a':
+                arglist = list(args)
+                arglist[1] = c
+                subargs = tuple(arglist)
+                out.extend(func(*subargs, **kwargs))
+            elif arg1typ == 'k':
+                kwargdict = dict(kwargs)
+                kwargdict[arg_names[1]] = c
+                out.extend(func(*args, **kwargdict))
+        return out
     return wrapper_batch
 
 # def batch_query_dict_opt(func):
@@ -336,7 +351,7 @@ class QueryWrapper(Neo4jConnect):
             ret = "RETURN i.short_form as key, " \
                   "collect({ db: s.short_form, acc: r.accession}) as mapping"
         q = ' '.join([match, condition_clauses, ret])
-        print(q)
+#        print(q)
         dc = self._query(q)
         return {d['key']: d['mapping'] for d in dc}
 

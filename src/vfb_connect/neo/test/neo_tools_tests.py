@@ -17,6 +17,7 @@ class NewQueryWrapperTest(unittest.TestCase):
 
     def test_get_term_info(self):
         self.assertTrue(self.vc.neo_query_wrapper.get_type_TermInfo(['FBbt_00003686']))
+        self.assertTrue(self.vc.neo_query_wrapper.get_type_TermInfo(short_forms=['FBbt_00003686']))
         self.assertTrue(
             self.vc.neo_query_wrapper.get_DataSet_TermInfo(['Ito2013']))
         self.assertTrue(
