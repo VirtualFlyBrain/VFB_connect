@@ -8,9 +8,9 @@ def gen_short_form(iri):
     
 
 class VfbConnect():
-    def __init__(self, neo_endpoint="http://pdb.virtualflybrain.org",
+    def __init__(self, neo_endpoint="http://pdb.p2.virtualflybrain.org",
                  neo_credentials=('neo4j', 'neo4j'),
-                 owlery_endpoint="http://owl.virtualflybrain.org/kbs/vfb/",
+                 owlery_endpoint="http://owl.p2.virtualflybrain.org/kbs/vfb/",
                  lookup_prefixes=('FBbt', 'VFBexp', 'VFBext')):
         connections = {
             'neo': {

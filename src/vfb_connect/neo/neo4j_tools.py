@@ -231,6 +231,8 @@ def get_lookup(limit_by_prefix=None,
     #print(lookup['neuron'])
     return lookup
 
+from xml.sax import saxutils
+
 class QueryWrapper(Neo4jConnect):
 
     def __init__(self, *args, **kwargs):
@@ -239,7 +241,7 @@ class QueryWrapper(Neo4jConnect):
                             "vfb_connect",
                             "resources/VFB_TermInfo_queries.json")
         with open(query_json, 'r') as f:
-            self.queries = json.loads(f.read())
+            self.queries = json.loads(saxutils.unescape(f.read()))
 
     def _query(self, q):
         qr = self.commit_list([q])
@@ -268,7 +270,7 @@ class QueryWrapper(Neo4jConnect):
         Return:
             dict { VFB_id : [{ db: <db> : acc : <acc> }
         """
-        match = "MATCH (s:Individual)<-[r:hasDbXref]-(i:Entity) " \
+        match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) " \
                 "WHERE i.short_form in %s" % str(vfb_id)
         clause1 = ''
         if db:
@@ -277,9 +279,9 @@ class QueryWrapper(Neo4jConnect):
         if id_type:
             clause2 = "AND r.id_type = '%s'" % id_type
         ret = "RETURN i.short_form as key, " \
-              "collect({ db: s.short_form, acc: r.accession}) as mapping"
+              "collect({ db: s.short_form, acc: r.accession[0]}) as mapping"
         if reverse_return:
-            ret = "RETURN r.accession as key, " \
+            ret = "RETURN r.accession[0] as key, " \
                   "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
         q = ' '.join([match, clause1, clause2, ret])
         dc = self._query(q)
@@ -294,20 +296,20 @@ class QueryWrapper(Neo4jConnect):
             id_type: {optional} name of external id type (e.g. bodyId)
         Return:
             dict { VFB_id : [{ db: <db> : acc : <acc> }]}"""
-        match = "MATCH (s:Individual)<-[r:hasDbXref]-(i:Entity) WHERE"
+        match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) WHERE"
         conditions = []
         if not (acc is None):
-            conditions.append("r.accession in %s" % str(acc))
+            conditions.append("r.accession[0] in %s" % str(acc))
         if db:
             conditions.append("s.short_form = '%s'" % db)
         if id_type:
             conditions.append("r.id_type = '%s'" % id_type)
         condition_clauses = ' AND '.join(conditions)
-        ret = "RETURN r.accession as key, " \
+        ret = "RETURN r.accession[0] as key, " \
               "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
         if reverse_return:
             ret = "RETURN i.short_form as key, " \
-                  "collect({ db: s.short_form, acc: r.accession}) as mapping"
+                  "collect({ db: s.short_form, acc: r.accession[0]}) as mapping"
         q = ' '.join([match, condition_clauses, ret])
         print(q)
         dc = self._query(q)
@@ -323,7 +325,7 @@ class QueryWrapper(Neo4jConnect):
     def get_images_by_filename(self, filename, dataset=None):
         m = "MATCH (ds:DataSet)<-[has_source]-(ai:Individual)<-[:depicts]" \
             "-(channel:Individual)-[irw:in_register_with]-(tc:Template)"
-        w = "WHERE irw.filename = '%s'" % escape_string(filename)
+        w = "WHERE irw.filename[0] = '%s'" % escape_string(filename)
         if dataset:
             w += "AND ds.short_form = '%s'" % dataset
         r = "RETURN ai.short_form"
@@ -346,7 +348,7 @@ class QueryWrapper(Neo4jConnect):
                 out.extend(self.get_DataSet_TermInfo([e['short_form']]))
         return out
 
-    def _get_TermInfo(self, short_forms: list, typ, show_query=False):
+    def _get_TermInfo(self, short_forms: list, typ, show_query=True):
         sfl = "', '".join(short_forms)
         qs = Template(self.queries[typ]).substitute(ID=sfl)
         if show_query:
