@@ -10,7 +10,7 @@ import math
 import argparse
 from string import Template
 import pkg_resources
-
+from inspect import getfullargspec
 
 '''
 Created on 4 Feb 2016
@@ -50,10 +50,53 @@ def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
         yield l[i:i+n]
- 
 
-        
-class Neo4jConnect():
+
+
+
+def batch_query(func):
+    # Assumes first arg is to be batches and that return value is list. Only works on class methods.
+    # There has to be a better way to work with the values of args and kwargs than this!!!!
+    def wrapper_batch(*args, **kwargs):
+        arg_names = getfullargspec(func).args
+        if len(args) > 1:
+            arg1v = args[1]
+            arg1typ = 'a'
+        else:
+            arg1v = kwargs[arg_names[1]]
+            arg1typ = 'k'
+        cs = chunks(arg1v, 2500)
+        out = []
+        for c in cs:
+            if arg1typ == 'a':
+                arglist = list(args)
+                arglist[1] = c
+                subargs = tuple(arglist)
+                out.extend(func(*subargs, **kwargs))
+            elif arg1typ == 'k':
+                kwargdict = dict(kwargs)
+                kwargdict[arg_names[1]] = c
+                out.extend(func(*args, **kwargdict))
+        return out
+    return wrapper_batch
+
+# def batch_query_dict_opt(func):
+#      # Assumes first arg is to be batched and that return value is dict
+#      def wrapper_batch(*args, **kwargs):
+#          if not (args[1] is None):
+#              cs = chunks(args[1], 1000)
+#          else:
+#              return func(*args, **kwargs)
+#          out = dict()
+#          for c in cs:
+#              arglist = list(args)
+#              arglist[1] = c
+#              subargs = tuple(arglist)
+#              out.update(func(*subargs, **kwargs))
+#      return wrapper_batch
+
+
+class Neo4jConnect:
     """Thin layer over REST API to hold connection details, 
     handle multi-statement POST queries, return results and report errors."""
     # Return results might be better handled in the case of multiple statements - especially when chunked.
@@ -283,7 +326,6 @@ class QueryWrapper(Neo4jConnect):
                   "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
         q = ' '.join([match, clause1, clause2, ret])
         dc = self._query(q)
-
         return {d['key']: d['mapping'] for d in dc}
 
     def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
@@ -309,21 +351,27 @@ class QueryWrapper(Neo4jConnect):
             ret = "RETURN i.short_form as key, " \
                   "collect({ db: s.short_form, acc: r.accession}) as mapping"
         q = ' '.join([match, condition_clauses, ret])
-        print(q)
+#        print(q)
         dc = self._query(q)
         return {d['key']: d['mapping'] for d in dc}
 
+    @batch_query
     def get_terms_by_xref(self, acc, db='', id_type=''):
         """Get terms in VFB corresponding to a
             acc: list of external DB IDs (accession)
             db: {optional} database identifier (short_form) in VFB
             id_type: {optional} name of external id type (e.g. bodyId)"""
-        return self.get_TermInfo(list(self.xref_2_vfb_id(acc, db=db, id_type=id_type, reverse_return=True).keys()))
+        return self.get_TermInfo(list(self.xref_2_vfb_id(acc,
+                                                         db=db,
+                                                         id_type=id_type,
+                                                         reverse_return=True).keys()))
 
-    def get_images_by_filename(self, filename, dataset=None):
+    def get_images_by_filename(self, filenames, dataset=None):
+        """Takes a list of filenames as input and returns a list of image terminfo.
+        Optionally restrict by dataset (improves speed)"""
         m = "MATCH (ds:DataSet)<-[has_source]-(ai:Individual)<-[:depicts]" \
             "-(channel:Individual)-[irw:in_register_with]-(tc:Template)"
-        w = "WHERE irw.filename = '%s'" % escape_string(filename)
+        w = "WHERE irw.filename in %s" % str([escape_string(f) for f in filenames])
         if dataset:
             w += "AND ds.short_form = '%s'" % dataset
         r = "RETURN ai.short_form"
@@ -331,6 +379,7 @@ class QueryWrapper(Neo4jConnect):
         return self.get_anatomical_individual_TermInfo([d['ai.short_form']
                                                         for d in dc])
 
+    @batch_query
     def get_TermInfo(self, short_forms):
         pre_query = "MATCH (e:Entity) " \
                     "WHERE e.short_form in %s " \
@@ -353,15 +402,21 @@ class QueryWrapper(Neo4jConnect):
             print(qs)
         return self._query(qs)
 
+
+
+    @batch_query
     def get_anatomical_individual_TermInfo(self, short_forms):
         return self._get_TermInfo(short_forms, typ='Get JSON for Individual:Anatomy')
-    
+
+    @batch_query
     def get_type_TermInfo(self, short_forms):
         return self._get_TermInfo(short_forms, typ='Get JSON for Class')
 
+    @batch_query
     def get_DataSet_TermInfo(self, short_forms):
         return self._get_TermInfo(short_forms, typ='Get JSON for DataSet')
 
+    @batch_query
     def get_template_TermInfo(self, short_forms):
         return self._get_TermInfo(short_forms, typ='Get JSON for Template')
 

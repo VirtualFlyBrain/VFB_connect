@@ -18,4 +18,7 @@ class VfbConnectTest(unittest.TestCase):
     def test_get_images(self):
         self.assertTrue(
             self.vc.get_images("fan-shaped body"))
+        # Tests batched query
+        self.assertTrue(
+            len(self.vc.get_images('antennal lobe projection neuron')) > 1000)
 
