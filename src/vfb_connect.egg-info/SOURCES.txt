@@ -1,0 +1,15 @@
+README.md
+setup.py
+src/vfb_connect/__init__.py
+src/vfb_connect/cross_server_tools.py
+src/vfb_connect.egg-info/PKG-INFO
+src/vfb_connect.egg-info/SOURCES.txt
+src/vfb_connect.egg-info/dependency_links.txt
+src/vfb_connect.egg-info/top_level.txt
+src/vfb_connect/neo/__init__.py
+src/vfb_connect/neo/neo4j_tools.py
+src/vfb_connect/neo/test/__init__.py
+src/vfb_connect/neo/test/neo_tools_tests.py
+src/vfb_connect/owl/__init__.py
+src/vfb_connect/owl/owlery_query_tools.py
+src/vfb_connect/resources/VFB_TermInfo_queries.json
