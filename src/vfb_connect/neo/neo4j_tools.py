@@ -10,6 +10,7 @@ import math
 import argparse
 from string import Template
 import pkg_resources
+from ..default_servers import get_default_servers
 
 
 '''
@@ -24,7 +25,7 @@ Tools for connecting to the neo4j REST API
 
 def cli_credentials():
     """Parses command line credentials for Neo4J rest connection;
-    Optionally specifcy additional args as a list of dicts with
+    Optionally specify additional args as a list of dicts with
     args required by argparse.add_argument().  Order in list
     specified arg order"""
     parser = argparse.ArgumentParser()
@@ -41,7 +42,7 @@ def cli_credentials():
 
 def cli_neofj_connect():
     args = cli_credentials()
-    return Neo4jConnect(base_uri=args.endpoint,
+    return Neo4jConnect(endpoint=args.endpoint,
                         usr=args.usr,
                         pwd=args.pwd)
 
@@ -52,15 +53,15 @@ def chunks(l, n):
         yield l[i:i+n]
  
 
-        
-class Neo4jConnect():
+class Neo4jConnect:
     """Thin layer over REST API to hold connection details, 
     handle multi-statement POST queries, return results and report errors."""
     # Return results might be better handled in the case of multiple statements - especially when chunked.
     # Not connection with original query is kept.
-    
-    
-    def __init__(self, endpoint, usr, pwd):
+
+    def __init__(self, endpoint = get_default_servers()['neo_endpoint'],
+                 usr=get_default_servers()['neo_credentials'][0],
+                 pwd=get_default_servers()['neo_credentials'][1]):
         self.base_uri = endpoint
         self.usr = usr
         self.pwd = pwd
@@ -160,6 +161,34 @@ class Neo4jConnect():
         r = self.commit_list(['MATCH ()-[r]-() with keys(r) AS kl UNWIND kl as k RETURN DISTINCT k'])
         d = dict_cursor(r)
         return [x['k'] for x in d]
+
+    def get_lookup(self, limit_by_prefix=None, include_individuals=False):
+
+        """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a list of prefixes
+        limit_by_prefix -  Optional list of id prefixes for limiting lookup.
+        credentials - default = production DB
+        include_individuals: If true, individuals included in lookup.
+        """
+        if limit_by_prefix:
+            regex_string = '.+|'.join(limit_by_prefix) + '.+'
+            where = " WHERE a.short_form =~ '%s' " % regex_string
+        else:
+            where = ''
+        neo_labels = ['Class']
+        if include_individuals:
+            neo_labels.append('Individual')
+        out = []
+        for l in neo_labels:
+            lookup_query = "MATCH (a:%s) %s RETURN a.short_form as id, a.label as name" % (l, where)
+            q = self.commit_list([lookup_query])
+            out.extend(dict_cursor(q))
+        # All ObjectProperties wanted, irrespective of ID
+        property_lookup_query = "MATCH (a:ObjectProperty) RETURN a.short_form as id, a.label as name"
+        q = self.commit_list([property_lookup_query])
+        out.extend(dict_cursor(q))
+        lookup = {x['name']: x['id'].replace('_', ':') for x in out}
+        # print(lookup['neuron'])
+        return lookup
         
 def dict_cursor(results):
     """Takes JSON results from a neo4J query and turns them into a list of dicts.
@@ -200,36 +229,6 @@ def gen_simple_report(terms):
     # add check
     return dict_cursor(q)
 
-
-def get_lookup(limit_by_prefix=None,
-               credentials=("https://pdb.virtualflybrain.org", "neo4j", "neo4j"),
-               include_individuals=False):
-
-    """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a lost of prefixes
-    limit_by_prefix -  Optional list of id prefixes for limiting lookup.
-    credentials - default = production DB
-    include_individuals: If true, individuals included in lookup.
-    """
-    if limit_by_prefix:
-        regex_string = ':.+|'.join(limit_by_prefix) + ':.+'
-        where = " AND a.obo_id =~ '%s' " % regex_string
-    else:
-        where = ''
-    nc = Neo4jConnect(*credentials)
-    neo_labels = ['Class', 'Property']
-    if include_individuals:
-        neo_labels.append('Individual')
-    lookup_query = "MATCH (a:Class) WHERE exists (a.obo_id)" + where + " RETURN a.obo_id as id, a.label as name"
-    q = nc.commit_list([lookup_query])
-    r = dict_cursor(q)
-    lookup = {x['name']: x['id'] for x in r}
-    #print(lookup['neuron'])
-    property_query = "MATCH (p:Property) WHERE exists(p.obo_id) RETURN p.obo_id as id, p.label as name"
-    q = nc.commit_list([property_query])
-    r = dict_cursor(q)
-    lookup.update({x['name']: x['id'] for x in r})
-    #print(lookup['neuron'])
-    return lookup
 
 from xml.sax import saxutils
 

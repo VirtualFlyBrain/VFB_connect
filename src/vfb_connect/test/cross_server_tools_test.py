@@ -5,7 +5,8 @@ from ..cross_server_tools import VfbConnect
 class VfbConnectTest(unittest.TestCase):
 
     def setUp(self):
-        self.vc = VfbConnect()
+        self.vc = VfbConnect(neo_endpoint='http://pdb.p2.virtualflybrain.org',
+                             neo_credentials=('neo4j', 'neo4j'))
 
     def test_get_term_by_region(self):
         self.assertTrue(
