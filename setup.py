@@ -9,7 +9,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(name='vfb_connect',  # Required
-      version='v0.0.2',  # Required
+      version='v0.0.3',  # Required
       packages=find_packages(where='src'),
       package_dir={'': 'src'},
       py_modules=[path.splitext(path.basename(path))[0] for path in glob.glob('src/*.py')],
@@ -28,7 +28,7 @@ setup(name='vfb_connect',  # Required
           #   3 - Alpha
           #   4 - Beta
           #   5 - Production/Stable
-          'Development Status :: 3 - Alpha',
+          'Development Status :: 4 - Beta',
           'Intended Audience :: Science/Research',
           'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
           'Programming Language :: Python :: 3',

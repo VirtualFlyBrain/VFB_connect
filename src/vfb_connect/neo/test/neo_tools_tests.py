@@ -16,7 +16,7 @@ class NeoQueryWrapperTest(unittest.TestCase):
         self.qw = QueryWrapper()
 
     def test_get_term_info(self):
-        self.assertTrue(self.qw.get_type_TermInfo(['FBbt_00003686']))
+        self.assertTrue(self.vc.neo_query_wrapper.get_type_TermInfo(short_forms=['FBbt_00003686']))
         self.assertTrue(
             self.qw.get_DataSet_TermInfo(['Ito2013']))
         self.assertTrue(
@@ -35,6 +35,10 @@ class NeoQueryWrapperTest(unittest.TestCase):
         self.assertTrue(self.qw.vfb_id_2_xrefs(['VFB_00014110'], db='FlyCircuit'))
 
     def test_get_image_by_filename(self):
+        # super slow!
+#        self.assertTrue(
+#            self.vc.neo_query_wrapper.get_images_by_filename(
+#                ['JFRC2_MBON-b1-a.nrrd']))
         self.assertTrue(
             self.qw.get_images_by_filename(
                 'JFRC2_MBON-b1-a.nrrd'))
