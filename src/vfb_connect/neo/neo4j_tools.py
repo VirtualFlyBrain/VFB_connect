@@ -162,7 +162,8 @@ class Neo4jConnect:
         d = dict_cursor(r)
         return [x['k'] for x in d]
 
-    def get_lookup(self, limit_by_prefix=None, include_individuals=False):
+    def get_lookup(self, limit_by_prefix=None, include_individuals=False,
+                   limit_properties_by_prefix=('RO', 'BFO', 'VFBext')):
 
         """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a list of prefixes
         limit_by_prefix -  Optional list of id prefixes for limiting lookup.
@@ -183,7 +184,14 @@ class Neo4jConnect:
             q = self.commit_list([lookup_query])
             out.extend(dict_cursor(q))
         # All ObjectProperties wanted, irrespective of ID
-        property_lookup_query = "MATCH (a:ObjectProperty) RETURN a.short_form as id, a.label as name"
+        if limit_properties_by_prefix:
+            regex_string = '.+|'.join(limit_properties_by_prefix) + '.+'
+            where = " WHERE a.short_form =~ '%s' " % regex_string
+        else:
+            where = ''
+        property_lookup_query = "MATCH (a:ObjectProperty) " \
+                                " " + where + " " \
+                                "RETURN a.short_form as id, a.label as name"
         q = self.commit_list([property_lookup_query])
         out.extend(dict_cursor(q))
         lookup = {x['name']: x['id'].replace('_', ':') for x in out}
