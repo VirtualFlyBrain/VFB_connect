@@ -2,6 +2,7 @@ import requests
 import warnings
 import re
 import json
+from ..default_servers import get_default_servers
 
 ## MVP: queries when passed a curie map
 ## desireable: obo curies automatically generated from query string.
@@ -11,7 +12,7 @@ import json
 class OWLeryConnect:
 
     def __init__(self,
-                 endpoint="http://owl.virtualflybrain.org/kbs/vfb/",
+                 endpoint=get_default_servers()['owlery_endpoint'],
                  lookup=None,
                  obo_curies=('FBbt', 'RO', 'BFO'),
                  curies=None):

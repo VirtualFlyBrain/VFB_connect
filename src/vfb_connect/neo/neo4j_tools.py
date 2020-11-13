@@ -10,21 +10,14 @@ import math
 import argparse
 from string import Template
 import pkg_resources
+from ..default_servers import get_default_servers
 from inspect import getfullargspec
-
-'''
-Created on 4 Feb 2016
-
-Tools for connecting to the neo4j REST API
-
-@author: davidos
-'''
 
 
 
 def cli_credentials():
     """Parses command line credentials for Neo4J rest connection;
-    Optionally specifcy additional args as a list of dicts with
+    Optionally specify additional args as a list of dicts with
     args required by argparse.add_argument().  Order in list
     specified arg order"""
     parser = argparse.ArgumentParser()
@@ -41,7 +34,7 @@ def cli_credentials():
 
 def cli_neofj_connect():
     args = cli_credentials()
-    return Neo4jConnect(base_uri=args.endpoint,
+    return Neo4jConnect(endpoint=args.endpoint,
                         usr=args.usr,
                         pwd=args.pwd)
 
@@ -50,8 +43,6 @@ def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
         yield l[i:i+n]
-
-
 
 
 def batch_query(func):
@@ -101,9 +92,10 @@ class Neo4jConnect:
     handle multi-statement POST queries, return results and report errors."""
     # Return results might be better handled in the case of multiple statements - especially when chunked.
     # Not connection with original query is kept.
-    
-    
-    def __init__(self, endpoint, usr, pwd):
+
+    def __init__(self, endpoint = get_default_servers()['neo_endpoint'],
+                 usr=get_default_servers()['neo_credentials'][0],
+                 pwd=get_default_servers()['neo_credentials'][1]):
         self.base_uri = endpoint
         self.usr = usr
         self.pwd = pwd
@@ -203,6 +195,42 @@ class Neo4jConnect:
         r = self.commit_list(['MATCH ()-[r]-() with keys(r) AS kl UNWIND kl as k RETURN DISTINCT k'])
         d = dict_cursor(r)
         return [x['k'] for x in d]
+
+    def get_lookup(self, limit_by_prefix=None, include_individuals=False,
+                   limit_properties_by_prefix=('RO', 'BFO', 'VFBext')):
+
+        """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a list of prefixes
+        limit_by_prefix -  Optional list of id prefixes for limiting lookup.
+        credentials - default = production DB
+        include_individuals: If true, individuals included in lookup.
+        """
+        if limit_by_prefix:
+            regex_string = '.+|'.join(limit_by_prefix) + '.+'
+            where = " WHERE a.short_form =~ '%s' " % regex_string
+        else:
+            where = ''
+        neo_labels = ['Class']
+        if include_individuals:
+            neo_labels.append('Individual')
+        out = []
+        for l in neo_labels:
+            lookup_query = "MATCH (a:%s) %s RETURN a.short_form as id, a.label as name" % (l, where)
+            q = self.commit_list([lookup_query])
+            out.extend(dict_cursor(q))
+        # All ObjectProperties wanted, irrespective of ID
+        if limit_properties_by_prefix:
+            regex_string = '.+|'.join(limit_properties_by_prefix) + '.+'
+            where = " WHERE a.short_form =~ '%s' " % regex_string
+        else:
+            where = ''
+        property_lookup_query = "MATCH (a:ObjectProperty) " \
+                                " " + where + " " \
+                                "RETURN a.short_form as id, a.label as name"
+        q = self.commit_list([property_lookup_query])
+        out.extend(dict_cursor(q))
+        lookup = {x['name']: x['id'].replace('_', ':') for x in out}
+        # print(lookup['neuron'])
+        return lookup
         
 def dict_cursor(results):
     """Takes JSON results from a neo4J query and turns them into a list of dicts.
@@ -244,35 +272,7 @@ def gen_simple_report(terms):
     return dict_cursor(q)
 
 
-def get_lookup(limit_by_prefix=None,
-               credentials=("https://pdb.virtualflybrain.org", "neo4j", "neo4j"),
-               include_individuals=False):
-
-    """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a lost of prefixes
-    limit_by_prefix -  Optional list of id prefixes for limiting lookup.
-    credentials - default = production DB
-    include_individuals: If true, individuals included in lookup.
-    """
-    if limit_by_prefix:
-        regex_string = ':.+|'.join(limit_by_prefix) + ':.+'
-        where = " AND a.obo_id =~ '%s' " % regex_string
-    else:
-        where = ''
-    nc = Neo4jConnect(*credentials)
-    neo_labels = ['Class', 'Property']
-    if include_individuals:
-        neo_labels.append('Individual')
-    lookup_query = "MATCH (a:Class) WHERE exists (a.obo_id)" + where + " RETURN a.obo_id as id, a.label as name"
-    q = nc.commit_list([lookup_query])
-    r = dict_cursor(q)
-    lookup = {x['name']: x['id'] for x in r}
-    #print(lookup['neuron'])
-    property_query = "MATCH (p:Property) WHERE exists(p.obo_id) RETURN p.obo_id as id, p.label as name"
-    q = nc.commit_list([property_query])
-    r = dict_cursor(q)
-    lookup.update({x['name']: x['id'] for x in r})
-    #print(lookup['neuron'])
-    return lookup
+from xml.sax import saxutils
 
 class QueryWrapper(Neo4jConnect):
 
@@ -282,7 +282,7 @@ class QueryWrapper(Neo4jConnect):
                             "vfb_connect",
                             "resources/VFB_TermInfo_queries.json")
         with open(query_json, 'r') as f:
-            self.queries = json.loads(f.read())
+            self.queries = json.loads(saxutils.unescape(f.read()))
 
     def _query(self, q):
         qr = self.commit_list([q])
@@ -311,7 +311,7 @@ class QueryWrapper(Neo4jConnect):
         Return:
             dict { VFB_id : [{ db: <db> : acc : <acc> }
         """
-        match = "MATCH (s:Individual)<-[r:hasDbXref]-(i:Entity) " \
+        match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) " \
                 "WHERE i.short_form in %s" % str(vfb_id)
         clause1 = ''
         if db:
@@ -320,9 +320,9 @@ class QueryWrapper(Neo4jConnect):
         if id_type:
             clause2 = "AND r.id_type = '%s'" % id_type
         ret = "RETURN i.short_form as key, " \
-              "collect({ db: s.short_form, acc: r.accession}) as mapping"
+              "collect({ db: s.short_form, acc: r.accession[0]}) as mapping"
         if reverse_return:
-            ret = "RETURN r.accession as key, " \
+            ret = "RETURN r.accession[0] as key, " \
                   "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
         q = ' '.join([match, clause1, clause2, ret])
         dc = self._query(q)
@@ -336,20 +336,20 @@ class QueryWrapper(Neo4jConnect):
             id_type: {optional} name of external id type (e.g. bodyId)
         Return:
             dict { VFB_id : [{ db: <db> : acc : <acc> }]}"""
-        match = "MATCH (s:Individual)<-[r:hasDbXref]-(i:Entity) WHERE"
+        match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) WHERE"
         conditions = []
         if not (acc is None):
-            conditions.append("r.accession in %s" % str(acc))
+            conditions.append("r.accession[0] in %s" % str(acc))
         if db:
             conditions.append("s.short_form = '%s'" % db)
         if id_type:
             conditions.append("r.id_type = '%s'" % id_type)
         condition_clauses = ' AND '.join(conditions)
-        ret = "RETURN r.accession as key, " \
+        ret = "RETURN r.accession[0] as key, " \
               "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
         if reverse_return:
             ret = "RETURN i.short_form as key, " \
-                  "collect({ db: s.short_form, acc: r.accession}) as mapping"
+                  "collect({ db: s.short_form, acc: r.accession[0]}) as mapping"
         q = ' '.join([match, condition_clauses, ret])
 #        print(q)
         dc = self._query(q)
@@ -371,7 +371,7 @@ class QueryWrapper(Neo4jConnect):
         Optionally restrict by dataset (improves speed)"""
         m = "MATCH (ds:DataSet)<-[has_source]-(ai:Individual)<-[:depicts]" \
             "-(channel:Individual)-[irw:in_register_with]-(tc:Template)"
-        w = "WHERE irw.filename in %s" % str([escape_string(f) for f in filenames])
+        w = "WHERE irw.filename[0]in %s" % str([escape_string(f) for f in filenames])
         if dataset:
             w += "AND ds.short_form = '%s'" % dataset
         r = "RETURN ai.short_form"
@@ -395,7 +395,7 @@ class QueryWrapper(Neo4jConnect):
                 out.extend(self.get_DataSet_TermInfo([e['short_form']]))
         return out
 
-    def _get_TermInfo(self, short_forms: list, typ, show_query=False):
+    def _get_TermInfo(self, short_forms: list, typ, show_query=True):
         sfl = "', '".join(short_forms)
         qs = Template(self.queries[typ]).substitute(ID=sfl)
         if show_query:

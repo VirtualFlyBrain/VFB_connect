@@ -1,31 +1,30 @@
 from .owl.owlery_query_tools import OWLeryConnect
-from .neo.neo4j_tools import Neo4jConnect, QueryWrapper, get_lookup, gen_simple_report, re
+from .neo.neo4j_tools import Neo4jConnect, QueryWrapper, re
+from .default_servers import get_default_servers
 
 def gen_short_form(iri):
     """Generate short_form (string) from an iri string
     iri: An iri string"""
     return re.split('/|#', iri)[-1]
-    
 
-class VfbConnect():
-    def __init__(self, neo_endpoint="http://pdb.virtualflybrain.org",
-                 neo_credentials=('neo4j', 'neo4j'),
-                 owlery_endpoint="http://owl.virtualflybrain.org/kbs/vfb/",
+
+class VfbConnect:
+    def __init__(self, neo_endpoint=get_default_servers()['neo_endpoint'],
+                 neo_credentials=get_default_servers()['neo_credentials'],
+                 owlery_endpoint=get_default_servers()['owlery_endpoint'],
                  lookup_prefixes=('FBbt', 'VFBexp', 'VFBext')):
         connections = {
             'neo': {
                 "endpoint": neo_endpoint,
                 "usr": neo_credentials[0],
                 "pwd": neo_credentials[1]
-            },
-            "owlery": {
-                "endpoint": owlery_endpoint,
-                "lookup": get_lookup(limit_by_prefix=lookup_prefixes)
             }
         }
         self.nc = Neo4jConnect(**connections['neo'])
         self.neo_query_wrapper = QueryWrapper(**connections['neo'])
-        self.oc = OWLeryConnect(**connections['owlery'])
+
+        self.oc = OWLeryConnect(endpoint=owlery_endpoint,
+                                lookup=self.nc.get_lookup(limit_by_prefix=lookup_prefixes))
 
     def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True):
         """Generate JSON reports for all terms relevant to
