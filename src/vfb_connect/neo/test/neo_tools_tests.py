@@ -16,7 +16,7 @@ class NeoQueryWrapperTest(unittest.TestCase):
         self.qw = QueryWrapper()
 
     def test_get_term_info(self):
-        self.assertTrue(self.vc.neo_query_wrapper.get_type_TermInfo(short_forms=['FBbt_00003686']))
+        self.assertTrue(self.qw.get_type_TermInfo(short_forms=['FBbt_00003686']))
         self.assertTrue(
             self.qw.get_DataSet_TermInfo(['Ito2013']))
         self.assertTrue(
@@ -41,10 +41,10 @@ class NeoQueryWrapperTest(unittest.TestCase):
 #                ['JFRC2_MBON-b1-a.nrrd']))
         self.assertTrue(
             self.qw.get_images_by_filename(
-                'JFRC2_MBON-b1-a.nrrd'))
+                ['JFRC2_MBON-b1-a.nrrd']))
         self.assertTrue(
             self.qw.get_images_by_filename(
-                'JFRC2_MBON-b1-a.nrrd', dataset='Aso2014'))
+                ['JFRC2_MBON-b1-a.nrrd'], dataset='Aso2014'))
 
 
 class Neo4jConnectTest(unittest.TestCase):
