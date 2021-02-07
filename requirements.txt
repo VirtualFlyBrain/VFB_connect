@@ -4,3 +4,5 @@ pandas
 pandasql
 
 
+
+setuptools~=50.3.2
