@@ -24,6 +24,9 @@ class NeoQueryWrapperTest(unittest.TestCase):
         self.assertTrue(
             len(self.qw.get_TermInfo(['FBbt_00003686', 'VFB_00010001', 'Ito2013'])) == 3)
 
+    def test_get_term_info_filtered(self):
+        print(self.qw.get_TermInfo(['VFB_00010001'], filters=["$.channel_image.[*].image.image_folder,template_anatomy"]))
+
     def test_get_by_xref(self):
         self.assertTrue(self.qw.get_terms_by_xref(['Trh-F-500041'], db='FlyCircuit'))
 

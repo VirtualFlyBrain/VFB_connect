@@ -12,6 +12,8 @@ from string import Template
 import pkg_resources
 from ..default_servers import get_default_servers
 from inspect import getfullargspec
+from jsonpath_rw import parse as parse_jpath
+from dataclasses import dataclass
 
 
 
@@ -70,6 +72,43 @@ def batch_query(func):
                 out.extend(func(*args, **kwargdict))
         return out
     return wrapper_batch
+
+@dataclass
+class Filter:
+    jpath: str
+
+
+image_folder_plus_meta = Filter(jpath="$.channel_image.[*].image.image_folder,template_anatomy")
+
+
+def filter_term_content(func):
+    """Decorator function that wraps queries that return lists of JSON objects and which have
+     an arg named filters.  The filters arg takes a filter object, which specifics JPATH queries which are applied
+     as a filter to each returned JSON object so that the final result only contains the
+     specified paths and their values"""
+
+    def filter_wrapper(*args, **kwargs):
+        func_ret = func(*args, **kwargs)
+        # arg_names = getfullargspec(func).args # Potentially useful for capturing defaults
+                                                # but some problem getting working with
+                                                # nested decorators
+        out = []
+        if ('filters' in kwargs.keys()):
+            for f in kwargs['filters']:
+                expr = parse_jpath(f)
+                for fr in func_ret:
+                    matching_fields = [match for match in expr.find(fr)]
+                    for mf in matching_fields:
+                        out.append(mf.value)
+            return out
+        else:
+            return func_ret
+
+    return filter_wrapper
+
+
+
+
 
 # def batch_query_dict_opt(func):
 #      # Assumes first arg is to be batched and that return value is dict
@@ -379,8 +418,9 @@ class QueryWrapper(Neo4jConnect):
         return self.get_anatomical_individual_TermInfo([d['ai.short_form']
                                                         for d in dc])
 
+    @filter_term_content
     @batch_query
-    def get_TermInfo(self, short_forms):
+    def get_TermInfo(self, short_forms, filters=None):
         pre_query = "MATCH (e:Entity) " \
                     "WHERE e.short_form in %s " \
                     "RETURN e.short_form as short_form, labels(e) as labs " % str(short_forms)
