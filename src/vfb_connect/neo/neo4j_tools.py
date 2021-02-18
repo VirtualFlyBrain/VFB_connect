@@ -76,9 +76,15 @@ def batch_query(func):
 @dataclass
 class Filter:
     jpath: str
+    label: str
+    value_restriction: None
 
+@dataclass
+class CompoundFilter:
+    primary_filter: Filter
+#    secondary_filters: Array(Filter)
 
-image_folder_plus_meta = Filter(jpath="$.channel_image.[*].image.image_folder,template_anatomy")
+#    image_folder_plus_meta = Filter(jpath="$.channel_image.[*].image.image_folder,template_anatomy")
 
 
 def filter_term_content(func):
