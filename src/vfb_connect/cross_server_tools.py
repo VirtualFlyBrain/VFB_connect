@@ -117,15 +117,28 @@ class VfbConnect:
         return pd.DataFrame.from_records(dc)
 
     def get_neurons_downstream_of(self, neuron, threshold, classification=None, query_by_label=True):
+        """Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
+        with connection strength > threshold.  Optionally restrict target neurons to those specified by
+        `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'"."""
         return self._get_neurons_connected_to(neuron=neuron, threshold=threshold, direction='upstream',
                                               classification=classification, query_by_label=query_by_label)
 
     def get_neurons_upstream_of(self, neuron, threshold, classification=None, query_by_label=True):
+        """Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
+         with connection strength > threshold.  Optionally restrict target neurons to those specified by
+         `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'"."""
         return self._get_neurons_connected_to(neuron=neuron, threshold=threshold, direction='downstream',
                                               classification=classification, query_by_label=query_by_label)
 
     def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True):
-        # Not doing the in-clause thing here in case of blow up
+        """Get all synaptic connections between individual neurons of `upstream_type` and `dowstream_type` where
+         each of these types is the name of a neuron class/type in VFB."""
+
+        # Note - chose not to do this with class expressions to avoid poor performance and blowing up results.
+        # This might be confusing tough, given behavior of other, similar methods.
+        # Might be better to refactor to work out if query is class expression or class & funnel query method
+        # accordingly.
+
         qprop = 'short_form'
         if query_by_label:
             qprop = 'label'
