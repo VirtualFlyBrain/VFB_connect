@@ -1,5 +1,7 @@
 import unittest
 from ..cross_server_tools import VfbConnect
+import os
+import shutil
 
 
 class VfbConnectTest(unittest.TestCase):
@@ -15,10 +17,40 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(
             self.vc.get_subclasses("fan-shaped body layer"))
 
-    def test_get_images(self):
+    def test_get_instances(self):
         self.assertTrue(
-            self.vc.get_images("fan-shaped body"))
+            self.vc.get_instances("fan-shaped body"))
         # Tests batched query
         self.assertTrue(
-            len(self.vc.get_images('antennal lobe projection neuron')) > 1000)
+            len(self.vc.get_instances('antennal lobe projection neuron')) > 1000)
 
+    def test_get_images(self):
+        if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
+            shutil.rmtree('image_folder_tmp')
+        self.assertTrue(len(self.vc.get_images(['VFB_00000100', 'VFB_0010129x'],
+                                               image_folder='image_folder_tmp',
+                                               template='JRC2018Unisex')))
+
+    def test_get_images_by_type(self):
+        if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
+            shutil.rmtree('image_folder_tmp')
+        fu = self.vc.get_images_by_type("'fan-shaped neuron F1'",
+                                        image_folder='image_folder_tmp',
+                                        template='JRC2018Unisex')
+        self.assertTrue(len(fu) > 0)
+
+    def test_get_downstream_neurons(self):
+        fu = self.vc.get_neurons_downstream_of('D_adPN_R - 5813055184', classification="'Kenyon cell'", threshold=20)
+        self.assertTrue(len(fu) > 0)
+
+    def test_get_upstream_neurons(self):
+        fu = self.vc.get_neurons_upstream_of('D_adPN_R - 5813055184', classification="GABAergic neuron", threshold=20)
+        self.assertTrue(len(fu) > 0)
+
+    def test_get_connected_neurons_by_type(self):
+        fu = self.vc.get_connected_neurons_by_type('Kenyon cell', 'mushroom body output neuron', 20)
+        self.assertTrue(len(fu) > 0)
+
+    def tearDown(self):
+        if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
+            shutil.rmtree('image_folder_tmp')

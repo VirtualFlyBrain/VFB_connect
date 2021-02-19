@@ -395,7 +395,7 @@ class QueryWrapper(Neo4jConnect):
                 out.extend(self.get_DataSet_TermInfo([e['short_form']]))
         return out
 
-    def _get_TermInfo(self, short_forms: list, typ, show_query=True):
+    def _get_TermInfo(self, short_forms: list, typ, show_query=False):
         sfl = "', '".join(short_forms)
         qs = Template(self.queries[typ]).substitute(ID=sfl)
         if show_query:
