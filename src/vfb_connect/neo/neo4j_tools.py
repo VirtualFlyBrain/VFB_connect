@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import os
 import requests
 import json
 import warnings
@@ -12,8 +12,8 @@ from string import Template
 import pkg_resources
 from ..default_servers import get_default_servers
 from inspect import getfullargspec
-
-
+from jsonpath_rw import parse as parse_jpath
+import pandas as pd
 
 def cli_credentials():
     """Parses command line credentials for Neo4J rest connection;
@@ -296,11 +296,48 @@ class QueryWrapper(Neo4jConnect):
             else:
                 return r
 
+    def get_images(self, short_forms, template, image_folder, image_type='swc'):
+        """Given an array of `short_forms` for instances, find all images of specified `image_type`
+        registered to `template`. Save these to `image_folder` along with a manifest.tsv.  Return manifest as
+        pandas DataFrame."""
+        # TODO - make image type into array
+        image_expr = parse_jpath("$.channel_image.[*].image")
+        manifest = []
+        os.mkdir(image_folder)
+        inds = self.get_anatomical_individual_TermInfo(short_forms=short_forms)
+        for i in inds:
+            if not ('has_image' in i['term']['core']['types']):
+                continue
+            label = i['term']['core']['label']
+            image_matches = image_expr.find(i)
+            if not ([match.value for match in image_matches]):
+                continue
+            for im in image_matches:
+                imv = im.value
+                if imv['template_anatomy']['label'] == template:
+                    r = requests.get(imv['image_folder'] + '/volume.' + image_type)
+                    ### Slightly dodgy warning - could mask network errors
+                    if not r.ok:
+                        warnings.warn("No '%s' file found for '%s'." % (image_type, label))
+                        continue
+                    filename = re.sub('\W', '_', label) + '.' + image_type
+                    with open(image_folder + '/' + filename, 'w') as image_file:
+                        image_file.write(r.text)
+                    manifest.append(_populate_manifest(instance=i, filename=filename))
+        manifest_df = pd.DataFrame.from_records(manifest)
+        manifest_df.to_csv(image_folder + '/manifest.tsv', sep='\t')
+        return manifest_df
+
     def get_dbs(self):
         query = "MATCH (i:Individual) " \
                 "WHERE 'Site' in labels(i) OR 'API' in labels(i)" \
                 "return i.short_form"
         return [d['i.short_form'] for d in self._query(query)]
+
+    def get_templates(self):
+        query = "MATCH (i:Individual:Template:Anatomy) " \
+                "RETURN i.short_form"
+        return self._get_TermInfo([d['i.short_form'] for d in self._query(query)], typ='Individual')
 
     def vfb_id_2_xrefs(self, vfb_id, db='', id_type='', reverse_return=False):
         """Map a list of node short_form IDs in VFB to external DB IDs
@@ -421,3 +458,22 @@ class QueryWrapper(Neo4jConnect):
         return self._get_TermInfo(short_forms, typ='Get JSON for Template')
 
 
+def _populate_instance_summary_tab(instance):
+    d = dict()
+    d['label'] = instance['term']['core']['label']
+    d['url'] = instance['term']['core']['iri']
+    d['id'] = instance['term']['core']['short_form']
+    d['tags'] = instance['term']['core']['types']
+    parents_expr = parse_jpath("$.parents[*].symbol,label,short_form")
+    license_expr = parse_jpath("$.dataset_license.[*].license.link")
+    dataset_expr = parse_jpath("$.dataset_license.[*].dataset.core.iri")
+    d['parents'] = [match.value for match in parents_expr.find(instance)]
+    d['license'] = [match.value for match in license_expr.find(instance)]
+    d['dataset'] = [match.value for match in dataset_expr.find(instance)]
+    return d
+
+
+def _populate_manifest(filename, instance):
+    d = _populate_instance_summary_tab(instance)
+    d['filename'] = filename
+    return d

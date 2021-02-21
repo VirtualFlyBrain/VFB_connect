@@ -27,7 +27,7 @@ class VfbConnectTest(unittest.TestCase):
     def test_get_images(self):
         if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
             shutil.rmtree('image_folder_tmp')
-        self.assertTrue(len(self.vc.get_images(['VFB_00000100', 'VFB_0010129x'],
+        self.assertTrue(len(self.vc.neo_query_wrapper.get_images(['VFB_00000100', 'VFB_0010129x'],
                                                image_folder='image_folder_tmp',
                                                template='JRC2018Unisex')))
 

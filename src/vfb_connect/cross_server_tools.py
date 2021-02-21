@@ -1,13 +1,9 @@
 import warnings
 
-import requests
-from jsonpath_rw import parse as parse_jpath
-
 from .owl.owlery_query_tools import OWLeryConnect
 from .neo.neo4j_tools import Neo4jConnect, QueryWrapper, re, dict_cursor
 from .default_servers import get_default_servers
 import pandas as pd
-import os
 
 
 def gen_short_form(iri):
@@ -15,28 +11,26 @@ def gen_short_form(iri):
     iri: An iri string"""
     return re.split('/|#', iri)[-1]
 
-def _populate_instance_summary_tab(instance):
-    d = dict()
-    d['filename'] = ''
-    d['label'] = instance['term']['core']['label']
-    d['url'] = instance['term']['core']['iri']
-    d['id'] = instance['term']['core']['short_form']
-    d['type'] = instance['term']['core']['types']
-    parents_expr = parse_jpath("$.parents[*].symbol,label,short_form")
-    license_expr = parse_jpath("$.dataset_license.[*].license.link")
-    dataset_expr = parse_jpath("$.dataset_license.[*].dataset.core.iri")
-    d['classification'] = [match.value for match in parents_expr.find(instance)]
-    d['license'] = [match.value for match in license_expr.find(instance)]
-    d['dataset'] = [match.value for match in dataset_expr.find(instance)]
-    return d
-
-def _populate_manifest(filename, instance):
-    d = _populate_instance_summary_tab(instance)
-    d['filename'] = filename
-    return d
-
 
 class VfbConnect:
+    """API wrapper class.  By default this wraps connections to the more basal API endpoints (OWL, Neo4j).
+
+    Top level methods combined semantic queries that range across VFB content with neo4j queries, returning detailed
+    metadata about anatomical classes and individuals that fulfill these queries.
+
+    Methods allowing direct queries cypher queries of the production Neo4j are available under `nc`
+
+    Methods for querying Neo4j with arbitrary lists of identifiers to return rich metadata or mappings to external IDs
+    are available under `neo_query_wrapper`.
+
+    Direct access OWL queries, returning identifiers only, are available via methods under `oc`
+
+    Example semantic queries (OWL class expressions).  Note quoting scheme (outer `"` + single quotes for entities).
+
+    "'GABAergic neuron'"
+    "'GABAeric neuron' that 'overlaps' some 'antennal lobe'"
+
+    """
     def __init__(self, neo_endpoint=get_default_servers()['neo_endpoint'],
                  neo_credentials=get_default_servers()['neo_credentials'],
                  owlery_endpoint=get_default_servers()['owlery_endpoint'],
@@ -53,6 +47,7 @@ class VfbConnect:
 
         self.oc = OWLeryConnect(endpoint=owlery_endpoint,
                                 lookup=self.nc.get_lookup(limit_by_prefix=lookup_prefixes))
+        self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
 
     def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True):
         """Generate JSON reports for all terms relevant to
@@ -154,37 +149,10 @@ class VfbConnect:
         dc = dict_cursor(r)
         return pd.DataFrame.from_records(dc)
 
-    def get_images(self, short_forms, template, image_folder, image_type='swc'):
-        """Given an array of `short_forms` for instances, find all images of specified `image_type`
-        registered to `template`. Save these to `image_folder` along with a manifest.tsv.  Return manifest as
-        pandas DataFrame."""
-        # TODO - make image type into array
-        image_expr = parse_jpath("$.channel_image.[*].image")
-        manifest = []
-        os.mkdir(image_folder)
-        inds = self.neo_query_wrapper.get_anatomical_individual_TermInfo(short_forms=short_forms)
-        for i in inds:
-            if not ('has_image' in i['term']['core']['types']):
-                continue
-            label = i['term']['core']['label']
-            image_matches = image_expr.find(i)
-            if not ([match.value for match in image_matches]):
-                continue
-            for im in image_matches:
-                imv = im.value
-                if imv['template_anatomy']['label'] == template:
-                    r = requests.get(imv['image_folder'] + '/volume.' + image_type)
-                    ### Slightly dodgy warning - could mask network errors
-                    if not r.ok:
-                        warnings.warn("No '%s' file found for '%s'." % (image_type, label))
-                        continue
-                    filename = re.sub('\W', '_', label) + '.' + image_type
-                    with open(image_folder + '/' + filename, 'w') as image_file:
-                        image_file.write(r.text)
-                    manifest.append(_populate_manifest(instance=i, filename=filename))
-        manifest_df = pd.DataFrame.from_records(manifest)
-        manifest_df.to_csv(image_folder + '/manifest.tsv', sep='\t')
-        return manifest_df
+    def get_vfb_link(self, short_forms: iter, template):
+        """Takes a list of VFB IDs (short_forms) for individuals and returns a link to VFB loading all available images
+         of neurons on that template."""
+        return self.vfb_base + short_forms.pop() + "&i=" + template + ',' + ','.join(short_forms)
 
     def get_images_by_type(self, class_expression, template, image_folder,
                            image_type='swc', query_by_label=True, direct=False):
@@ -194,10 +162,10 @@ class VfbConnect:
         instances = self.oc.get_instances(class_expression,
                                           query_by_label=query_by_label,
                                           direct=direct)
-        return self.get_images([gen_short_form(i) for i in instances],
-                               template=template,
-                               image_folder=image_folder,
-                               image_type=image_type)
+        return self.neo_query_wrapper.get_images([gen_short_form(i) for i in instances],
+                                                 template=template,
+                                                 image_folder=image_folder,
+                                                 image_type=image_type)
 
 
 
