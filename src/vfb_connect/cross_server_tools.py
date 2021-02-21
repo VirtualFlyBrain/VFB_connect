@@ -89,7 +89,7 @@ class VfbConnect:
         terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
         return self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)))
 
-    def _get_neurons_connected_to(self, neuron, threshold, direction, classification=None, query_by_label=True):
+    def _get_neurons_connected_to(self, neuron, weight, direction, classification=None, query_by_label=True):
         instances = []
         directions = ['upstream', 'downstream']
         if not (direction in directions):
@@ -97,7 +97,7 @@ class VfbConnect:
         if classification:
             instances = self.oc.get_instances(classification, query_by_label=query_by_label)
         cypher_query = 'MATCH (upstream:Neuron)-[r:synapsed_to]->(downstream:Neuron) ' \
-                       'WHERE r.weight[0] > %d ' % threshold
+                       'WHERE r.weight[0] >= %d ' % weight
         if query_by_label:
             cypher_query += 'AND %s.label = "%s" ' % (direction, neuron)
         else:
@@ -105,24 +105,25 @@ class VfbConnect:
         if classification and instances:
             directions.remove(direction)
             cypher_query += "AND %s.iri IN %s " % (directions[0], str(instances))
-        cypher_query += "RETURN upstream.short_form as query_neuron_id, upstream.label as query_neuron_name, r.weight as weight, " \
+        cypher_query += "RETURN upstream.short_form as query_neuron_id, upstream.label as query_neuron_name, " \
+                        "r.weight[0] as weight, " \
                         "downstream.short_form as target_neuron_id, downstream.label as target_neuron_name"
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
         return pd.DataFrame.from_records(dc)
 
-    def get_neurons_downstream_of(self, neuron, threshold, classification=None, query_by_label=True):
+    def get_neurons_downstream_of(self, neuron, weight, classification=None, query_by_label=True):
         """Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
         with connection strength > threshold.  Optionally restrict target neurons to those specified by
         `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'"."""
-        return self._get_neurons_connected_to(neuron=neuron, threshold=threshold, direction='upstream',
+        return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='upstream',
                                               classification=classification, query_by_label=query_by_label)
 
-    def get_neurons_upstream_of(self, neuron, threshold, classification=None, query_by_label=True):
+    def get_neurons_upstream_of(self, neuron, weight, classification=None, query_by_label=True):
         """Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
          with connection strength > threshold.  Optionally restrict target neurons to those specified by
          `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'"."""
-        return self._get_neurons_connected_to(neuron=neuron, threshold=threshold, direction='downstream',
+        return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='downstream',
                                               classification=classification, query_by_label=query_by_label)
 
     def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True):

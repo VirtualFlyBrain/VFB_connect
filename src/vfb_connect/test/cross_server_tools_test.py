@@ -40,11 +40,11 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(len(fu) > 0)
 
     def test_get_downstream_neurons(self):
-        fu = self.vc.get_neurons_downstream_of('D_adPN_R - 5813055184', classification="'Kenyon cell'", threshold=20)
+        fu = self.vc.get_neurons_downstream_of('D_adPN_R - 5813055184', classification="'Kenyon cell'", weight=20)
         self.assertTrue(len(fu) > 0)
 
     def test_get_upstream_neurons(self):
-        fu = self.vc.get_neurons_upstream_of('D_adPN_R - 5813055184', classification="GABAergic neuron", threshold=20)
+        fu = self.vc.get_neurons_upstream_of('D_adPN_R - 5813055184', classification="GABAergic neuron", weight=20)
         self.assertTrue(len(fu) > 0)
 
     def test_get_connected_neurons_by_type(self):
