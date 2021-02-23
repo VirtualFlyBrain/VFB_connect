@@ -3,6 +3,7 @@ Created on Oct 24, 2016
 
 @author: davidos
 '''
+import shutil
 import unittest
 from ..neo4j_tools import Neo4jConnect, QueryWrapper
 
@@ -45,6 +46,12 @@ class NeoQueryWrapperTest(unittest.TestCase):
         self.assertTrue(
             self.qw.get_images_by_filename(
                 ['JFRC2_MBON-b1-a.nrrd'], dataset='Aso2014'))
+
+    def test_get_images(self):
+        self.assertTrue(len(self.qw.get_images(['VFB_00000100', 'VFB_0010129x'],
+                                               image_folder='image_folder_tmp',
+                                               template='JRC2018Unisex', stomp=True)))
+        shutil.rmtree('image_folder_tmp')
 
 
 class Neo4jConnectTest(unittest.TestCase):

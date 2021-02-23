@@ -156,17 +156,18 @@ class VfbConnect:
         return self.vfb_base + short_forms.pop() + "&i=" + template + ',' + ','.join(short_forms)
 
     def get_images_by_type(self, class_expression, template, image_folder,
-                           image_type='swc', query_by_label=True, direct=False):
+                           image_type='swc', query_by_label=True, direct=False, stomp=False):
         """Retrieve images of instances of `class_expression` registered to `template` and save to disk,
         along with manifest and references, to `image_folder`. Default image type = swc. Also supported: obj, nrrd, rds, wlz.
-        Returns manifest"""
+        Returns manifest. Set `stomp` to true to allow existing `image_folder` to be over-written."""
         instances = self.oc.get_instances(class_expression,
                                           query_by_label=query_by_label,
                                           direct=direct)
         return self.neo_query_wrapper.get_images([gen_short_form(i) for i in instances],
                                                  template=template,
                                                  image_folder=image_folder,
-                                                 image_type=image_type)
+                                                 image_type=image_type,
+                                                 stomp=stomp)
 
 
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import os
+import shutil
+
 import requests
 import json
 import warnings
@@ -14,6 +16,8 @@ from ..default_servers import get_default_servers
 from inspect import getfullargspec
 from jsonpath_rw import parse as parse_jpath
 import pandas as pd
+from xml.sax import saxutils
+
 
 def cli_credentials():
     """Parses command line credentials for Neo4J rest connection;
@@ -100,7 +104,7 @@ class Neo4jConnect:
         self.usr = usr
         self.pwd = pwd
         self.test_connection()
-       
+
     def commit_list(self, statements, return_graphs = False):
         """Commit a list of statements to neo4J DB via REST API.
         Prints requests status and warnings if any problems with commit.
@@ -112,19 +116,19 @@ class Neo4jConnect:
         if return_graphs:
             for s in statements:
                 cstatements.append({'statement': s, "resultDataContents" : [ "row", "graph" ]})
-        else:        
+        else:
             for s in statements:
                 cstatements.append({'statement': s}) # rows an columns are returned by default.
         payload = {'statements': cstatements}
-        response = requests.post(url = "%s/db/data/transaction/commit" 
+        response = requests.post(url = "%s/db/data/transaction/commit"
                                  % self.base_uri, auth = (self.usr, self.pwd) ,
                                   data = json.dumps(payload))
         if self.rest_return_check(response):
             return response.json()['results']
         else:
             return False
-        
-        
+
+
     def commit_list_in_chunks(self, statements, verbose=False, chunk_length=1000):
         """Commit a list of statements to neo4J DB via REST API, split into chunks.
         cypher_statments = list of cypher statements as strings
@@ -141,7 +145,7 @@ class Neo4jConnect:
             if verbose:
                 start_time = time.time()
                 print("Processing chunk of %d of %d starting with: %s" % (i,
-                                                                          c_no, 
+                                                                          c_no,
                                                                           c[0].encode('utf8')))
             r = self.commit_list(c)
             if verbose:
@@ -178,19 +182,19 @@ class Neo4jConnect:
                 return False
             else:
                 return True
-            
+
     def test_connection(self):
         statements = ["MATCH (n) RETURN n LIMIT 1"]
         if self.commit_list(statements):
             return True
         else:
             return False
-        
+
     def list_all_node_props(self):
         r = self.commit_list(['MATCH (n) with keys(n) AS kl UNWIND kl as k RETURN DISTINCT k'])
         d = dict_cursor(r)
         return [x['k'] for x in d]
-    
+
     def list_all_edge_props(self):
         r = self.commit_list(['MATCH ()-[r]-() with keys(r) AS kl UNWIND kl as k RETURN DISTINCT k'])
         d = dict_cursor(r)
@@ -231,7 +235,7 @@ class Neo4jConnect:
         lookup = {x['name']: x['id'].replace('_', ':') for x in out}
         # print(lookup['neuron'])
         return lookup
-        
+
 def dict_cursor(results):
     """Takes JSON results from a neo4J query and turns them into a list of dicts.
     """
@@ -248,7 +252,7 @@ def escape_string(strng):
     if type(strng) == str:
         strng = re.sub(r'\\', r'\\\\', strng)
         strng = re.sub("'", "\\'", strng)
-        strng = re.sub('"', '\\"', strng)        
+        strng = re.sub('"', '\\"', strng)
     return strng
 
 
@@ -272,7 +276,6 @@ def gen_simple_report(terms):
     return dict_cursor(q)
 
 
-from xml.sax import saxutils
 
 class QueryWrapper(Neo4jConnect):
 
@@ -296,13 +299,19 @@ class QueryWrapper(Neo4jConnect):
             else:
                 return r
 
-    def get_images(self, short_forms, template, image_folder, image_type='swc'):
+    def get_images(self, short_forms, template, image_folder, image_type='swc', stomp=False):
         """Given an array of `short_forms` for instances, find all images of specified `image_type`
         registered to `template`. Save these to `image_folder` along with a manifest.tsv.  Return manifest as
         pandas DataFrame."""
         # TODO - make image type into array
         image_expr = parse_jpath("$.channel_image.[*].image")
         manifest = []
+        if stomp and os.path.isdir(image_folder):
+            if shutil.rmtree.avoids_symlink_attacks:
+                shutil.rmtree(image_folder)
+            else:
+                warnings.warn("Not deleting %s, stomp option not supported on this system for security reasons,"
+                              "please delete manually." % image_folder)
         os.mkdir(image_folder)
         inds = self.get_anatomical_individual_TermInfo(short_forms=short_forms)
         for i in inds:
