@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import os
 import requests
 import json
 import warnings
@@ -14,8 +14,7 @@ from ..default_servers import get_default_servers
 from inspect import getfullargspec
 from jsonpath_rw import parse as parse_jpath
 from dataclasses import dataclass
-
-
+import pandas as pd
 
 def cli_credentials():
     """Parses command line credentials for Neo4J rest connection;
@@ -276,7 +275,8 @@ class Neo4jConnect:
         lookup = {x['name']: x['id'].replace('_', ':') for x in out}
         # print(lookup['neuron'])
         return lookup
-        
+
+
 def dict_cursor(results):
     """Takes JSON results from a neo4J query and turns them into a list of dicts.
     """
@@ -287,6 +287,7 @@ def dict_cursor(results):
             for d in n['data']:
                 dc.append(dict(zip(n['columns'], d['row'])))
     return dc
+
 
 def escape_string(strng):
     # Simple escaping for strings used in neo queries.
@@ -341,21 +342,61 @@ class QueryWrapper(Neo4jConnect):
             else:
                 return r
 
+    def get_images(self, short_forms, template, image_folder, image_type='swc'):
+        """Given an array of `short_forms` for instances, find all images of specified `image_type`
+        registered to `template`. Save these to `image_folder` along with a manifest.tsv.  Return manifest as
+        pandas DataFrame."""
+        # TODO - make image type into array
+        image_expr = parse_jpath("$.channel_image.[*].image")
+        manifest = []
+        os.mkdir(image_folder)
+        inds = self.get_anatomical_individual_TermInfo(short_forms=short_forms)
+        for i in inds:
+            if not ('has_image' in i['term']['core']['types']):
+                continue
+            label = i['term']['core']['label']
+            image_matches = image_expr.find(i)
+            if not ([match.value for match in image_matches]):
+                continue
+            for im in image_matches:
+                imv = im.value
+                if imv['template_anatomy']['label'] == template:
+                    r = requests.get(imv['image_folder'] + '/volume.' + image_type)
+                    ### Slightly dodgy warning - could mask network errors
+                    if not r.ok:
+                        warnings.warn("No '%s' file found for '%s'." % (image_type, label))
+                        continue
+                    filename = re.sub('\W', '_', label) + '.' + image_type
+                    with open(image_folder + '/' + filename, 'w') as image_file:
+                        image_file.write(r.text)
+                    manifest.append(_populate_manifest(instance=i, filename=filename))
+        manifest_df = pd.DataFrame.from_records(manifest)
+        manifest_df.to_csv(image_folder + '/manifest.tsv', sep='\t')
+        return manifest_df
+
     def get_dbs(self):
         query = "MATCH (i:Individual) " \
                 "WHERE 'Site' in labels(i) OR 'API' in labels(i)" \
                 "return i.short_form"
         return [d['i.short_form'] for d in self._query(query)]
 
-    def vfb_id_2_xrefs(self, vfb_id, db='', id_type='', reverse_return=False):
+    def get_templates(self):
+        query = "MATCH (i:Individual:Template:Anatomy) " \
+                "RETURN i.short_form"
+        return self._get_TermInfo([d['i.short_form'] for d in self._query(query)], typ='Individual')
+
+    def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
         """Map a list of node short_form IDs in VFB to external DB IDs
         Args:
          vfb_id: list of short_form IDs of nodes in the VFB KB
          db: {optional} database identifier (short_form) in VFB
          id_type: {optional} name of external id type (e.g. bodyId)
-        Return:
+        Return if `reverse_return` is False:
             dict { VFB_id : [{ db: <db> : acc : <acc> }
+        Return if `reverse_return` is True:
+             dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
         """
+        vfb_id = list(set(vfb_id))
         match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) " \
                 "WHERE i.short_form in %s" % str(vfb_id)
         clause1 = ''
@@ -371,7 +412,15 @@ class QueryWrapper(Neo4jConnect):
                   "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
         q = ' '.join([match, clause1, clause2, ret])
         dc = self._query(q)
-        return {d['key']: d['mapping'] for d in dc}
+        mapping = {d['key']: d['mapping'] for d in dc}
+        unmapped = set(vfb_id)-set(mapping.keys())
+        if unmapped:
+            warnings.warn("The following IDs do not match DB &/or id_type constraints: %s" % str(unmapped))
+        return mapping
+
+    def vfb_id_2_neuprint_bodyID(self, vfb_id, db=''):
+        mapping = self.vfb_id_2_xrefs(vfb_id, db=db, reverse_return=True)
+        return [int(k) for k, v in mapping.items()]
 
     def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
         """Map an external ID (acc) to a VFB_id
@@ -384,6 +433,7 @@ class QueryWrapper(Neo4jConnect):
         match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) WHERE"
         conditions = []
         if not (acc is None):
+            acc = [str(a) for a in set(acc)]
             conditions.append("r.accession[0] in %s" % str(acc))
         if db:
             conditions.append("s.short_form = '%s'" % db)
@@ -441,7 +491,7 @@ class QueryWrapper(Neo4jConnect):
                 out.extend(self.get_DataSet_TermInfo([e['short_form']]))
         return out
 
-    def _get_TermInfo(self, short_forms: list, typ, show_query=True):
+    def _get_TermInfo(self, short_forms: list, typ, show_query=False):
         sfl = "', '".join(short_forms)
         qs = Template(self.queries[typ]).substitute(ID=sfl)
         if show_query:
@@ -467,3 +517,27 @@ class QueryWrapper(Neo4jConnect):
         return self._get_TermInfo(short_forms, typ='Get JSON for Template')
 
 
+def _populate_instance_summary_tab(TermInfo):
+    d = _populate_summary_tab(TermInfo)
+    license_expr = parse_jpath("$.dataset_license.[*].license.link")
+    dataset_expr = parse_jpath("$.dataset_license.[*].dataset.core.iri")
+    template_expr = parse_jpath("$.channel_image.template_anatomy.[*].label")
+    d['templates'] = '|'.join([match.value for match in template_expr.find(TermInfo)])
+    d['license'] = '|'.join([match.value for match in license_expr.find(TermInfo)])
+    d['dataset'] = '|'.join([match.value for match in dataset_expr.find(TermInfo)])
+    return d
+
+def _populate_summary_tab(TermInfo):
+    d = dict()
+    d['label'] = TermInfo['term']['core']['label']
+    d['id'] = TermInfo['term']['core']['short_form']
+    d['tags'] = '|'.join(TermInfo['term']['core']['types'])
+    d['parents_symbol'] = '|'.join(parse_jpath("$.parents[*].symbol"))
+    d['parents_label'] = '|'.join(parse_jpath("$.parents[*].label"))
+    d['parents_id'] = '|'.join(parse_jpath("$.parents[*].label"))
+    return d
+
+def _populate_manifest(filename, instance):
+    d = _populate_instance_summary_tab(instance)
+    d['filename'] = filename
+    return d
