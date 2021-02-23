@@ -1,7 +1,8 @@
 import warnings
 
 from .owl.owlery_query_tools import OWLeryConnect
-from .neo.neo4j_tools import Neo4jConnect, QueryWrapper, re, dict_cursor
+from .neo.neo4j_tools import Neo4jConnect, re, dict_cursor
+from .neo.query_wrapper import QueryWrapper
 from .default_servers import get_default_servers
 import pandas as pd
 
@@ -49,7 +50,7 @@ class VfbConnect:
                                 lookup=self.nc.get_lookup(limit_by_prefix=lookup_prefixes))
         self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
 
-    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True):
+    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True):
         """Generate JSON reports for all terms relevant to
          annotating some specific region,
         optionally limited by to cells"""
@@ -63,23 +64,25 @@ class VfbConnect:
         terms = self.oc.get_subclasses(owl_query, query_by_label=query_by_label)
         if verbose:
             print("Found: %d terms" % len(terms))
-        return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)))
+        return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
+                                                        summary=summary)
 
-    def get_subclasses(self, class_expression, query_by_label=True, direct=False):
+    def get_subclasses(self, class_expression, query_by_label=True, direct=False, summary=False):
         """Generate JSON report of all subclasses of class_expression."""
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_subclasses("%s" % class_expression, query_by_label=query_by_label)
-        return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)))
-
-    def get_superclasses(self, class_expression, query_by_label=True, direct=False):
+        return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
+                                                        summary=summary)
+    def get_superclasses(self, class_expression, query_by_label=True, direct=False, summary=False):
         """Generate JSON report of all superclasses of class_expression."""
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label)
-        return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)))
+        return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
+                                                        summary=summary)
 
-    def get_instances(self, class_expression, query_by_label=True, direct=False):
+    def get_instances(self, class_expression, query_by_label=True, direct=False, summary=False):
         """Generate JSON report of all instances of class_expression. Instances are specific examples
         of a type/class of structure, e.g. a specific instance of the neuron DA1 adPN from the FAFB_catmaid
          database.  Instances are typically associated with registered 3D image data and may include
@@ -87,7 +90,8 @@ class VfbConnect:
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
-        return self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)))
+        return self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)),
+                                                                         summary=summary)
 
     def _get_neurons_connected_to(self, neuron, weight, direction, classification=None, query_by_label=True):
         instances = []

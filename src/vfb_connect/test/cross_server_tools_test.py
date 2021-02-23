@@ -23,6 +23,7 @@ class VfbConnectTest(unittest.TestCase):
         # Tests batched query
         self.assertTrue(
             len(self.vc.get_instances('antennal lobe projection neuron')) > 1000)
+        self.assertTrue(self.vc.get_instances('antennal lobe projection neuron', summary=True))
 
     def test_get_images(self):
         if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
@@ -44,7 +45,7 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(len(fu) > 0)
 
     def test_get_upstream_neurons(self):
-        fu = self.vc.get_neurons_upstream_of('D_adPN_R - 5813055184', classification="GABAergic neuron", weight=20)
+        fu = self.vc.get_neurons_upstream_of('D_adPN_R - 5813055184', classification="'GABAergic neuron'", weight=20)
         self.assertTrue(len(fu) > 0)
 
     def test_get_connected_neurons_by_type(self):

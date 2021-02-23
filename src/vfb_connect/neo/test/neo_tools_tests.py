@@ -4,7 +4,9 @@ Created on Oct 24, 2016
 @author: davidos
 '''
 import unittest
-from ..neo4j_tools import Neo4jConnect, QueryWrapper
+from ..neo4j_tools import Neo4jConnect
+from vfb_connect.neo.query_wrapper import QueryWrapper
+
 
 # TODO- pull over core nc tests from VFB_neo4j
 
@@ -17,15 +19,15 @@ class NeoQueryWrapperTest(unittest.TestCase):
 
     def test_get_term_info(self):
         self.assertTrue(self.qw.get_type_TermInfo(short_forms=['FBbt_00003686']))
+        self.assertTrue(self.qw.get_type_TermInfo(short_forms=['FBbt_00003686'], summary=True))
         self.assertTrue(
             self.qw.get_DataSet_TermInfo(['Ito2013']))
         self.assertTrue(
             self.qw.get_anatomical_individual_TermInfo(['VFB_00010001']))
         self.assertTrue(
+            self.qw.get_anatomical_individual_TermInfo(['VFB_00010001'], summary=True))
+        self.assertTrue(
             len(self.qw.get_TermInfo(['FBbt_00003686', 'VFB_00010001', 'Ito2013'])) == 3)
-
-    def test_get_term_info_filtered(self):
-        print(self.qw.get_TermInfo(['VFB_00010001'], filters=["$.channel_image.[*].image.image_folder,template_anatomy"]))
 
     def test_get_by_xref(self):
         self.assertTrue(self.qw.get_terms_by_xref(['Trh-F-500041'], db='FlyCircuit'))
