@@ -231,7 +231,8 @@ class Neo4jConnect:
         lookup = {x['name']: x['id'].replace('_', ':') for x in out}
         # print(lookup['neuron'])
         return lookup
-        
+
+
 def dict_cursor(results):
     """Takes JSON results from a neo4J query and turns them into a list of dicts.
     """
@@ -242,6 +243,7 @@ def dict_cursor(results):
             for d in n['data']:
                 dc.append(dict(zip(n['columns'], d['row'])))
     return dc
+
 
 def escape_string(strng):
     # Simple escaping for strings used in neo queries.
@@ -339,15 +341,18 @@ class QueryWrapper(Neo4jConnect):
                 "RETURN i.short_form"
         return self._get_TermInfo([d['i.short_form'] for d in self._query(query)], typ='Individual')
 
-    def vfb_id_2_xrefs(self, vfb_id, db='', id_type='', reverse_return=False):
+    def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
         """Map a list of node short_form IDs in VFB to external DB IDs
         Args:
          vfb_id: list of short_form IDs of nodes in the VFB KB
          db: {optional} database identifier (short_form) in VFB
          id_type: {optional} name of external id type (e.g. bodyId)
-        Return:
+        Return if `reverse_return` is False:
             dict { VFB_id : [{ db: <db> : acc : <acc> }
+        Return if `reverse_return` is True:
+             dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
         """
+        vfb_id = list(set(vfb_id))
         match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) " \
                 "WHERE i.short_form in %s" % str(vfb_id)
         clause1 = ''
@@ -363,7 +368,15 @@ class QueryWrapper(Neo4jConnect):
                   "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
         q = ' '.join([match, clause1, clause2, ret])
         dc = self._query(q)
-        return {d['key']: d['mapping'] for d in dc}
+        mapping = {d['key']: d['mapping'] for d in dc}
+        unmapped = set(vfb_id)-set(mapping.keys())
+        if unmapped:
+            warnings.warn("The following IDs do not match DB &/or id_type constraints: %s" % str(unmapped))
+        return mapping
+
+    def vfb_id_2_neuprint_bodyID(self, vfb_id, db=''):
+        mapping = self.vfb_id_2_xrefs(vfb_id, db=db, reverse_return=True)
+        return [int(k) for k, v in mapping.items()]
 
     def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
         """Map an external ID (acc) to a VFB_id
@@ -376,6 +389,7 @@ class QueryWrapper(Neo4jConnect):
         match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) WHERE"
         conditions = []
         if not (acc is None):
+            acc = [str(a) for a in set(acc)]
             conditions.append("r.accession[0] in %s" % str(acc))
         if db:
             conditions.append("s.short_form = '%s'" % db)
@@ -458,20 +472,25 @@ class QueryWrapper(Neo4jConnect):
         return self._get_TermInfo(short_forms, typ='Get JSON for Template')
 
 
-def _populate_instance_summary_tab(instance):
-    d = dict()
-    d['label'] = instance['term']['core']['label']
-    d['url'] = instance['term']['core']['iri']
-    d['id'] = instance['term']['core']['short_form']
-    d['tags'] = instance['term']['core']['types']
-    parents_expr = parse_jpath("$.parents[*].symbol,label,short_form")
+def _populate_instance_summary_tab(TermInfo):
+    d = _populate_summary_tab(TermInfo)
     license_expr = parse_jpath("$.dataset_license.[*].license.link")
     dataset_expr = parse_jpath("$.dataset_license.[*].dataset.core.iri")
-    d['parents'] = [match.value for match in parents_expr.find(instance)]
-    d['license'] = [match.value for match in license_expr.find(instance)]
-    d['dataset'] = [match.value for match in dataset_expr.find(instance)]
+    template_expr = parse_jpath("$.channel_image.template_anatomy.[*].label")
+    d['templates'] = '|'.join([match.value for match in template_expr.find(TermInfo)])
+    d['license'] = '|'.join([match.value for match in license_expr.find(TermInfo)])
+    d['dataset'] = '|'.join([match.value for match in dataset_expr.find(TermInfo)])
     return d
 
+def _populate_summary_tab(TermInfo):
+    d = dict()
+    d['label'] = TermInfo['term']['core']['label']
+    d['id'] = TermInfo['term']['core']['short_form']
+    d['tags'] = '|'.join(TermInfo['term']['core']['types'])
+    d['parents_symbol'] = '|'.join(parse_jpath("$.parents[*].symbol"))
+    d['parents_label'] = '|'.join(parse_jpath("$.parents[*].label"))
+    d['parents_id'] = '|'.join(parse_jpath("$.parents[*].label"))
+    return d
 
 def _populate_manifest(filename, instance):
     d = _populate_instance_summary_tab(instance)
