@@ -4,7 +4,9 @@ Created on Oct 24, 2016
 @author: davidos
 '''
 import unittest
-from ..neo4j_tools import Neo4jConnect, QueryWrapper
+from ..neo4j_tools import Neo4jConnect
+from vfb_connect.neo.query_wrapper import QueryWrapper
+
 
 # TODO- pull over core nc tests from VFB_neo4j
 
@@ -16,15 +18,25 @@ class NeoQueryWrapperTest(unittest.TestCase):
         self.qw = QueryWrapper()
 
     def test_get_term_info(self):
+        fu = self.qw.get_TermInfo(['FBbt_00003686', 'VFB_00010001', 'Ito2013'])
+        self.assertTrue(
+            len(fu) == 3)
+
+    def test_get_type_term_info(self):
         self.assertTrue(self.qw.get_type_TermInfo(short_forms=['FBbt_00003686']))
+        self.assertTrue(self.qw.get_type_TermInfo(short_forms=['FBbt_00003686'], summary=True))
+
+    def test_get_DataSet_TermInfo(self):
         self.assertTrue(
             self.qw.get_DataSet_TermInfo(['Ito2013']))
+
+    def test_get_anatomical_individual_TermInfo(self):
         self.assertTrue(
             self.qw.get_anatomical_individual_TermInfo(['VFB_00010001']))
         self.assertTrue(
-            len(self.qw.get_TermInfo(['FBbt_00003686', 'VFB_00010001', 'Ito2013'])) == 3)
+            self.qw.get_anatomical_individual_TermInfo(['VFB_00010001'], summary=True))
 
-    def test_get_by_xref(self):
+    def test_get_terms_by_xref(self):
         self.assertTrue(self.qw.get_terms_by_xref(['Trh-F-500041'], db='FlyCircuit'))
 
     def test_get_vfb_id_by_xref(self):
