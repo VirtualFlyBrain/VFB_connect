@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import requests
 import json
 import warnings
@@ -8,11 +7,7 @@ import time
 from datetime import timedelta
 import math
 import argparse
-from string import Template
-import pkg_resources
 from ..default_servers import get_default_servers
-from inspect import getfullargspec
-
 
 
 def cli_credentials():
@@ -45,31 +40,19 @@ def chunks(l, n):
         yield l[i:i+n]
 
 
-def batch_query(func):
-    # Assumes first arg is to be batches and that return value is list. Only works on class methods.
-    # There has to be a better way to work with the values of args and kwargs than this!!!!
-    def wrapper_batch(*args, **kwargs):
-        arg_names = getfullargspec(func).args
-        if len(args) > 1:
-            arg1v = args[1]
-            arg1typ = 'a'
-        else:
-            arg1v = kwargs[arg_names[1]]
-            arg1typ = 'k'
-        cs = chunks(arg1v, 2500)
-        out = []
-        for c in cs:
-            if arg1typ == 'a':
-                arglist = list(args)
-                arglist[1] = c
-                subargs = tuple(arglist)
-                out.extend(func(*subargs, **kwargs))
-            elif arg1typ == 'k':
-                kwargdict = dict(kwargs)
-                kwargdict[arg_names[1]] = c
-                out.extend(func(*args, **kwargdict))
-        return out
-    return wrapper_batch
+# @dataclass
+# class Filter:
+#     jpath: str
+#     label: str
+#     value_restriction: None
+#
+# @dataclass
+# class CompoundFilter:
+#     primary_filter: Filter
+# #    secondary_filters: Array(Filter)
+#
+# #    image_folder_plus_meta = Filter(jpath="$.channel_image.[*].image.image_folder,template_anatomy")
+
 
 # def batch_query_dict_opt(func):
 #      # Assumes first arg is to be batched and that return value is dict
@@ -231,7 +214,8 @@ class Neo4jConnect:
         lookup = {x['name']: x['id'].replace('_', ':') for x in out}
         # print(lookup['neuron'])
         return lookup
-        
+
+
 def dict_cursor(results):
     """Takes JSON results from a neo4J query and turns them into a list of dicts.
     """
@@ -243,6 +227,7 @@ def dict_cursor(results):
                 dc.append(dict(zip(n['columns'], d['row'])))
     return dc
 
+
 def escape_string(strng):
     # Simple escaping for strings used in neo queries.
     if type(strng) == str:
@@ -250,174 +235,5 @@ def escape_string(strng):
         strng = re.sub("'", "\\'", strng)
         strng = re.sub('"', '\\"', strng)        
     return strng
-
-
-def gen_simple_report(terms):
-    nc = Neo4jConnect("https://pdb.virtualflybrain.org", "neo4j", "neo4j")
-    query = """MATCH (n:Class) WHERE n.iri in %s WITH n 
-                OPTIONAL MATCH  (n)-[r]->(p:pub) WHERE r.typ = 'syn' 
-                WITH n, 
-                COLLECT({ synonym: r.synonym, PMID: 'PMID:' + p.PMID, 
-                    miniref: p.label}) AS syns 
-                OPTIONAL MATCH (n)-[r]-(p:pub) WHERE r.typ = 'def' 
-                with n, syns, 
-                collect({ PMID: 'PMID:' + p.PMID, miniref: p.label}) as pubs
-                OPTIONAL MATCH (n)-[:SUBCLASSOF]->(super:Class)
-                RETURN n.short_form as short_form, n.label as label, 
-                n.description as description, syns, pubs,
-                super.label, super.short_form
-                 """ % str(terms)
-    q = nc.commit_list([query])
-    # add check
-    return dict_cursor(q)
-
-
-from xml.sax import saxutils
-
-class QueryWrapper(Neo4jConnect):
-
-    def __init__(self, *args, **kwargs):
-        super(QueryWrapper, self).__init__(*args, **kwargs)
-        query_json = pkg_resources.resource_filename(
-                            "vfb_connect",
-                            "resources/VFB_TermInfo_queries.json")
-        with open(query_json, 'r') as f:
-            self.queries = json.loads(saxutils.unescape(f.read()))
-
-    def _query(self, q):
-        qr = self.commit_list([q])
-        if not qr:
-            raise Exception('Query failed.')
-        else:
-            r = dict_cursor(qr)
-            if not r:
-                warnings.warn('No results returned')
-                return []
-            else:
-                return r
-
-    def get_dbs(self):
-        query = "MATCH (i:Individual) " \
-                "WHERE 'Site' in labels(i) OR 'API' in labels(i)" \
-                "return i.short_form"
-        return [d['i.short_form'] for d in self._query(query)]
-
-    def vfb_id_2_xrefs(self, vfb_id, db='', id_type='', reverse_return=False):
-        """Map a list of node short_form IDs in VFB to external DB IDs
-        Args:
-         vfb_id: list of short_form IDs of nodes in the VFB KB
-         db: {optional} database identifier (short_form) in VFB
-         id_type: {optional} name of external id type (e.g. bodyId)
-        Return:
-            dict { VFB_id : [{ db: <db> : acc : <acc> }
-        """
-        match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) " \
-                "WHERE i.short_form in %s" % str(vfb_id)
-        clause1 = ''
-        if db:
-            clause1 = "AND s.short_form = '%s'" % db
-        clause2 = ''
-        if id_type:
-            clause2 = "AND r.id_type = '%s'" % id_type
-        ret = "RETURN i.short_form as key, " \
-              "collect({ db: s.short_form, acc: r.accession[0]}) as mapping"
-        if reverse_return:
-            ret = "RETURN r.accession[0] as key, " \
-                  "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
-        q = ' '.join([match, clause1, clause2, ret])
-        dc = self._query(q)
-        return {d['key']: d['mapping'] for d in dc}
-
-    def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
-        """Map an external ID (acc) to a VFB_id
-        args:
-            acc: list of external DB IDs (accessions)
-            db: {optional} database identifier (short_form) in VFB
-            id_type: {optional} name of external id type (e.g. bodyId)
-        Return:
-            dict { VFB_id : [{ db: <db> : acc : <acc> }]}"""
-        match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) WHERE"
-        conditions = []
-        if not (acc is None):
-            conditions.append("r.accession[0] in %s" % str(acc))
-        if db:
-            conditions.append("s.short_form = '%s'" % db)
-        if id_type:
-            conditions.append("r.id_type = '%s'" % id_type)
-        condition_clauses = ' AND '.join(conditions)
-        ret = "RETURN r.accession[0] as key, " \
-              "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
-        if reverse_return:
-            ret = "RETURN i.short_form as key, " \
-                  "collect({ db: s.short_form, acc: r.accession[0]}) as mapping"
-        q = ' '.join([match, condition_clauses, ret])
-#        print(q)
-        dc = self._query(q)
-        return {d['key']: d['mapping'] for d in dc}
-
-    @batch_query
-    def get_terms_by_xref(self, acc, db='', id_type=''):
-        """Get terms in VFB corresponding to a
-            acc: list of external DB IDs (accession)
-            db: {optional} database identifier (short_form) in VFB
-            id_type: {optional} name of external id type (e.g. bodyId)"""
-        return self.get_TermInfo(list(self.xref_2_vfb_id(acc,
-                                                         db=db,
-                                                         id_type=id_type,
-                                                         reverse_return=True).keys()))
-
-    def get_images_by_filename(self, filenames, dataset=None):
-        """Takes a list of filenames as input and returns a list of image terminfo.
-        Optionally restrict by dataset (improves speed)"""
-        m = "MATCH (ds:DataSet)<-[has_source]-(ai:Individual)<-[:depicts]" \
-            "-(channel:Individual)-[irw:in_register_with]-(tc:Template)"
-        w = "WHERE irw.filename[0]in %s" % str([escape_string(f) for f in filenames])
-        if dataset:
-            w += "AND ds.short_form = '%s'" % dataset
-        r = "RETURN ai.short_form"
-        dc = self._query(' '.join([m, w, r]))
-        return self.get_anatomical_individual_TermInfo([d['ai.short_form']
-                                                        for d in dc])
-
-    @batch_query
-    def get_TermInfo(self, short_forms):
-        pre_query = "MATCH (e:Entity) " \
-                    "WHERE e.short_form in %s " \
-                    "RETURN e.short_form as short_form, labels(e) as labs " % str(short_forms)
-        r = self._query(pre_query)
-        out = []
-        for e in r:
-            if 'Class' in e['labs']:
-               out.extend(self.get_type_TermInfo([e['short_form']]))
-            elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
-                out.extend(self.get_anatomical_individual_TermInfo([e['short_form']]))
-            elif 'DataSet' in e['labs']:
-                out.extend(self.get_DataSet_TermInfo([e['short_form']]))
-        return out
-
-    def _get_TermInfo(self, short_forms: list, typ, show_query=True):
-        sfl = "', '".join(short_forms)
-        qs = Template(self.queries[typ]).substitute(ID=sfl)
-        if show_query:
-            print(qs)
-        return self._query(qs)
-
-
-
-    @batch_query
-    def get_anatomical_individual_TermInfo(self, short_forms):
-        return self._get_TermInfo(short_forms, typ='Get JSON for Individual:Anatomy')
-
-    @batch_query
-    def get_type_TermInfo(self, short_forms):
-        return self._get_TermInfo(short_forms, typ='Get JSON for Class')
-
-    @batch_query
-    def get_DataSet_TermInfo(self, short_forms):
-        return self._get_TermInfo(short_forms, typ='Get JSON for DataSet')
-
-    @batch_query
-    def get_template_TermInfo(self, short_forms):
-        return self._get_TermInfo(short_forms, typ='Get JSON for Template')
 
 

@@ -64,7 +64,7 @@ def _populate_anatomical_entity_summary(TermInfo):
 
 def _populate_instance_summary_tab(TermInfo):
     d = _populate_anatomical_entity_summary(TermInfo)
-    d['templates'] = pop_from_jpath("$.channel_image.[*].image.template_anatomy.label", TermInfo)
+    d['templates'] = pop_from_jpath("$.channel_image.template_anatomy.[*].label", TermInfo)
     d['dataset'] = pop_from_jpath("$.dataset_license.[*].dataset.core.iri", TermInfo)
     d['license'] = pop_from_jpath("$.dataset_license.[*].license.link", TermInfo)
     return d
