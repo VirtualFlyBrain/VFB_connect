@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shutil
 import warnings
 from inspect import getfullargspec
 from string import Template
@@ -152,13 +153,19 @@ class QueryWrapper(Neo4jConnect):
             else:
                 return r
 
-    def get_images(self, short_forms, template, image_folder, image_type='swc'):
+    def get_images(self, short_forms, template, image_folder, image_type='swc', stomp=False):
         """Given an array of `short_forms` for instances, find all images of specified `image_type`
         registered to `template`. Save these to `image_folder` along with a manifest.tsv.  Return manifest as
         pandas DataFrame."""
         # TODO - make image type into array
         image_expr = parse_jpath("$.channel_image.[*].image")
         manifest = []
+        if stomp and os.path.isdir(image_folder):
+            if shutil.rmtree.avoids_symlink_attacks:
+                shutil.rmtree(image_folder)
+            else:
+                warnings.warn("Not deleting %s, stomp option not supported on this system for security reasons,"
+                              "please delete manually." % image_folder)
         os.mkdir(image_folder)
         inds = self.get_anatomical_individual_TermInfo(short_forms=short_forms)
         for i in inds:
