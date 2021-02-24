@@ -284,7 +284,6 @@ class QueryWrapper(Neo4jConnect):
         return self.get_anatomical_individual_TermInfo([d['ai.short_form']
                                                         for d in dc])
 
-    @filter_term_content
     @batch_query
     def get_TermInfo(self, short_forms):
         pre_query = "MATCH (e:Entity) " \
