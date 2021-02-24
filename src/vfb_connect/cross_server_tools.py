@@ -93,7 +93,8 @@ class VfbConnect:
         return self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)),
                                                                          summary=summary)
 
-    def _get_neurons_connected_to(self, neuron, weight, direction, classification=None, query_by_label=True):
+    def _get_neurons_connected_to(self, neuron, weight, direction, classification=None, query_by_label=True,
+                                  return_dataframe=True):
         instances = []
         directions = ['upstream', 'downstream']
         if not (direction in directions):
@@ -114,23 +115,48 @@ class VfbConnect:
                         "downstream.short_form as target_neuron_id, downstream.label as target_neuron_name"
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
-        return pd.DataFrame.from_records(dc)
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
+        else:
+            return dc
 
-    def get_neurons_downstream_of(self, neuron, weight, classification=None, query_by_label=True):
+    def get_morphologically_similar_neurons_to(self, neuron, cutoff=None, source=None, return_dataframe=True):
+        """Get all neurons """
+        query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) " \
+                "WHERE n1.short_form = '%s' " \
+                "WITH c1, n1, r, n2, c2 " \
+                "OPTIONAL MATCH (n1)-[dbx1:database_cross_reference]->(s1:Site), " \
+                "(n2)-[dbx2:database_cross_reference]->(s2:Site) " \
+                "WHERE s1.is_data_source and s2.is_data_source " \
+                "RETURN DISTINCT n2.short_form AS id, r.NBLAST_score[0] AS NBLAST_score, n2.label AS label, " \
+                "COLLECT(c2.label) AS types, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source " \
+                "ORDER BY NBLAST_score DESC""" % neuron
+        dc = self.neo_query_wrapper._query(query)
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
+        else:
+            return dc
+
+
+    def get_neurons_downstream_of(self, neuron, weight, classification=None, query_by_label=True,
+                                  return_dataframe = True):
         """Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
         with connection strength > threshold.  Optionally restrict target neurons to those specified by
         `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'"."""
         return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='upstream',
-                                              classification=classification, query_by_label=query_by_label)
+                                              classification=classification, query_by_label=query_by_label,
+                                              return_dataframe=return_dataframe)
 
-    def get_neurons_upstream_of(self, neuron, weight, classification=None, query_by_label=True):
+    def get_neurons_upstream_of(self, neuron, weight, classification=None, query_by_label=True, return_dataframe=True):
         """Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
          with connection strength > threshold.  Optionally restrict target neurons to those specified by
          `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'"."""
         return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='downstream',
-                                              classification=classification, query_by_label=query_by_label)
+                                              classification=classification, query_by_label=query_by_label,
+                                              return_dataframe=return_dataframe)
 
-    def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True):
+    def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True,
+                                      return_dataframe=True):
         """Get all synaptic connections between individual neurons of `upstream_type` and `dowstream_type` where
          each of these types is the name of a neuron class/type in VFB."""
 
@@ -152,7 +178,10 @@ class VfbConnect:
                         "n2.short_form as downstream_neuron_id, n2.label as downstream_neuron_name"
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
-        return pd.DataFrame.from_records(dc)
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
+        else:
+            return dc
 
     def get_vfb_link(self, short_forms: iter, template):
         """Takes a list of VFB IDs (short_forms) for individuals and returns a link to VFB loading all available images
