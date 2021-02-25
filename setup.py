@@ -9,7 +9,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(name='vfb_connect',  # Required
-      version='v1.1',  # Required
+      version='v1.1.1',  # Required
       packages=find_packages(where='src'),
       package_dir={'': 'src'},
       py_modules=[path.splitext(path.basename(path))[0] for path in glob.glob('src/*.py')],
@@ -22,7 +22,7 @@ setup(name='vfb_connect',  # Required
       # This should be a valid email address corresponding to the author listed
       # above.
       author_email='dosumis@gmail.com',  # Optional
-      install_requires=['requests','pandas', 'jsonpath_rw'],
+      install_requires=['requests', 'pandas', 'jsonpath_rw'],
       data_files=[('json_schema', ['src/vfb_connect/resources/VFB_TermInfo_queries.json'])],
       classifiers=[  # Optional
           # How mature is this project? Common values are

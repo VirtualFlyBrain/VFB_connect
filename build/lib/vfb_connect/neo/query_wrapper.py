@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shutil
 import warnings
 from inspect import getfullargspec
 from string import Template
@@ -64,7 +65,7 @@ def _populate_anatomical_entity_summary(TermInfo):
 
 def _populate_instance_summary_tab(TermInfo):
     d = _populate_anatomical_entity_summary(TermInfo)
-    d['templates'] = pop_from_jpath("$.channel_image.template_anatomy.[*].label", TermInfo)
+    d['templates'] = pop_from_jpath("$.channel_image.[*].image.template_anatomy.label", TermInfo)
     d['dataset'] = pop_from_jpath("$.dataset_license.[*].dataset.core.iri", TermInfo)
     d['license'] = pop_from_jpath("$.dataset_license.[*].license.link", TermInfo)
     return d
@@ -79,16 +80,16 @@ def _populate_manifest(filename, instance):
     d['filename'] = filename
     return d
 
-def filter_term_content(func):
-    """Decorator function that wraps queries that return lists of JSON objects and which have
-     an arg named filters.  The filters arg takes a filter object, which specifics JPATH queries which are applied
-     as a filter to each returned JSON object so that the final result only contains the
-     specified paths and their values"""
-
-    type_2_summary = {
-        'individual': '_populate_instance_summary_tab',
-        'class': '_populate_anatomical_entity_summary',
-    }
+# def filter_term_content(func):
+#     """Decorator function that wraps queries that return lists of JSON objects and which have
+#      an arg named filters.  The filters arg takes a filter object, which specifics JPATH queries which are applied
+#      as a filter to each returned JSON object so that the final result only contains the
+#      specified paths and their values"""
+#
+#     type_2_summary = {
+#         'individual': '_populate_instance_summary_tab',
+#         'class': '_populate_anatomical_entity_summary',
+#     }
 
     # def filter_wrapper(*args, **kwargs):
     #     func_ret = func(*args, **kwargs)
@@ -152,13 +153,19 @@ class QueryWrapper(Neo4jConnect):
             else:
                 return r
 
-    def get_images(self, short_forms, template, image_folder, image_type='swc'):
+    def get_images(self, short_forms, template, image_folder, image_type='swc', stomp=False):
         """Given an array of `short_forms` for instances, find all images of specified `image_type`
         registered to `template`. Save these to `image_folder` along with a manifest.tsv.  Return manifest as
         pandas DataFrame."""
         # TODO - make image type into array
         image_expr = parse_jpath("$.channel_image.[*].image")
         manifest = []
+        if stomp and os.path.isdir(image_folder):
+            if shutil.rmtree.avoids_symlink_attacks:
+                shutil.rmtree(image_folder)
+            else:
+                warnings.warn("Not deleting %s, stomp option not supported on this system for security reasons,"
+                              "please delete manually." % image_folder)
         os.mkdir(image_folder)
         inds = self.get_anatomical_individual_TermInfo(short_forms=short_forms)
         for i in inds:
@@ -313,13 +320,16 @@ class QueryWrapper(Neo4jConnect):
 
 
     def _termInfo_2_summary(self, TermInfo, typ):
-        type_2_summary = {
-            'Get JSON for Individual:Anatomy': '_populate_instance_summary_tab',
-            'Get JSON for Class': '_populate_anatomical_entity_summary',
-        }
+        # type_2_summary = {
+        #     'Get JSON for Individual:Anatomy': '_populate_instance_summary_tab',
+        #     'Get JSON for Class': '_populate_anatomical_entity_summary',
+        # }
         dc = []
         for r in TermInfo:
-            dc.append(eval(type_2_summary[typ] + "(" + str(r) + ")"))
+            if typ == 'Get JSON for Individual:Anatomy':
+                dc.append(_populate_instance_summary_tab(r))
+            elif typ == 'Get JSON for Class':
+                dc.append(_populate_anatomical_entity_summary(r))
         return dc
 
     def get_anatomical_individual_TermInfo(self, short_forms, summary=False):
