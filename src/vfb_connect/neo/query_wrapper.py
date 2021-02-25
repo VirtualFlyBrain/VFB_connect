@@ -320,13 +320,16 @@ class QueryWrapper(Neo4jConnect):
 
 
     def _termInfo_2_summary(self, TermInfo, typ):
-        type_2_summary = {
-            'Get JSON for Individual:Anatomy': '_populate_instance_summary_tab',
-            'Get JSON for Class': '_populate_anatomical_entity_summary',
-        }
+        # type_2_summary = {
+        #     'Get JSON for Individual:Anatomy': '_populate_instance_summary_tab',
+        #     'Get JSON for Class': '_populate_anatomical_entity_summary',
+        # }
         dc = []
         for r in TermInfo:
-            dc.append(eval(type_2_summary[typ] + "(" + str(r) + ")"))
+            if typ == 'Get JSON for Individual:Anatomy':
+                dc.append(_populate_instance_summary_tab(r))
+            elif typ == 'Get JSON for Class':
+                dc.append(_populate_anatomical_entity_summary(r))
         return dc
 
     def get_anatomical_individual_TermInfo(self, short_forms, summary=False):
