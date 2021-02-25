@@ -57,6 +57,16 @@ class VfbConnectTest(unittest.TestCase):
         fu = self.vc.get_connected_neurons_by_type('Kenyon cell', 'mushroom body output neuron', 20)
         self.assertTrue(len(fu) > 0)
 
+    def test_get_vfb_link(self):
+        fu = self.vc.get_vfb_link(['VFB_jrchjz1e', 'VFB_jrchjtdn', 'VFB_jrchk8bo', 'VFB_jrchjz73',
+                                   'VFB_jrchjvog',
+                                   'VFB_jrchk8b0',
+                                   'VFB_jrchjw9i',
+                                   'VFB_jrchk8ao',
+                                   'VFB_jrchjwae'], template='JRC2018Unisex')
+        print(fu)
+        self.assertTrue(fu)
+
     def tearDown(self):
         if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
             shutil.rmtree('image_folder_tmp')
