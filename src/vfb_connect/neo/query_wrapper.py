@@ -153,11 +153,12 @@ class QueryWrapper(Neo4jConnect):
             else:
                 return r
 
-    def get_images(self, short_forms, template, image_folder, image_type='swc', stomp=False):
+    def get_images(self, short_forms: iter, template, image_folder, image_type='swc', stomp=False):
         """Given an array of `short_forms` for instances, find all images of specified `image_type`
         registered to `template`. Save these to `image_folder` along with a manifest.tsv.  Return manifest as
         pandas DataFrame."""
         # TODO - make image type into array
+        short_forms = list(short_forms)
         image_expr = parse_jpath("$.channel_image.[*].image")
         manifest = []
         if stomp and os.path.isdir(image_folder):
@@ -308,7 +309,8 @@ class QueryWrapper(Neo4jConnect):
         return out
 
     @batch_query
-    def _get_TermInfo(self, short_forms: list, typ, show_query=False, summary=False):
+    def _get_TermInfo(self, short_forms: iter, typ, show_query=False, summary=False):
+        short_forms = list(short_forms)
         sfl = "', '".join(short_forms)
         qs = Template(self.queries[typ]).substitute(ID=sfl)
         if show_query:
