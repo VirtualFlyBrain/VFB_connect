@@ -18,12 +18,17 @@ class VfbConnectTest(unittest.TestCase):
             self.vc.get_subclasses("fan-shaped body layer"))
 
     def test_get_instances(self):
+        fbi = self.vc.get_instances("fan-shaped body")
+        self.assertTrue(fbi)
+        # test summary
+        fbis = self.vc.get_instances("fan-shaped body", summary=True)
+        self.assertEqual(len(fbi), len(fbis))
+        # Test batched query
+        alpn = self.vc.get_instances('antennal lobe projection neuron')
         self.assertTrue(
-            self.vc.get_instances("fan-shaped body"))
-        # Tests batched query
-        self.assertTrue(
-            len(self.vc.get_instances('antennal lobe projection neuron')) > 1000)
-        self.assertTrue(self.vc.get_instances('antennal lobe projection neuron', summary=True))
+            len(alpn) > 1000)
+        alpns = self.vc.get_instances('antennal lobe projection neuron', summary=True)
+        self.assertEqual(len(alpn), len(alpns))
 
     def test_get_images(self):
         if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
