@@ -80,16 +80,16 @@ def _populate_manifest(filename, instance):
     d['filename'] = filename
     return d
 
-def filter_term_content(func):
-    """Decorator function that wraps queries that return lists of JSON objects and which have
-     an arg named filters.  The filters arg takes a filter object, which specifics JPATH queries which are applied
-     as a filter to each returned JSON object so that the final result only contains the
-     specified paths and their values"""
-
-    type_2_summary = {
-        'individual': '_populate_instance_summary_tab',
-        'class': '_populate_anatomical_entity_summary',
-    }
+# def filter_term_content(func):
+#     """Decorator function that wraps queries that return lists of JSON objects and which have
+#      an arg named filters.  The filters arg takes a filter object, which specifics JPATH queries which are applied
+#      as a filter to each returned JSON object so that the final result only contains the
+#      specified paths and their values"""
+#
+#     type_2_summary = {
+#         'individual': '_populate_instance_summary_tab',
+#         'class': '_populate_anatomical_entity_summary',
+#     }
 
     # def filter_wrapper(*args, **kwargs):
     #     func_ret = func(*args, **kwargs)
