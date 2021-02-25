@@ -120,7 +120,7 @@ class VfbConnect:
         else:
             return dc
 
-    def get_morphologically_similar_neurons_to(self, neuron, cutoff=None, source=None, return_dataframe=True):
+    def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', cutoff=None, source=None, return_dataframe=True):
         """Get all neurons """
         query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) " \
                 "WHERE n1.short_form = '%s' " \
@@ -130,7 +130,7 @@ class VfbConnect:
                 "WHERE s1.is_data_source and s2.is_data_source " \
                 "RETURN DISTINCT n2.short_form AS id, r.NBLAST_score[0] AS NBLAST_score, n2.label AS label, " \
                 "COLLECT(c2.label) AS types, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source " \
-                "ORDER BY NBLAST_score DESC""" % neuron
+                "ORDER BY %s DESC""" % (neuron, similarity_score)
         dc = self.neo_query_wrapper._query(query)
         if return_dataframe:
             return pd.DataFrame.from_records(dc)
