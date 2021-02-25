@@ -184,9 +184,16 @@ class VfbConnect:
             return dc
 
     def get_vfb_link(self, short_forms: iter, template):
-        """Takes a list of VFB IDs (short_forms) for individuals and returns a link to VFB loading all available images
+        """Takes a list of VFB IDs (short_forms) and the name (label) of a template.
+         Returns a link to VFB loading all available images
          of neurons on that template."""
-        return self.vfb_base + short_forms.pop() + "&i=" + template + ',' + ','.join(short_forms)
+        short_forms = list(short_forms)
+        query = "MATCH (t:Template { label: '%s'}) return t.short_form" % template
+        dc = self.neo_query_wrapper._query(query)
+        if not dc:
+            raise ValueError("Unrecognised template name %s" % template)
+        else:
+            return self.vfb_base + short_forms.pop() + "&i=" + dc[0]['t.short_form'] + ',' + ','.join(short_forms)
 
     def get_images_by_type(self, class_expression, template, image_folder,
                            image_type='swc', query_by_label=True, direct=False):
