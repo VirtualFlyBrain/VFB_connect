@@ -65,8 +65,10 @@ def _populate_anatomical_entity_summary(TermInfo):
 
 def _populate_instance_summary_tab(TermInfo):
     d = _populate_anatomical_entity_summary(TermInfo)
+    d['sites']: pop_from_jpath("")
+    d['accessions']: pop_from_jpath("")
     d['templates'] = pop_from_jpath("$.channel_image.[*].image.template_anatomy.label", TermInfo)
-    d['dataset'] = pop_from_jpath("$.dataset_license.[*].dataset.core.iri", TermInfo)
+    d['dataset'] = pop_from_jpath("$.dataset_license.[*].dataset.core.short_form", TermInfo)
     d['license'] = pop_from_jpath("$.dataset_license.[*].license.link", TermInfo)
     return d
 
@@ -140,6 +142,10 @@ class QueryWrapper(Neo4jConnect):
                             "resources/VFB_TermInfo_queries.json")
         with open(query_json, 'r') as f:
             self.queries = json.loads(saxutils.unescape(f.read()))
+
+
+    def get_sites(self):
+        return
 
     def _query(self, q):
         qr = self.commit_list([q])
