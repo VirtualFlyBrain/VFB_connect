@@ -50,6 +50,7 @@ class VfbConnect:
                                 lookup=self.nc.get_lookup(limit_by_prefix=lookup_prefixes))
         self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
 
+
     def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True):
         """Generate JSON reports for all terms relevant to
          annotating some specific region,
@@ -169,13 +170,23 @@ class VfbConnect:
         if query_by_label:
             qprop = 'label'
 #        upstream_instances = self.oc.get_instances(upstream_type, query_by_label=query_by_label)
-        cypher_query = "MATCH (up:Class:Neuron)<-[:SUBCLASSOF|INSTANCEOF*..]-(n1:Neuron:Individual)" \
-                       "-[r:synapsed_to]->(n2:Neuron:Individual)-[:SUBCLASSOF|INSTANCEOF*..]->(down:Class:Neuron) " \
-                       "WHERE r.weight[0] > %d " % weight
+        cypher_query = "MATCH (up:Class:Neuron)<-[:SUBCLASSOF|INSTANCEOF*..]-(n1:Neuron:Individual)-[r:synapsed_to]->" \
+                       "(n2:Neuron:Individual)-[:SUBCLASSOF|INSTANCEOF*..]->(down:Class:Neuron)"
+        cypher_query += "WHERE r.weight[0] > %d " % weight
         cypher_query += 'AND up.%s = "%s" and down.%s = "%s" ' % (qprop, upstream_type, qprop, downstream_type)
-        cypher_query += "RETURN n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name, " \
+        cypher_query += "MATCH (c1)<-[:INSTANCEOF]-(n1),  (c2)<-[:INSTANCEOF]-(n2)" \
+                        "OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) " \
+                        "WHERE exists(s1.is_data_source) AND s1.is_data_source = True " \
+                        "OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Site) " \
+                        "WHERE exists(s1.is_data_source) AND s2.is_data_source = True " \
+                        "RETURN n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name, " \
                         "r.weight[0] as weight, " \
-                        "n2.short_form as downstream_neuron_id, n2.label as downstream_neuron_name"
+                        "n2.short_form as downstream_neuron_id, n2.label as downstream_neuron_name, " \
+                        "apoc.text.join(collect(c1.label),'|') AS upstream_class, " \
+                        "apoc.text.join(collect(c2.label),'|') as downstream_class, " \
+                        "s1.short_form AS up_data_source, r1.accession as up_accession," \
+                        "s2.short_form AS down_source, r2.accession AS down_accession"
+
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
         if return_dataframe:
