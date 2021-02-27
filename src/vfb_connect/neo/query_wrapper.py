@@ -41,9 +41,12 @@ def batch_query(func):
     return wrapper_batch
 
 
-def pop_from_jpath(jpath, json):
+def pop_from_jpath(jpath, json, join=True):
     expr = parse_jpath(jpath)
-    return '|'.join([match.value for match in expr.find(json)])
+    if join:
+        return '|'.join([match.value for match in expr.find(json)])
+    else:
+        return [match.value for match in expr.find(json)]
 
 
 def _populate_minimal_summary_tab(TermInfo):
@@ -65,8 +68,22 @@ def _populate_anatomical_entity_summary(TermInfo):
 
 def _populate_instance_summary_tab(TermInfo):
     d = _populate_anatomical_entity_summary(TermInfo)
-    d['sites']: pop_from_jpath("")
-    d['accessions']: pop_from_jpath("")
+    site_expr = "$.xrefs.[*].site.short_form"
+    acc_expr = "$.xrefs.[*].accession"
+    is_data_source_expr = "$.xrefs.[*].is_data_source"
+    sites = pop_from_jpath(site_expr, TermInfo, join=False)
+    accessions = pop_from_jpath(acc_expr, TermInfo, join=False)
+    is_data_source = pop_from_jpath(is_data_source_expr, TermInfo, join=False)
+    i = 0
+    data_sources = []
+    ds_accessions = []
+    for ids in is_data_source:
+        if ids:
+            data_sources.append(sites[i])
+            ds_accessions.append(accessions[i])
+        i += 1
+    d['data_source'] = '|'.join(data_sources)
+    d['accession'] = '|'.join(ds_accessions)
     d['templates'] = pop_from_jpath("$.channel_image.[*].image.template_anatomy.label", TermInfo)
     d['dataset'] = pop_from_jpath("$.dataset_license.[*].dataset.core.short_form", TermInfo)
     d['license'] = pop_from_jpath("$.dataset_license.[*].license.link", TermInfo)
@@ -143,9 +160,8 @@ class QueryWrapper(Neo4jConnect):
         with open(query_json, 'r') as f:
             self.queries = json.loads(saxutils.unescape(f.read()))
 
-
-    def get_sites(self):
-        return
+#    def get_sites(self):
+#        return
 
     def _query(self, q):
         qr = self.commit_list([q])
