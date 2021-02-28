@@ -58,6 +58,14 @@ class NeoQueryWrapperTest(unittest.TestCase):
             self.qw.get_images_by_filename(
                 ['JFRC2_MBON-b1-a.nrrd'], dataset='Aso2014'))
 
+    def test_get_datasets(self):
+        self.assertGreater(len(self.qw.get_datasets()), 10)
+        self.assertGreater(len(self.qw.get_datasets(summary=True)), 10)
+
+    def test_get_templates(self):
+        self.assertGreater(len(self.qw.get_templates()), 2)
+        self.assertGreater(len(self.qw.get_templates(summary=True)), 2)
+
 
 class Neo4jConnectTest(unittest.TestCase):
 

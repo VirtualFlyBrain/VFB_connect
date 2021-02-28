@@ -200,6 +200,10 @@ class Neo4jConnect:
             lookup_query = "MATCH (a:%s) %s RETURN a.short_form as id, a.label as name" % (l, where)
             q = self.commit_list([lookup_query])
             out.extend(dict_cursor(q))
+            lookup_query = "MATCH (a:%s) %s AND exists(a.symbol) " \
+                           "RETURN a.short_form as id, a.symbol[0] as name" % (l, where)
+            q = self.commit_list([lookup_query])
+            out.extend(dict_cursor(q))
         # All ObjectProperties wanted, irrespective of ID
         if limit_properties_by_prefix:
             regex_string = '.+|'.join(limit_properties_by_prefix) + '.+'
