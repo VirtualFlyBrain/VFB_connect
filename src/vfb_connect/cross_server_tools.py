@@ -45,9 +45,9 @@ class VfbConnect:
         }
         self.nc = Neo4jConnect(**connections['neo'])
         self.neo_query_wrapper = QueryWrapper(**connections['neo'])
-
+        self.lookup = self.nc.get_lookup(limit_by_prefix=lookup_prefixes)
         self.oc = OWLeryConnect(endpoint=owlery_endpoint,
-                                lookup=self.nc.get_lookup(limit_by_prefix=lookup_prefixes))
+                                lookup=self.lookup)
         self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
 
 
@@ -89,10 +89,15 @@ class VfbConnect:
          database.  Instances are typically associated with registered 3D image data and may include
          connectomics data."""
         if not re.search("'", class_expression):
-            class_expression = "'" + class_expression + "'"
-        terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
-        return self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)),
-                                                                         summary=summary)
+            if query_by_label:
+                class_expression = self.lookup[class_expression].replace(':', '_')
+            out = self.neo_query_wrapper._get_anatomical_individual_TermInfo_by_type(class_expression,
+                                                                                     summary=True)
+        else:
+            terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
+            out = self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)),
+                                                                            summary=summary)
+        return out
 
     def _get_neurons_connected_to(self, neuron, weight, direction, classification=None, query_by_label=True,
                                   return_dataframe=True):
@@ -193,15 +198,14 @@ class VfbConnect:
         else:
             return dc
 
-    def get_instances_by_dataset(self, dataset=None, FBrf=None, PMID=None, DOI=None, summary=False):
-
+    def get_instances_by_dataset(self, dataset, summary=False):
+        """Returns metadata for a dataset"""
         if dataset:
             query = "MATCH (ds:DataSet)<-[:has_source]-(i:Individual) " \
                     "WHERE ds.short_form = '%s' " \
-                    "RETURN collect(i.short_form) as inds"
-            dc = self.neo_query_wrapper._query(query) # better to use the original column oriented return!
-            return self.neo_query_wrapper.get_anatomical_individual_TermInfo(dc[0]['inds'])
-
+                    "RETURN collect(i.short_form) as inds" % dataset
+            dc = self.neo_query_wrapper._query(query)  # Would better to use the original column oriented return!
+            return self.neo_query_wrapper.get_anatomical_individual_TermInfo(dc[0]['inds'], summary=summary)
     
 
     def get_vfb_link(self, short_forms: iter, template):
@@ -217,17 +221,20 @@ class VfbConnect:
             return self.vfb_base + short_forms.pop() + "&i=" + dc[0]['t.short_form'] + ',' + ','.join(short_forms)
 
     def get_images_by_type(self, class_expression, template, image_folder,
-                           image_type='swc', query_by_label=True, direct=False):
+                           image_type='swc', query_by_label=True, direct=False, stomp=False):
         """Retrieve images of instances of `class_expression` registered to `template` and save to disk,
         along with manifest and references, to `image_folder`. Default image type = swc. Also supported: obj, nrrd, rds, wlz.
-        Returns manifest"""
+        Returns manifest dataframe. If `stomp` is true, overwrites existing template_folder."""
+        if not re.search("'", class_expression):
+            class_expression = "'" + class_expression + "'"
         instances = self.oc.get_instances(class_expression,
                                           query_by_label=query_by_label,
                                           direct=direct)
         return self.neo_query_wrapper.get_images([gen_short_form(i) for i in instances],
                                                  template=template,
                                                  image_folder=image_folder,
-                                                 image_type=image_type)
+                                                 image_type=image_type,
+                                                 stomp=stomp)
 
 
 

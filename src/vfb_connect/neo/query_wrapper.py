@@ -9,7 +9,7 @@ from xml.sax import saxutils
 import pandas as pd
 import pkg_resources
 import requests
-from jsonpath_rw import parse as parse_jpath
+# from jsonpath_rw import parse as parse_jpath
 from vfb_connect.neo.neo4j_tools import chunks, Neo4jConnect, dict_cursor, escape_string
 
 
@@ -41,12 +41,12 @@ def batch_query(func):
     return wrapper_batch
 
 
-def pop_from_jpath(jpath, json, join=True):
-    expr = parse_jpath(jpath)
-    if join:
-        return '|'.join([match.value for match in expr.find(json)])
-    else:
-        return [match.value for match in expr.find(json)]
+# def pop_from_jpath(jpath, json, join=True):
+#     expr = parse_jpath(jpath)
+#     if join:
+#         return '|'.join([match.value for match in expr.find(json)])
+#     else:
+#         return [match.value for match in expr.find(json)]
 
 
 def _populate_minimal_summary_tab(TermInfo):
@@ -61,19 +61,27 @@ def _populate_minimal_summary_tab(TermInfo):
 def _populate_anatomical_entity_summary(TermInfo):
     d = _populate_minimal_summary_tab(TermInfo)
 #   d['parents_symbol'] = pop_from_jpath("$.parents[*].symbol", TermInfo)
-    d['parents_label'] = pop_from_jpath("$.parents[*].label", TermInfo)
-    d['parents_id'] = pop_from_jpath("$.parents[*].short_form", TermInfo)
+#   d['parents_label'] = pop_from_jpath("$.parents[*].label", TermInfo)
+
+    d['parents_label'] = '|'.join([p['label'] for p in TermInfo['parents']])
+#    d['parents_id'] = pop_from_jpath("$.parents[*].short_form", TermInfo)
+    d['parents_id'] = '|'.join([p['short_form'] for p in TermInfo['parents']])
+
     return d
 
 
 def _populate_instance_summary_tab(TermInfo):
     d = _populate_anatomical_entity_summary(TermInfo)
-    site_expr = "$.xrefs.[*].site.short_form"
-    acc_expr = "$.xrefs.[*].accession"
-    is_data_source_expr = "$.xrefs.[*].is_data_source"
-    sites = pop_from_jpath(site_expr, TermInfo, join=False)
-    accessions = pop_from_jpath(acc_expr, TermInfo, join=False)
-    is_data_source = pop_from_jpath(is_data_source_expr, TermInfo, join=False)
+#    site_expr = "$.xrefs.[*].site.short_form"
+#    acc_expr = "$.xrefs.[*].accession"
+#    is_data_source_expr = "$.xrefs.[*].is_data_source"
+#   sites = pop_from_jpath(site_expr, TermInfo, join=False)
+    sites = '|'.join([p['site']['short_form'] for p in TermInfo['xrefs']])
+    accessions = '|'.join([p['accession'] for p in TermInfo['xrefs']
+                           if 'accession' in p.keys()])
+    is_data_source = [p['is_data_source'] for p in TermInfo['xrefs']
+                               if 'accession' in p.keys()]
+
     i = 0
     data_sources = []
     ds_accessions = []
@@ -84,14 +92,21 @@ def _populate_instance_summary_tab(TermInfo):
         i += 1
     d['data_source'] = '|'.join(data_sources)
     d['accession'] = '|'.join(ds_accessions)
-    d['templates'] = pop_from_jpath("$.channel_image.[*].image.template_anatomy.label", TermInfo)
-    d['dataset'] = pop_from_jpath("$.dataset_license.[*].dataset.core.short_form", TermInfo)
-    d['license'] = pop_from_jpath("$.dataset_license.[*].license.link", TermInfo)
+    d['templates'] = '|'.join([x['image']['template_anatomy']['label'] for x in TermInfo['channel_image']])
+    d['dataset'] = '|'.join([x['dataset']['core']['short_form'] for x in TermInfo['dataset_license']])
+    d['dataset'] = '|'.join([x['license']['link'] for x in TermInfo['dataset_license']
+                             if 'link' in x['license'].keys()])
     return d
 
 
 def _populate_dataset_summary_tab(TermInfo):
     d = _populate_minimal_summary_tab(TermInfo)
+    d['description'] = TermInfo['term']['description']
+    d['miniref'] = '|'.join([x['core']['label'] for x in TermInfo['pubs']])
+    d['FlyBase'] = '|'.join([x['FlyBase'] for x in TermInfo['pubs'] if 'FlyBase' in x])
+    d['PMID'] = '|'.join([x['PubMed'] for x in TermInfo['pubs'] if 'PubMed' in x])
+    d['DOI'] = '|'.join([x['DOI'] for x in TermInfo['pubs'] if 'PubMed' in x])
+    return d
 
 
 def _populate_manifest(filename, instance):
@@ -181,7 +196,6 @@ class QueryWrapper(Neo4jConnect):
         pandas DataFrame."""
         # TODO - make image type into array
         short_forms = list(short_forms)
-        image_expr = parse_jpath("$.channel_image.[*].image")
         manifest = []
         if stomp and os.path.isdir(image_folder):
             if shutil.rmtree.avoids_symlink_attacks:
@@ -195,11 +209,10 @@ class QueryWrapper(Neo4jConnect):
             if not ('has_image' in i['term']['core']['types']):
                 continue
             label = i['term']['core']['label']
-            image_matches = image_expr.find(i)
-            if not ([match.value for match in image_matches]):
+            image_matches = [x['image'] for x in i['channel_image']]
+            if not image_matches:
                 continue
-            for im in image_matches:
-                imv = im.value
+            for imv in image_matches:
                 if imv['template_anatomy']['label'] == template:
                     r = requests.get(imv['image_folder'] + '/volume.' + image_type)
                     ### Slightly dodgy warning - could mask network errors
@@ -220,10 +233,17 @@ class QueryWrapper(Neo4jConnect):
                 "return i.short_form"
         return [d['i.short_form'] for d in self._query(query)]
 
-    def get_templates(self):
-        query = "MATCH (i:Individual:Template:Anatomy) " \
-                "RETURN i.short_form"
-        return self._get_TermInfo([d['i.short_form'] for d in self._query(query)], typ='Individual')
+    def get_datasets(self, summary=False):
+        dc = self._query("MATCH (ds:DataSet) "
+                         "RETURN ds.short_form AS sf")
+        short_forms = [d['sf'] for d in dc]
+        return self.get_DataSet_TermInfo(short_forms, summary=summary)
+
+    def get_templates(self, summary=False):
+        dc = self._query("MATCH (i:Individual:Template:Anatomy) "
+                         "RETURN i.short_form as sf")
+        short_forms = [d['sf'] for d in dc]
+        return self.get_anatomical_individual_TermInfo(short_forms, summary=summary)
 
     def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
         """Map a list of node short_form IDs in VFB to external DB IDs
@@ -231,10 +251,11 @@ class QueryWrapper(Neo4jConnect):
          vfb_id: list of short_form IDs of nodes in the VFB KB
          db: {optional} database identifier (short_form) in VFB
          id_type: {optional} name of external id type (e.g. bodyId)
-        Return if `reverse_return` is False:
-            dict { VFB_id : [{ db: <db> : acc : <acc> }
-        Return if `reverse_return` is True:
-             dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
+         reverse_return:
+            Return if `reverse_return` is False:
+                dict { VFB_id : [{ db: <db> : acc : <acc> }
+            Return if `reverse_return` is True:
+                dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
         """
         vfb_id = list(set(vfb_id))
         match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) " \
@@ -343,6 +364,13 @@ class QueryWrapper(Neo4jConnect):
         else:
             return self._query(qs)
 
+    def _get_anatomical_individual_TermInfo_by_type(self, classification, summary=False):
+        typ = 'Get JSON for Individual:Anatomy_by_type'
+        qs = Template(self.queries[typ]).substitute(ID=classification)
+        if summary:
+            return self._termInfo_2_summary(self._query(qs), typ='Get JSON for Individual:Anatomy')
+        else:
+            return self._query(qs)
 
     def _termInfo_2_summary(self, TermInfo, typ):
         # type_2_summary = {
@@ -355,6 +383,8 @@ class QueryWrapper(Neo4jConnect):
                 dc.append(_populate_instance_summary_tab(r))
             elif typ == 'Get JSON for Class':
                 dc.append(_populate_anatomical_entity_summary(r))
+            elif typ == 'Get JSON for DataSet':
+                dc.append(_populate_dataset_summary_tab(r))
         return dc
 
     def get_anatomical_individual_TermInfo(self, short_forms, summary=False):
@@ -364,7 +394,7 @@ class QueryWrapper(Neo4jConnect):
         return self._get_TermInfo(short_forms, typ='Get JSON for Class', summary=summary)
 
     def get_DataSet_TermInfo(self, short_forms, summary=False):
-        return self._get_TermInfo(short_forms, typ='Get JSON for DataSet')
+        return self._get_TermInfo(short_forms, typ='Get JSON for DataSet', summary=summary)
 
-    def get_template_TermInfo(self, short_forms, summary=False):
+    def get_template_TermInfo(self, short_forms):
         return self._get_TermInfo(short_forms, typ='Get JSON for Template')

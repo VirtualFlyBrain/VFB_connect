@@ -7,7 +7,10 @@ from ..default_servers import get_default_servers
 ## MVP: queries when passed a curie map
 ## desireable: obo curies automatically generated from query string.
 
-
+def gen_short_form(iri):
+    """Generate short_form (string) from an iri string
+    iri: An iri string"""
+    return re.split('/|#', iri)[-1]
 
 class OWLeryConnect:
 
@@ -70,26 +73,38 @@ class OWLeryConnect:
             warnings.warn(str(r.content))
             return False
 
-    def get_subclasses(self, query, query_by_label=False, direct=False):
-        """Get subclasses satisfying  query, where query is an OWL DL query
+    def get_subclasses(self, query, query_by_label=False, direct=False, return_short_forms=False):
+        """Get subclasses satisfying  query, where query is an OWL DL is any OWL DL class expression
            """
-        return self.query(query_type='subclasses', return_type='superClassOf',
+        out = self.query(query_type='subclasses', return_type='superClassOf',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
+        if return_short_forms:
+            return list(map(gen_short_form, out))
+        else:
+            return out
 
-    def get_instances(self, query, query_by_label=False, direct=False):
-        """Get instances satisfying query, where query is an OWL DL query
+    def get_instances(self, query, query_by_label=False, direct=False, return_short_forms=False):
+        """Get instances satisfying query, where query is an OWL DL is any OWL DL class expression
            """
-        return self.query(query_type='instances', return_type='hasInstance',
+        out = self.query(query_type='instances', return_type='hasInstance',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
+        if return_short_forms:
+            return list(map(gen_short_form, out))
+        else:
+            return out
 
-    def get_superclasses(self, query, query_by_label=False, direct=False):
-        """Get subclasses of
+    def get_superclasses(self, query, query_by_label=False, direct=False, return_short_forms=False):
+        """Get superclasses satisfying `query`, where `query` is any OWL DL class expression.
            """
-        return self.query(query_type='superclasses', return_type='subClassOf',
+        out = self.query(query_type='superclasses', return_type='subClassOf',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
+        if return_short_forms:
+            return list(map(gen_short_form, out))
+        else:
+            return out
 
 
     def labels_2_ids(self, query_string):
