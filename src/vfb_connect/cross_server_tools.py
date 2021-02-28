@@ -138,7 +138,6 @@ class VfbConnect:
         else:
             return dc
 
-
     def get_neurons_downstream_of(self, neuron, weight, classification=None, query_by_label=True,
                                   return_dataframe = True):
         """Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
@@ -184,8 +183,8 @@ class VfbConnect:
                         "n2.short_form as downstream_neuron_id, n2.label as downstream_neuron_name, " \
                         "apoc.text.join(collect(c1.label),'|') AS upstream_class, " \
                         "apoc.text.join(collect(c2.label),'|') as downstream_class, " \
-                        "s1.short_form AS up_data_source, r1.accession as up_accession," \
-                        "s2.short_form AS down_source, r2.accession AS down_accession"
+                        "s1.short_form AS up_data_source, r1.accession[0] as up_accession," \
+                        "s2.short_form AS down_source, r2.accession[0] AS down_accession"
 
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
@@ -193,6 +192,17 @@ class VfbConnect:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
+
+    def get_instances_by_dataset(self, dataset=None, FBrf=None, PMID=None, DOI=None, summary=False):
+
+        if dataset:
+            query = "MATCH (ds:DataSet)<-[:has_source]-(i:Individual) " \
+                    "WHERE ds.short_form = '%s' " \
+                    "RETURN collect(i.short_form) as inds"
+            dc = self.neo_query_wrapper._query(query) # better to use the original column oriented return!
+            return self.neo_query_wrapper.get_anatomical_individual_TermInfo(dc[0]['inds'])
+
+    
 
     def get_vfb_link(self, short_forms: iter, template):
         """Takes a list of VFB IDs (short_forms) and the name (label) of a template.

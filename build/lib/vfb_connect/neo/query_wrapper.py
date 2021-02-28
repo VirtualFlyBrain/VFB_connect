@@ -41,9 +41,12 @@ def batch_query(func):
     return wrapper_batch
 
 
-def pop_from_jpath(jpath, json):
+def pop_from_jpath(jpath, json, join=True):
     expr = parse_jpath(jpath)
-    return '|'.join([match.value for match in expr.find(json)])
+    if join:
+        return '|'.join([match.value for match in expr.find(json)])
+    else:
+        return [match.value for match in expr.find(json)]
 
 
 def _populate_minimal_summary_tab(TermInfo):
@@ -65,8 +68,24 @@ def _populate_anatomical_entity_summary(TermInfo):
 
 def _populate_instance_summary_tab(TermInfo):
     d = _populate_anatomical_entity_summary(TermInfo)
+    site_expr = "$.xrefs.[*].site.short_form"
+    acc_expr = "$.xrefs.[*].accession"
+    is_data_source_expr = "$.xrefs.[*].is_data_source"
+    sites = pop_from_jpath(site_expr, TermInfo, join=False)
+    accessions = pop_from_jpath(acc_expr, TermInfo, join=False)
+    is_data_source = pop_from_jpath(is_data_source_expr, TermInfo, join=False)
+    i = 0
+    data_sources = []
+    ds_accessions = []
+    for ids in is_data_source:
+        if ids:
+            data_sources.append(sites[i])
+            ds_accessions.append(accessions[i])
+        i += 1
+    d['data_source'] = '|'.join(data_sources)
+    d['accession'] = '|'.join(ds_accessions)
     d['templates'] = pop_from_jpath("$.channel_image.[*].image.template_anatomy.label", TermInfo)
-    d['dataset'] = pop_from_jpath("$.dataset_license.[*].dataset.core.iri", TermInfo)
+    d['dataset'] = pop_from_jpath("$.dataset_license.[*].dataset.core.short_form", TermInfo)
     d['license'] = pop_from_jpath("$.dataset_license.[*].license.link", TermInfo)
     return d
 
@@ -141,6 +160,9 @@ class QueryWrapper(Neo4jConnect):
         with open(query_json, 'r') as f:
             self.queries = json.loads(saxutils.unescape(f.read()))
 
+#    def get_sites(self):
+#        return
+
     def _query(self, q):
         qr = self.commit_list([q])
         if not qr:
@@ -153,11 +175,12 @@ class QueryWrapper(Neo4jConnect):
             else:
                 return r
 
-    def get_images(self, short_forms, template, image_folder, image_type='swc', stomp=False):
+    def get_images(self, short_forms: iter, template, image_folder, image_type='swc', stomp=False):
         """Given an array of `short_forms` for instances, find all images of specified `image_type`
         registered to `template`. Save these to `image_folder` along with a manifest.tsv.  Return manifest as
         pandas DataFrame."""
         # TODO - make image type into array
+        short_forms = list(short_forms)
         image_expr = parse_jpath("$.channel_image.[*].image")
         manifest = []
         if stomp and os.path.isdir(image_folder):
@@ -308,7 +331,8 @@ class QueryWrapper(Neo4jConnect):
         return out
 
     @batch_query
-    def _get_TermInfo(self, short_forms: list, typ, show_query=False, summary=False):
+    def _get_TermInfo(self, short_forms: iter, typ, show_query=False, summary=False):
+        short_forms = list(short_forms)
         sfl = "', '".join(short_forms)
         qs = Template(self.queries[typ]).substitute(ID=sfl)
         if show_query:
