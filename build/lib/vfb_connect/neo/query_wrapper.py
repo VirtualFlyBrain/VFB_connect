@@ -201,11 +201,19 @@ class QueryWrapper(Neo4jConnect):
             for im in image_matches:
                 imv = im.value
                 if imv['template_anatomy']['label'] == template:
-                    r = requests.get(imv['image_folder'] + '/volume.' + image_type)
-                    ### Slightly dodgy warning - could mask network errors
-                    if not r.ok:
-                        warnings.warn("No '%s' file found for '%s'." % (image_type, label))
-                        continue
+                    if not image_type == 'obj':
+                        r = requests.get(imv['image_folder'] + '/volume.' + image_type)
+                        ### Slightly dodgy warning - could mask network errors
+                        if not r.ok:
+                            warnings.warn("No '%s' file found for '%s'." % (image_type, label))
+                            continue
+                    else:
+                        r = requests.get(imv['image_folder'] + '/volume_man.' + image_type)
+                        if not r.ok:
+                            r = requests.get(imv['image_folder'] + '/volume.' + image_type)
+                            if not r.ok:
+                                warnings.warn("No '%s' file found for '%s'." % (image_type, label))
+                                continue
                     filename = re.sub('\W', '_', label) + '.' + image_type
                     with open(image_folder + '/' + filename, 'w') as image_file:
                         image_file.write(r.text)
