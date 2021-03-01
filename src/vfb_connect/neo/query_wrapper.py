@@ -76,9 +76,9 @@ def _populate_instance_summary_tab(TermInfo):
 #    acc_expr = "$.xrefs.[*].accession"
 #    is_data_source_expr = "$.xrefs.[*].is_data_source"
 #   sites = pop_from_jpath(site_expr, TermInfo, join=False)
-    sites = '|'.join([p['site']['short_form'] for p in TermInfo['xrefs']])
-    accessions = '|'.join([p['accession'] for p in TermInfo['xrefs']
-                           if 'accession' in p.keys()])
+    sites = [p['site']['short_form'] for p in TermInfo['xrefs']]
+    accessions = [p['accession'] for p in TermInfo['xrefs']
+                           if 'accession' in p.keys()]
     is_data_source = [p['is_data_source'] for p in TermInfo['xrefs']
                                if 'accession' in p.keys()]
 
