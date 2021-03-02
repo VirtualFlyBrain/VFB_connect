@@ -33,9 +33,11 @@ class VfbConnectTest(unittest.TestCase):
     def test_get_images(self):
         if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
             shutil.rmtree('image_folder_tmp')
-        self.assertTrue(len(self.vc.neo_query_wrapper.get_images(['VFB_00000100', 'VFB_0010129x'],
+        fu = self.vc.neo_query_wrapper.get_images(['VFB_00000100', 'VFB_0010129x'],
                                                                  image_folder='image_folder_tmp',
-                                                                 template='JRC2018Unisex')))
+                                                                 template='JRC2018Unisex')
+        print(len(fu))
+        self.assertEqual(len(fu), 2)
 
     def test_get_images_by_type(self):
         if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
@@ -44,6 +46,10 @@ class VfbConnectTest(unittest.TestCase):
                                         image_folder='image_folder_tmp',
                                         template='JRC2018Unisex')
         self.assertTrue(len(fu) > 0)
+        bar = self.vc.get_images_by_type('octopaminergic VPM3 neuron', stomp=True, template='JFRC2018Unisex',
+                                         image_folder='image_folder_tmp')
+        self.assertTrue(len(bar) > 0)
+
 
     def test_get_downstream_neurons(self):
         fu = self.vc.get_neurons_downstream_of('D_adPN_R - 5813055184', classification="'Kenyon cell'", weight=20)
@@ -55,6 +61,9 @@ class VfbConnectTest(unittest.TestCase):
 
     def test_get_connected_neurons_by_type(self):
         fu = self.vc.get_connected_neurons_by_type('Kenyon cell', 'mushroom body output neuron', 20)
+        self.assertTrue(len(fu) > 0)
+        # Test quoting
+        fu = self.vc.get_connected_neurons_by_type("'Kenyon cell'", 'mushroom body output neuron', 20)
         self.assertTrue(len(fu) > 0)
 
     def test_get_vfb_link(self):

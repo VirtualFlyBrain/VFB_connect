@@ -12,6 +12,13 @@ def gen_short_form(iri):
     iri: An iri string"""
     return re.split('/|#', iri)[-1]
 
+def dequote(string):
+    qm = re.match("^'(.+)'$", string)
+    if qm:
+        return qm.group(1)
+    else:
+        return string
+
 
 class VfbConnect:
     """API wrapper class.  By default this wraps connections to the more basal API endpoints (OWL, Neo4j).
@@ -49,6 +56,18 @@ class VfbConnect:
         self.oc = OWLeryConnect(endpoint=owlery_endpoint,
                                 lookup=self.lookup)
         self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
+
+
+    def lookup_id(self, key, return_short_form=True):
+        if key in self.lookup.keys():
+            out = self.lookup[key]
+            if return_short_form:
+                return out.replace(':', '_')
+            else:
+                return out
+        else:
+            raise ValueError("Unrecognised value: %s" % str(key))
+
 
 
     def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True):
@@ -163,34 +182,38 @@ class VfbConnect:
     def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True,
                                       return_dataframe=True):
         """Get all synaptic connections between individual neurons of `upstream_type` and `dowstream_type` where
-         each of these types is the name of a neuron class/type in VFB."""
+         each synapse count  >= `weight`.  Warning: Does not support Class Expressions."""
 
         # Note - chose not to do this with class expressions to avoid poor performance and blowing up results.
         # This might be confusing tough, given behavior of other, similar methods.
         # Might be better to refactor to work out if query is class expression or class & funnel query method
         # accordingly.
 
-        qprop = 'short_form'
         if query_by_label:
-            qprop = 'label'
-#        upstream_instances = self.oc.get_instances(upstream_type, query_by_label=query_by_label)
-        cypher_query = "MATCH (up:Class:Neuron)<-[:SUBCLASSOF|INSTANCEOF*..]-(n1:Neuron:Individual)-[r:synapsed_to]->" \
-                       "(n2:Neuron:Individual)-[:SUBCLASSOF|INSTANCEOF*..]->(down:Class:Neuron)"
-        cypher_query += "WHERE r.weight[0] > %d " % weight
-        cypher_query += 'AND up.%s = "%s" and down.%s = "%s" ' % (qprop, upstream_type, qprop, downstream_type)
-        cypher_query += "MATCH (c1)<-[:INSTANCEOF]-(n1),  (c2)<-[:INSTANCEOF]-(n2)" \
+            upstream_type = self.lookup_id(dequote(upstream_type))
+            downstream_type = self.lookup_id(dequote(downstream_type))
+        #        upstream_instances = self.oc.get_instances(upstream_type, query_by_label=query_by_label)
+
+        cypher_query =  "MATCH (up:Class:Neuron)<-[:SUBCLASSOF|INSTANCEOF*..10]-(n1:Neuron:Individual) " \
+                        'WHERE up.short_form = "%s" ' % upstream_type
+        cypher_query += "MATCH (n1)-[r:synapsed_to]->(n2:Neuron:Individual) " \
+                        "WHERE r.weight[0] >= %d " % weight
+        cypher_query += "MATCH (n2)-[:SUBCLASSOF|INSTANCEOF*..10]->(down:Class:Neuron) " \
+                        'WHERE down.short_form = "%s" ' % downstream_type
+        cypher_query += "MATCH (c1:Class)<-[:INSTANCEOF]-(n1),  (c2:Class)<-[:INSTANCEOF]-(n2) " \
                         "OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) " \
                         "WHERE exists(s1.is_data_source) AND s1.is_data_source = True " \
                         "OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Site) " \
                         "WHERE exists(s1.is_data_source) AND s2.is_data_source = True " \
                         "RETURN n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name, " \
-                        "r.weight[0] as weight, " \
-                        "n2.short_form as downstream_neuron_id, n2.label as downstream_neuron_name, " \
-                        "apoc.text.join(collect(c1.label),'|') AS upstream_class, " \
-                        "apoc.text.join(collect(c2.label),'|') as downstream_class, " \
+                        "r.weight[0] as weight, n2.short_form as downstream_neuron_id, " \
+                        "n2.label as downstream_neuron_name, " \
+                        "apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, " \
+                        "apoc.text.join(collect(distinct c2.label),'|') as downstream_class, " \
                         "s1.short_form AS up_data_source, r1.accession[0] as up_accession," \
                         "s2.short_form AS down_source, r2.accession[0] AS down_accession"
 
+#       print(cypher_query)
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
         if return_dataframe:
