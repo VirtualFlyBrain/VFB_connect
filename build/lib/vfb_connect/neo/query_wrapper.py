@@ -63,9 +63,9 @@ def _populate_anatomical_entity_summary(TermInfo):
 #   d['parents_symbol'] = pop_from_jpath("$.parents[*].symbol", TermInfo)
 #   d['parents_label'] = pop_from_jpath("$.parents[*].label", TermInfo)
 
-    d['parents_label'] = '|'.join([p['label'] for p in TermInfo['parents']])
+    d['parents_label'] = '|'.join([str(p['label']) for p in TermInfo['parents']])
 #    d['parents_id'] = pop_from_jpath("$.parents[*].short_form", TermInfo)
-    d['parents_id'] = '|'.join([p['short_form'] for p in TermInfo['parents']])
+    d['parents_id'] = '|'.join([str(p['short_form']) for p in TermInfo['parents']])
 
     return d
 
@@ -76,11 +76,11 @@ def _populate_instance_summary_tab(TermInfo):
 #    acc_expr = "$.xrefs.[*].accession"
 #    is_data_source_expr = "$.xrefs.[*].is_data_source"
 #   sites = pop_from_jpath(site_expr, TermInfo, join=False)
-    sites = [p['site']['short_form'] for p in TermInfo['xrefs']]
-    accessions = [p['accession'] for p in TermInfo['xrefs']
+    sites = [str(p['site']['short_form']) for p in TermInfo['xrefs']]
+    accessions = [str(p['accession']) for p in TermInfo['xrefs']
                            if 'accession' in p.keys()]
     is_data_source = [p['is_data_source'] for p in TermInfo['xrefs']
-                               if 'accession' in p.keys()]
+                               if 'is_data_source' in p.keys()]
 
     i = 0
     data_sources = []
@@ -92,9 +92,9 @@ def _populate_instance_summary_tab(TermInfo):
         i += 1
     d['data_source'] = '|'.join(data_sources)
     d['accession'] = '|'.join(ds_accessions)
-    d['templates'] = '|'.join([x['image']['template_anatomy']['label'] for x in TermInfo['channel_image']])
-    d['dataset'] = '|'.join([x['dataset']['core']['short_form'] for x in TermInfo['dataset_license']])
-    d['dataset'] = '|'.join([x['license']['link'] for x in TermInfo['dataset_license']
+    d['templates'] = '|'.join([str(x['image']['template_anatomy']['label']) for x in TermInfo['channel_image']])
+    d['dataset'] = '|'.join([str(x['dataset']['core']['short_form']) for x in TermInfo['dataset_license']])
+    d['license'] = '|'.join([str(x['license']['link']) for x in TermInfo['dataset_license']
                              if 'link' in x['license'].keys()])
     return d
 
@@ -102,10 +102,10 @@ def _populate_instance_summary_tab(TermInfo):
 def _populate_dataset_summary_tab(TermInfo):
     d = _populate_minimal_summary_tab(TermInfo)
     d['description'] = TermInfo['term']['description']
-    d['miniref'] = '|'.join([x['core']['label'] for x in TermInfo['pubs']])
-    d['FlyBase'] = '|'.join([x['FlyBase'] for x in TermInfo['pubs'] if 'FlyBase' in x])
-    d['PMID'] = '|'.join([x['PubMed'] for x in TermInfo['pubs'] if 'PubMed' in x])
-    d['DOI'] = '|'.join([x['DOI'] for x in TermInfo['pubs'] if 'PubMed' in x])
+    d['miniref'] = '|'.join([str(x['core']['label']) for x in TermInfo['pubs']])
+    d['FlyBase'] = '|'.join([str(x['FlyBase']) for x in TermInfo['pubs'] if 'FlyBase' in x])
+    d['PMID'] = '|'.join([str(x['PubMed']) for x in TermInfo['pubs'] if 'PubMed' in x])
+    d['DOI'] = '|'.join([str(x['DOI']) for x in TermInfo['pubs'] if 'PubMed' in x])
     return d
 
 
