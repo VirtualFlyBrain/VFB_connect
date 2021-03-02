@@ -182,7 +182,7 @@ class VfbConnect:
     def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True,
                                       return_dataframe=True):
         """Get all synaptic connections between individual neurons of `upstream_type` and `dowstream_type` where
-         each synapse count  >= `weight`."""
+         each synapse count  >= `weight`.  Warning: Does not support Class Expressions."""
 
         # Note - chose not to do this with class expressions to avoid poor performance and blowing up results.
         # This might be confusing tough, given behavior of other, similar methods.
