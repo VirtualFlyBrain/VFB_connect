@@ -71,8 +71,11 @@ def chunks(l, n):
 
 
 class Neo4jConnect:
-    """Thin layer over REST API to hold connection details, 
-    handle multi-statement POST queries, return results and report errors."""
+    """AI is creating summary for 
+
+    Returns:
+        [type]: [description]
+    """
     # Return results might be better handled in the case of multiple statements - especially when chunked.
     # Not connection with original query is kept.
 
@@ -83,19 +86,23 @@ class Neo4jConnect:
         self.usr = usr
         self.pwd = pwd
         self.test_connection()
-       
+
     def commit_list(self, statements, return_graphs = False):
         """Commit a list of statements to neo4J DB via REST API.
         Prints requests status and warnings if any problems with commit.
-            - statements = list of cypher statements as strings
-            - return_graphs, optionally specify graphs to be returned in JSON results.
-        Errors prompt warnings, not exceptions, and cause return  = FALSE.
-        Returns results list of results or False if any errors are encountered."""
+
+        Args:
+            statements (List[str]): list of cypher statements as strings
+            return_graphs (bool, optional): optionally specify graphs to be returned in JSON results. Defaults to False.
+
+        Returns:
+            List[str]: Returns results list of results or False if any errors are encountered. Errors prompt warnings, not exceptions, and cause return = FALSE.
+        """
         cstatements = []
         if return_graphs:
             for s in statements:
                 cstatements.append({'statement': s, "resultDataContents" : [ "row", "graph" ]})
-        else:        
+        else:
             for s in statements:
                 cstatements.append({'statement': s}) # rows an columns are returned by default.
         payload = {'statements': cstatements}

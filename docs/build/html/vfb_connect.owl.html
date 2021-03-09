@@ -1,0 +1,284 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>vfb_connect.owl package &mdash; vfb-connect 1.2.5 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> vfb-connect
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">vfb_connect.owl package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-vfb_connect.owl.owlery_query_tools">vfb_connect.owl.owlery_query_tools module</a></li>
+<li><a class="reference internal" href="#module-vfb_connect.owl">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">vfb-connect</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>vfb_connect.owl package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/vfb_connect.owl.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="vfb-connect-owl-package">
+<h1>vfb_connect.owl package<a class="headerlink" href="#vfb-connect-owl-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-vfb_connect.owl.owlery_query_tools">
+<span id="vfb-connect-owl-owlery-query-tools-module"></span><h2>vfb_connect.owl.owlery_query_tools module<a class="headerlink" href="#module-vfb_connect.owl.owlery_query_tools" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="vfb_connect.owl.owlery_query_tools.OWLeryConnect">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">vfb_connect.owl.owlery_query_tools.</span></code><code class="sig-name descname"><span class="pre">OWLeryConnect</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">endpoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'http://owl.virtualflybrain.org/kbs/vfb/'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lookup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obo_curies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('FBbt',</span> <span class="pre">'RO',</span> <span class="pre">'BFO')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curies</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vfb_connect.owl.owlery_query_tools.OWLeryConnect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt id="vfb_connect.owl.owlery_query_tools.OWLeryConnect.add_obo_curies">
+<code class="sig-name descname"><span class="pre">add_obo_curies</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prefixes</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vfb_connect.owl.owlery_query_tools.OWLeryConnect.add_obo_curies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_instances">
+<code class="sig-name descname"><span class="pre">get_instances</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_by_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_short_forms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_instances" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get instances satisfying query, where query is an OWL DL is any OWL DL class expression</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_subclasses">
+<code class="sig-name descname"><span class="pre">get_subclasses</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_by_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_short_forms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_subclasses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get subclasses satisfying  query, where query is an OWL DL is any OWL DL class expression</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_superclasses">
+<code class="sig-name descname"><span class="pre">get_superclasses</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_by_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_short_forms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_superclasses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get superclasses satisfying <cite>query</cite>, where <cite>query</cite> is any OWL DL class expression.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="vfb_connect.owl.owlery_query_tools.OWLeryConnect.labels_2_ids">
+<code class="sig-name descname"><span class="pre">labels_2_ids</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query_string</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vfb_connect.owl.owlery_query_tools.OWLeryConnect.labels_2_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Substitutes labels for IDs in a query string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="vfb_connect.owl.owlery_query_tools.OWLeryConnect.query">
+<code class="sig-name descname"><span class="pre">query</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_by_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vfb_connect.owl.owlery_query_tools.OWLeryConnect.query" title="Permalink to this definition">¶</a></dt>
+<dd><p>A wrapper for querying Owlery Endpoints.  See
+<a class="reference external" href="https://owlery.phenoscape.org/api/">https://owlery.phenoscape.org/api/</a> for doc
+:param query_type: Options: subclasses, superclasses,
+equivalent, instances, types
+:param return_type:
+:param query: ‘Manchester syntax query with owl entities as &lt;iri&gt;,</p>
+<blockquote>
+<div><p>curie (supporting curies declared on object)
+or single quoted label (if query_by_label isTrue)</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query_by_label</strong> – Boolean. Default False.</p></li>
+<li><p><strong>direct</strong> – Boolean. Default False. Determines T/F</p></li>
+</ul>
+</dd>
+</dl>
+<p>:param verbose - print verbose output to stdout for debugging purposes.
+:return:</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="vfb_connect.owl.owlery_query_tools.gen_short_form">
+<code class="sig-prename descclassname"><span class="pre">vfb_connect.owl.owlery_query_tools.</span></code><code class="sig-name descname"><span class="pre">gen_short_form</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iri</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#vfb_connect.owl.owlery_query_tools.gen_short_form" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate short_form (string) from an iri string
+iri: An iri string</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-vfb_connect.owl">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-vfb_connect.owl" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, David Osumi-Sutherland.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
