@@ -11,6 +11,10 @@ Welcome to vfb-connect's documentation!
    :caption: Contents:
    tutorial/overview.ipynb
 
+Tutorials
+=========
+
+*:ref:`VFB-connect-API-overview`
 
 
 Indices and tables
