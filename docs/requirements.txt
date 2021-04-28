@@ -1,0 +1,6 @@
+requests
+psycopg2
+pandas
+pandasql
+jsonpath_rw
+setuptools~=50.3.2
