@@ -5,3 +5,4 @@ VFB_connect
    :maxdepth: 4
 
    setup
+   vfb_connect
