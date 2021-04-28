@@ -16,6 +16,22 @@ Tutorials
 
 * :ref:`VFB-connect-API-overview`
 
+vfb\_connect.neo.query\_wrapper module
+--------------------------------------
+
+.. automodule:: vfb_connect.neo.query_wrapper
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   
+owl.owlery\_query\_tools module
+-------------------------------
+
+.. automodule:: owl.owlery_query_tools
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 
 Indices and tables
 ==================
