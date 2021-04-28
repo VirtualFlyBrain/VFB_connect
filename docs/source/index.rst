@@ -14,7 +14,7 @@ Welcome to vfb-connect's documentation!
 Tutorials
 =========
 
-*:ref:`VFB-connect-API-overview`
+* :ref:`VFB-connect-API-overview`
 
 
 Indices and tables
