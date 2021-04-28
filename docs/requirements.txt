@@ -7,3 +7,4 @@ setuptools~=50.3.2
 jupyter
 nbsphinx
 matplotlib
+sphinx-autodoc-typehints
