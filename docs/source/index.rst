@@ -9,6 +9,7 @@ Welcome to vfb-connect's documentation!
 .. toctree::
    :maxdepth: 5
    :caption: Contents:
+   tutorial/overview.ipynb
 
 
 
