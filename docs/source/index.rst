@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to vfb-connect's documentation!
+Welcome to vfb_connect's documentation
 =======================================
 
 .. toctree::
@@ -12,32 +12,28 @@ Welcome to vfb-connect's documentation!
    tutorial/overview.ipynb
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
 
-Tutorials
-=========
+Tutorial
+========
 
-* See the ``tutorial/overview`` to get you up and running.
+* See the :ref:`vfb_connect overview<overview>` to get you up and running.
 
 vfb\_connect.neo.query\_wrapper module
 --------------------------------------
 
 .. automodule:: vfb_connect.neo.query_wrapper
-   :members:
    :undoc-members:
-   :show-inheritance:
    
 owl.owlery\_query\_tools module
 -------------------------------
 
 .. automodule:: owl.owlery_query_tools
    :members:
-   :undoc-members:
-   :show-inheritance:
 
 
 
