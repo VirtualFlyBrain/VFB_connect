@@ -11,10 +11,17 @@ Welcome to vfb-connect's documentation!
    :caption: Contents:
    tutorial/overview.ipynb
 
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
 Tutorials
 =========
 
-* :ref:`VFB-connect-API-overview`
+* See the ``tutorial/overview`` to get you up and running.
 
 vfb\_connect.neo.query\_wrapper module
 --------------------------------------
@@ -33,9 +40,4 @@ owl.owlery\_query\_tools module
    :show-inheritance:
 
 
-Indices and tables
-==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
