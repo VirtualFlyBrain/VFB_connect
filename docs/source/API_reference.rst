@@ -14,33 +14,38 @@ A range canned queries are available via methods directly accessible from this o
 
 (Other direct query endpoint will be added in future)
 
-Queries cell and anatomical types
+Queries for cell and anatomical types
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 .. automodule:: vfb_connect.cross_server_tools.VfbConnect
    :members: get_subclasses, get_superclasses, get_terms_by_region
-
-Connectivity queries
-~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: vfb_connect.cross_server_tools.VfbConnect
-   :members: get_connected_neurons_by_type, get_neurons_downstream_of,
-get_neurons_upstream_of
-
+   
 Queries for individual neurons
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: vfb_connect.cross_server_tools.VfbConnect
    :members: get_instances, get_instances_by_dataset, get_similar_neurons
-
+   
 Queries for images
 ~~~~~~~~~~~~~~~~~~
 
 .. automodule:: vfb_connect.cross_server_tools.VfbConnect
    :members: get_images_by_type
  
-.. automodule:: vfb_connect.cross_server_tools.VfbConnect.neo_query_wrapper
+.. automodule:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper
    :members: get_images
+
+
+Connectivity queries
+~~~~~~~~~~~~~~~~~~~~
+
+Methods for querying direct connectivity:
+
+.. automodule:: vfb_connect.cross_server_tools.VfbConnect
+   :members: get_connected_neurons_by_type, get_neurons_downstream_of,
+get_neurons_upstream_of
+
 
 VFB link generation methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
