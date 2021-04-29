@@ -93,6 +93,7 @@ class VfbConnect:
     def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=False):
         """Generate TermInfo reports for all terms relevant to annotating some specific region,
         optionally limited to cells.
+        
         :param region: The name (rdfs:label) of brain region (or CURIE style ID if query_by_label is False)
         :param cells_only: Optional. Limits query to cell type if `True`. Defaults to `False`
         :param verbose: Optional.
