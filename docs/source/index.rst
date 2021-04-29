@@ -38,11 +38,13 @@ For a brief introduction to the library please see :doc:`tutorials/overview`
    :maxdepth: 5
    :caption: Contents:
    
-   Quickstart Guide <tutorial/overview.ipynb>
+   tutorial/overview.ipynb
    API_reference
    output_fomats
-   *
-   tutorial/*
+   modules
+   neo
+   owl
+   
 
 
 
