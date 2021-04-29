@@ -1,3 +1,4 @@
+vfb_connect
 requests
 psycopg2
 pandas
