@@ -26,7 +26,7 @@ For a brief introduction to the library please see :doc:`tutorials/overview`
    :maxdepth: 5
    :caption: Contents:
    
-   tutorials/*
+   tutorials/tutorials
    API_reference
    output_fomats
    modules
