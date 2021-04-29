@@ -43,6 +43,15 @@ class VfbConnect:
                  neo_credentials=get_default_servers()['neo_credentials'],
                  owlery_endpoint=get_default_servers()['owlery_endpoint'],
                  lookup_prefixes=('FBbt', 'VFBexp', 'VFBext')):
+
+        """
+        VFB connect constructor. All args optional.
+        With no args wraps connectsions to default public servers.
+
+        :neo_endpoint: Specify a neo4j REST endpoint.
+        :neo_credentials: Specify credential for Neo4j Rest endpoint.
+        :owlery_endpoint: specify owlery server REST endpoint.
+        :lookup_prefixes: A list of id prefixes to use for rolling name:ID lookups."""
         connections = {
             'neo': {
                 "endpoint": neo_endpoint,
@@ -50,6 +59,7 @@ class VfbConnect:
                 "pwd": neo_credentials[1]
             }
         }
+
         self.nc = Neo4jConnect(**connections['neo'])
         self.neo_query_wrapper = QueryWrapper(**connections['neo'])
         self.lookup = self.nc.get_lookup(limit_by_prefix=lookup_prefixes)
@@ -59,6 +69,7 @@ class VfbConnect:
 
 
     def lookup_id(self, key, return_short_form=True):
+
         if key in self.lookup.keys():
             out = self.lookup[key]
             if return_short_form:
@@ -68,12 +79,28 @@ class VfbConnect:
         else:
             raise ValueError("Unrecognised value: %s" % str(key))
 
+    # """[Summary]
+    #
+    # :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
+    # :type [ParamName]: [ParamType](, optional)
+    # ...
+    # :raises [ErrorType]: [ErrorDescription]
+    # ...
+    # :return: [ReturnDescription]
+    # :rtype: [ReturnType]
+    # """
 
-
-    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True):
-        """Generate JSON reports for all terms relevant to
-         annotating some specific region,
-        optionally limited by to cells"""
+    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=False):
+        """Generate TermInfo reports for all terms relevant to annotating some specific region,
+        optionally limited to cells.
+        :param region: The name (rdfs:label) of brain region (or CURIE style ID if query_by_label is False)
+        :param cells_only: Optional. Limits query to cell type if `True`. Defaults to `False`
+        :param verbose: Optional.
+        :param query_by_label: Optional (see region).  Default `True`
+        :summary: Optional.  Returns summary reports if true. Default `False`
+        :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+        :rtype: list of VFB_json or summary_report_json
+    """
         preq = ''
         if cells_only:
             preq = "'cell' that "
@@ -91,9 +118,10 @@ class VfbConnect:
         """Generate JSON report of all subclasses of class_expression."""
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
-        terms = self.oc.get_subclasses("%s" % class_expression, query_by_label=query_by_label)
+        terms = self.oc.get_subclasses("%s" % class_expression, direct=direct, query_by_label=query_by_label)
         return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
                                                         summary=summary)
+
     def get_superclasses(self, class_expression, query_by_label=True, direct=False, summary=False):
         """Generate JSON report of all superclasses of class_expression."""
         if not re.search("'", class_expression):
@@ -194,11 +222,11 @@ class VfbConnect:
             downstream_type = self.lookup_id(dequote(downstream_type))
         #        upstream_instances = self.oc.get_instances(upstream_type, query_by_label=query_by_label)
 
-        cypher_query =  "MATCH (up:Class:Neuron)<-[:SUBCLASSOF|INSTANCEOF*..10]-(n1:Neuron:Individual) " \
+        cypher_query =  "MATCH (up:Class:Neuron)<-[:SUBCLASSOF|INSTANCEOF*..]-(n1:Neuron:Individual) " \
                         'WHERE up.short_form = "%s" ' % upstream_type
         cypher_query += "MATCH (n1)-[r:synapsed_to]->(n2:Neuron:Individual) " \
                         "WHERE r.weight[0] >= %d " % weight
-        cypher_query += "MATCH (n2)-[:SUBCLASSOF|INSTANCEOF*..10]->(down:Class:Neuron) " \
+        cypher_query += "MATCH (n2)-[:SUBCLASSOF|INSTANCEOF*..]->(down:Class:Neuron) " \
                         'WHERE down.short_form = "%s" ' % downstream_type
         cypher_query += "MATCH (c1:Class)<-[:INSTANCEOF]-(n1),  (c2:Class)<-[:INSTANCEOF]-(n2) " \
                         "OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) " \
