@@ -26,6 +26,13 @@ For a brief introduction to the library please see :doc:`tutorials/overview`
 
 :doc:`output_fomats`
 
+:doc:`modules`
+
+:doc:`neo`
+
+:doc:`owl`
+
+
 
 .. toctree::
    :maxdepth: 5
