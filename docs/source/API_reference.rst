@@ -23,13 +23,8 @@ Direct queries of our ``Neo4J`` database are available via methods under
 Queries cell and anatomical types
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autosummary:: :toctree: generated/
-
-::
-
-   ~VfbConnect.TreeNeuron.get_subclasses
-   ~VfbConnect.get_superclasses
-   ~VfbConnect.get_terms_by_region
+.. automodule:: vfb_connect.cross_server_tools.VfbConnect
+   :members: get_subclasses, get_superclasses, get_terms_by_region
 
 Connectivity queries
 ~~~~~~~~~~~~~~~~~~~~
