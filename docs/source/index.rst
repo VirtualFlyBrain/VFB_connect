@@ -20,7 +20,7 @@ tracker <https://github.com/VirtualFlyBrain/VFB_connect/issues>`__.
 If you have any questions, please get in touch at "support ``at``
 virtualflybrain.org".
 
-For a brief introduction to the library please see :ref:`vfb_connect overview<tutorials/overview.ipynb>`
+For a brief introduction to the library please see :doc:`tutorials/overview'
 
 .. toctree::
    :maxdepth: 1
