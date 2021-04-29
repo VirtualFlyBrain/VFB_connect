@@ -68,9 +68,11 @@ Methods for retrieving Term Information from arbitrary lists of IDs
 (Note these methods can be accessed from VfbConnect.neo_query_wrapper)
 
 Function for any type of VFB entity (slow for long lists)
+
 .. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_TermInfo
 
 Function for any type of VFB entity using an external ID
+
 .. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_terms_by_xref
 
 Functions by type (these are faster then the generic queries)
@@ -83,5 +85,6 @@ Functions by type (these are faster then the generic queries)
 Methods for retrieving lists of available 
 -----------------------------------------------------------------------
 
-.. automodule:: vfb_connect.cross_server_tools.VfbConnect.neo_query_wrapper
-   :members:  get_datasets, get_dbs, get_templates
+.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_datasets
+.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_dbs
+.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_templates
