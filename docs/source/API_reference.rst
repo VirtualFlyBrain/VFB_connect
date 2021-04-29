@@ -42,6 +42,7 @@ Connectivity queries
 ~~~~~~~~~~~~~~~~~~~~
 
 Methods for querying direct connectivity:
+
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_connected_neurons_by_type
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_neurons_downstream_of
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_neurons_upstream_of
