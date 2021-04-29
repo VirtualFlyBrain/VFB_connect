@@ -25,6 +25,7 @@ For a brief introduction to the library please see :ref:`vfb_connect overview<ov
 .. toctree::
    :maxdepth: 1
    source/tutorial/overview.pynb
-   source/api
-   source/output_formats
+   source/API_reference.rst
+   source/output_fomats.rst
+   output_fomats.rst
 
