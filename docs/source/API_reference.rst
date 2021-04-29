@@ -10,13 +10,7 @@ endpoints.
    from vfb_connect.cross_server_tools import VfbConnect
    vc = VfbConnect()
 
-A range canned queries are available via methods directly accessible
-from this object, or via vc.
-
-Core, cross server methods are directly accessible from this object
-
-Direct queries of our ``Neo4J`` database are available via methods under
-``vc.nc`` OWL queries are available under ``vc.oc``.
+A range canned queries are available via methods directly accessible from this object, or via vc. Core, cross server methods are directly accessible from this object. Direct queries of our ``Neo4J`` database are available via methods under ``vc.nc`` OWL queries are available under ``vc.oc``.
 
 (Other direct query endpoint will be added in future)
 
@@ -29,41 +23,45 @@ Queries cell and anatomical types
 Connectivity queries
 ~~~~~~~~~~~~~~~~~~~~
 
-get_connected_neurons_by_type get_neurons_downstream_of
+.. automodule:: vfb_connect.cross_server_tools.VfbConnect
+   :members: get_connected_neurons_by_type, get_neurons_downstream_of,
 get_neurons_upstream_of
 
 Queries for individual neurons
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-get_instances get_instances_by_dataset get_similar_neurons
+.. automodule:: vfb_connect.cross_server_tools.VfbConnect
+   :members: get_instances, get_instances_by_dataset, get_similar_neurons
 
 Queries for images
 ~~~~~~~~~~~~~~~~~~
 
-get_images_by_type() neo_query_wrapper.get_images()
+.. automodule:: vfb_connect.cross_server_tools.VfbConnect
+   :members: get_images_by_type
+ 
+.. automodule:: vfb_connect.cross_server_tools.VfbConnect.neo_query_wrapper
+   :members: get_images
 
 VFB link generation methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-neo_query_wrapper.get_vfb_link
+.. automodule:: vfb_connect.cross_server_tools.VfbConnect.neo_query_wrapper
+   :members: get_vfb_link
 
 ID conversion methods
 ~~~~~~~~~~~~~~~~~~~~~
 
-neo_query_wrapper.vfb_id_2_xrefs neo_query_wrapper.xref_2_vfb_id
+.. automodule:: vfb_connect.cross_server_tools.VfbConnect.neo_query_wrapper
+   :members: vfb_id_2_xrefs, neo_query_wrapper, xref_2_vfb_id
 
 Methods for retrieving Term Information from arbitrary lists of IDs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-neo_query_wrapper.get_TermInfo neo_query_wrapper.get_terms_by_xref
-
-neo_query_wrapper.get_template_TermInfo
-neo_query_wrapper.get_type_TermInfo
-neo_query_wrapper.get_anatomical_individual_TermInfo
-neo_query_wrapper.get_DataSet_TermInfo
+.. automodule:: vfb_connect.cross_server_tools.VfbConnect.neo_query_wrapper
+   :members:  get_TermInfo, get_terms_by_xref, neo_query_wrapper.get_template_TermInfo, get_type_TermInfo, get_anatomical_individual_TermInfo, get_DataSet_TermInfo
 
 Methods for retrieving lists of available get_connected_neurons_by_type
 -----------------------------------------------------------------------
 
-neo_query_wrapper.get_datasets neo_query_wrapper.get_dbs
-neo_query_wrapper.get_templates
+.. automodule:: vfb_connect.cross_server_tools.VfbConnect.neo_query_wrapper
+   :members:  get_datasets, get_dbs, get_templates
