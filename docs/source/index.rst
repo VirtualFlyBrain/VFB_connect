@@ -20,4 +20,11 @@ tracker <https://github.com/VirtualFlyBrain/VFB_connect/issues>`__.
 If you have any questions, please get in touch at "support ``at``
 virtualflybrain.org".
 
-For a brief introduction to the library please see `QuickStart <>`__.
+For a brief introduction to the library please see :ref:`vfb_connect overview<overview>`
+
+.. toctree::
+   :maxdepth: 1
+   source/tutorial/overview.pynb
+   source/api
+   source/output_formats
+
