@@ -21,6 +21,8 @@ Queries for cell and anatomical types
 .. automodule:: vfb_connect.cross_server_tools.VfbConnect
    :members: get_subclasses, get_superclasses, get_terms_by_region
    
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_subclasses
+   
 Queries for individual neurons
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
