@@ -15,7 +15,7 @@ A range canned queries are available via methods directly accessible from this o
 (Other direct query endpoint will be added in future)
 
 Queries for cell and anatomical types
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_subclasses
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_superclasses
@@ -41,7 +41,7 @@ Queries for images
 Connectivity queries
 ~~~~~~~~~~~~~~~~~~~~
 
-Methods for querying direct connectivity:
+**Methods for finding synaptic connections**
 
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_connected_neurons_by_type
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_neurons_downstream_of
@@ -56,8 +56,7 @@ VFB link generation methods
 ID conversion methods
 ~~~~~~~~~~~~~~~~~~~~~
 
-Methods for converting between VFB_ids and external IDs, and vice versa
-
+**Methods for converting between VFB_ids and external IDs, and vice versa**
 (Note these methods can be accessed from VfbConnect.neo_query_wrapper)
 
 .. autofunction::  vfb_connect.neo.query_wrapper.QueryWrapper.vfb_id_2_xrefs
@@ -68,22 +67,25 @@ Methods for retrieving Term Information from arbitrary lists of IDs
 
 (Note these methods can be accessed from VfbConnect.neo_query_wrapper)
 
-Function for any type of VFB entity (slow for long lists)
+
+**Function for any type of VFB entity (slow for long lists)**
 
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_TermInfo
 
-Function for any type of VFB entity using an external ID
+
+**Function for any type of VFB entity using an external ID**
 
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_terms_by_xref
 
-Functions by type (these are faster then the generic queries)
+
+**Functions by type (these are faster then the generic queries)**
 
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_template_TermInfo
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_type_TermInfo
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_anatomical_individual_TermInfo
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_DataSet_TermInfo
 
-Methods for retrieving lists of available
+Methods for retrieving lists of all IDs for some specific type
 -----------------------------------------------------------------------
 
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_datasets

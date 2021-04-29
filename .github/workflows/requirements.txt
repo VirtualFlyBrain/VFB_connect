@@ -9,3 +9,10 @@ jupyterlab
 nbsphinx
 matplotlib
 sphinx-autodoc-typehints
+ipywidgets
+jsonpath_rw
+seaborn
+neuprint-python
+flybrains
+navis
+python-catmaid
