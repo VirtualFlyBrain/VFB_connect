@@ -38,7 +38,7 @@ extensions = [
     'matplotlib.sphinxext.plot_directive',
     'sphinx_autodoc_typehints',
     'nbsphinx',
-    'myst-parser'
+#     'myst-parser'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
