@@ -93,12 +93,12 @@ class VfbConnect:
     def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=False):
         """Generate TermInfo reports for all terms relevant to annotating some specific region,
         optionally limited to cells.
-        
+
         :param region: The name (rdfs:label) of brain region (or CURIE style ID if query_by_label is False)
         :param cells_only: Optional. Limits query to cell type if `True`. Defaults to `False`
         :param verbose: Optional.
         :param query_by_label: Optional (see region).  Default `True`
-        :summary: Optional.  Returns summary reports if true. Default `False`
+        :param: summary: Optional.  Returns summary reports if true. Default `False`
         :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
         :rtype: list of VFB_json or summary_report_json
     """
@@ -116,7 +116,15 @@ class VfbConnect:
                                                         summary=summary)
 
     def get_subclasses(self, class_expression, query_by_label=True, direct=False, summary=False):
-        """Generate JSON report of all subclasses of class_expression."""
+        """Generate JSON report of all subclasses of class_expression.
+
+        :param class_expression: A valid OWL class expression, e.g. the name of a class.
+        :param query_by_label: Optional.  If false, class_expression takes IDs instead of labels   Default `True`
+        :param direct: Return direct subclasses only.  Default `False`
+        :param: summary: Optional.  Returns summary reports if true. Default `False`
+        :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+        :rtype: list of VFB_json or summary_report_json
+        """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_subclasses("%s" % class_expression, direct=direct, query_by_label=query_by_label)
@@ -124,18 +132,29 @@ class VfbConnect:
                                                         summary=summary)
 
     def get_superclasses(self, class_expression, query_by_label=True, direct=False, summary=False):
-        """Generate JSON report of all superclasses of class_expression."""
+        """Generate JSON report of all superclasses of class_expression.
+
+        :param class_expression: A valid OWL class expression, e.g. the name of a class.
+        :param query_by_label: Optional.  If false, class_expression takes IDs instead of labels   Default `True`
+        :param direct: Return direct superclass only.  Default `False`
+        :param: summary: Optional.  Returns summary reports if true. Default `False`
+        :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+        :rtype: list of VFB_json or summary_report_json        """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label)
         return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
                                                         summary=summary)
 
-    def get_instances(self, class_expression, query_by_label=True, direct=False, summary=False):
+    def get_instances(self, class_expression, query_by_label=True, summary=False):
         """Generate JSON report of all instances of class_expression. Instances are specific examples
-        of a type/class of structure, e.g. a specific instance of the neuron DA1 adPN from the FAFB_catmaid
-         database.  Instances are typically associated with registered 3D image data and may include
-         connectomics data."""
+         of a type/class, e.g. a neuron of type DA1 adPN from the FAFB_catmaid database.
+
+         :param class_expression: A valid OWL class expression, e.g. the name of a class.
+         :param query_by_label: Optional.  If false, class_expression takes IDs instead of labels   Default `True`
+         :param: summary: Optional.  Returns summary reports if true. Default `False`
+         :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+         :rtype: list of VFB_json or summary_report_json        """
         if not re.search("'", class_expression):
             if query_by_label:
                 class_expression = self.lookup[class_expression].replace(':', '_')
@@ -175,7 +194,9 @@ class VfbConnect:
             return dc
 
     def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', cutoff=None, source=None, return_dataframe=True):
-        """Get all neurons """
+        """Get JSON report of individual neurons similar to input neuron
+
+        """
         query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) " \
                 "WHERE n1.short_form = '%s' " \
                 "WITH c1, n1, r, n2, c2 " \
@@ -192,8 +213,10 @@ class VfbConnect:
             return dc
 
     def get_neurons_downstream_of(self, neuron, weight, classification=None, query_by_label=True,
-                                  return_dataframe = True):
-        """Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
+                                  return_dataframe=True):
+        """Get all neurons downstream of individual `neuron`
+
+        (short_form if query_by_label=False, otherwise label)
         with connection strength > threshold.  Optionally restrict target neurons to those specified by
         `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'"."""
         return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='upstream',
@@ -251,7 +274,12 @@ class VfbConnect:
             return dc
 
     def get_instances_by_dataset(self, dataset, summary=False):
-        """Returns metadata for a dataset"""
+        """Get JSON report of all individuals in a dataset
+
+        :param: dataset: dataset ID
+        :param: summary: Optional.  Returns summary reports if true. Default `False`
+        :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+        :rtype: list of VFB_json or summary_report_json"""
         if dataset:
             query = "MATCH (ds:DataSet)<-[:has_source]-(i:Individual) " \
                     "WHERE ds.short_form = '%s' " \
