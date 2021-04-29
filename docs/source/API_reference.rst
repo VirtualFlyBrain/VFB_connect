@@ -16,19 +16,19 @@ A range canned queries are available via methods directly accessible from this o
 
 Queries for cell and anatomical types
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   
+
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_subclasses
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_superclasses
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_terms_by_region
 
-   
+
 Queries for individual neurons
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_instances, 
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_instances
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_instances_by_dataset
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_similar_neurons
-   
+
 Queries for images
 ~~~~~~~~~~~~~~~~~~
 
@@ -36,7 +36,7 @@ Queries for images
 
 (Note, this method can be accessed from VfbConnect.neo_query_wrapper)
 
-.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_images
+.. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_images
 
 Connectivity queries
 ~~~~~~~~~~~~~~~~~~~~
@@ -51,7 +51,7 @@ Methods for querying direct connectivity:
 VFB link generation methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_vfb_link
+.. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_vfb_link
 
 ID conversion methods
 ~~~~~~~~~~~~~~~~~~~~~
@@ -60,8 +60,8 @@ Methods for converting between VFB_ids and external IDs, and vice versa
 
 (Note these methods can be accessed from VfbConnect.neo_query_wrapper)
 
-.. autofunction::  vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.vfb_id_2_xrefs
-.. autofunction::  vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.xref_2_vfb_id
+.. autofunction::  vfb_connect.neo.query_wrapper.QueryWrapper.vfb_id_2_xrefs
+.. autofunction::  vfb_connect.neo.query_wrapper.QueryWrapper.xref_2_vfb_id
 
 Methods for retrieving Term Information from arbitrary lists of IDs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -70,22 +70,22 @@ Methods for retrieving Term Information from arbitrary lists of IDs
 
 Function for any type of VFB entity (slow for long lists)
 
-.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_TermInfo
+.. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_TermInfo
 
 Function for any type of VFB entity using an external ID
 
-.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_terms_by_xref
+.. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_terms_by_xref
 
 Functions by type (these are faster then the generic queries)
 
-.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_template_TermInfo
-.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_type_TermInfo
-.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_anatomical_individual_TermInfo
-.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_DataSet_TermInfo
+.. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_template_TermInfo
+.. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_type_TermInfo
+.. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_anatomical_individual_TermInfo
+.. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_DataSet_TermInfo
 
-Methods for retrieving lists of available 
+Methods for retrieving lists of available
 -----------------------------------------------------------------------
 
-.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_datasets
-.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_dbs
-.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_templates
+.. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_datasets
+.. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_dbs
+.. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_templates
