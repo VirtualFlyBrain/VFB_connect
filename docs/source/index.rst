@@ -22,23 +22,11 @@ virtualflybrain.org".
 
 For a brief introduction to the library please see :doc:`tutorials/overview`
 
-:doc:`API_reference`
-
-:doc:`output_fomats`
-
-:doc:`modules`
-
-:doc:`neo`
-
-:doc:`owl`
-
-
-
 .. toctree::
    :maxdepth: 5
    :caption: Contents:
    
-   tutorial/overview.ipynb
+   tutorials/*
    API_reference
    output_fomats
    modules
