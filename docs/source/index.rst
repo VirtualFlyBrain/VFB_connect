@@ -22,10 +22,20 @@ virtualflybrain.org".
 
 For a brief introduction to the library please see :doc:`tutorials/overview`
 
+:doc:`API_reference`
+
+:doc:`output_fomats`
+
+
 .. toctree::
-   :maxdepth: 1
-   source/tutorial/overview.ipynb
-   source/API_reference.rst
-   source/output_fomats.rst
-   output_fomats.rst
+   :maxdepth: 5
+   :caption: Contents:
+   Quickstart Guide <tutorial/overview.ipynb>
+   API_reference
+   output_fomats
+
+
+
+
+
 
