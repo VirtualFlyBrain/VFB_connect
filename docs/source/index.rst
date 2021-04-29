@@ -9,7 +9,7 @@ installed via `PyPi <https://pypi.org/project/vfb-connect/>`__:
 
    pip install vfb-connect
 
-VFB \_connect is licensed under `GNU
+VFB\_connect is licensed under `GNU
 GPLv3 <https://github.com/VirtualFlyBrain/VFB_connect/blob/master/LICENSE>`__.
 The source code is hosted on
 `GitHub <https://github.com/VirtualFlyBrain/VFB_connect>`__. Feedback,
@@ -33,8 +33,8 @@ For a brief introduction to the library please see :doc:`tutorials/overview`
    Quickstart Guide <tutorial/overview.ipynb>
    API_reference
    output_fomats
-
-
+   *
+   tutorial/*
 
 
 
