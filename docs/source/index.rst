@@ -1,39 +1,23 @@
-.. vfb-connect documentation master file, created by
-   sphinx-quickstart on Tue Mar  9 13:00:03 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+VFB_connect - A library for querying VFB
+========================================
 
-Welcome to vfb_connect's documentation
-=======================================
+VFB_connect is a Python library that wraps open VFB API endpoints,
+providing canned queries and standard output formats. It can be
+installed via `PyPi <https://pypi.org/project/vfb-connect/>`__:
 
-.. toctree::
-   :maxdepth: 5
-   :caption: Contents:
-   tutorial/overview.ipynb
+.. code:: sh
 
-Indices and tables
-------------------
+   pip install vfb-connect
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+VFB \_connect is licensed under `GNU
+GPLv3 <https://github.com/VirtualFlyBrain/VFB_connect/blob/master/LICENSE>`__.
+The source code is hosted on
+`GitHub <https://github.com/VirtualFlyBrain/VFB_connect>`__. Feedback,
+feature requests and bug reports are very welcome and should go via out
+`issues
+tracker <https://github.com/VirtualFlyBrain/VFB_connect/issues>`__.
 
-Tutorial
-========
+If you have any questions, please get in touch at "support ``at``
+virtualflybrain.org".
 
-* See the :ref:`vfb_connect overview<overview>` to get you up and running.
-
-vfb\_connect.neo.query\_wrapper module
---------------------------------------
-
-.. automodule:: vfb_connect.neo.query_wrapper
-   :undoc-members:
-   
-owl.owlery\_query\_tools module
--------------------------------
-
-.. automodule:: owl.owlery_query_tools
-   :members:
-
-
-
+For a brief introduction to the library please see `QuickStart <>`__.
