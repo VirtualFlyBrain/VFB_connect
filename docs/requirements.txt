@@ -8,3 +8,4 @@ jupyter
 nbsphinx
 matplotlib
 sphinx-autodoc-typehints
+myst-parser
