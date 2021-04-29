@@ -16,58 +16,71 @@ A range canned queries are available via methods directly accessible from this o
 
 Queries for cell and anatomical types
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-.. automodule:: vfb_connect.cross_server_tools.VfbConnect
-   :members: get_subclasses, get_superclasses, get_terms_by_region
    
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_subclasses
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_superclasses
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_terms_by_region
+
    
 Queries for individual neurons
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: vfb_connect.cross_server_tools.VfbConnect
-   :members: get_instances, get_instances_by_dataset, get_similar_neurons
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_instances, 
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_instances_by_dataset
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_similar_neurons
    
 Queries for images
 ~~~~~~~~~~~~~~~~~~
 
-.. automodule:: vfb_connect.cross_server_tools.VfbConnect
-   :members: get_images_by_type
- 
-.. automodule:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper
-   :members: get_images
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_images_by_type
 
+(Note, this method can be accessed from VfbConnect.neo_query_wrapper)
+
+.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_images
 
 Connectivity queries
 ~~~~~~~~~~~~~~~~~~~~
 
 Methods for querying direct connectivity:
-
-.. automodule:: vfb_connect.cross_server_tools.VfbConnect
-   :members: get_connected_neurons_by_type, get_neurons_downstream_of,
-get_neurons_upstream_of
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_connected_neurons_by_type
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_neurons_downstream_of
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_neurons_upstream_of
 
 
 VFB link generation methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: vfb_connect.cross_server_tools.VfbConnect.neo_query_wrapper
-   :members: get_vfb_link
+.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_vfb_link
 
 ID conversion methods
 ~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: vfb_connect.cross_server_tools.VfbConnect.neo_query_wrapper
-   :members: vfb_id_2_xrefs, neo_query_wrapper, xref_2_vfb_id
+Methods for converting between VFB_ids and external IDs, and vice versa
+
+(Note these methods can be accessed from VfbConnect.neo_query_wrapper)
+
+.. autofunction::  vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.vfb_id_2_xrefs
+.. autofunction::  vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.xref_2_vfb_id
 
 Methods for retrieving Term Information from arbitrary lists of IDs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: vfb_connect.cross_server_tools.VfbConnect.neo_query_wrapper
-   :members:  get_TermInfo, get_terms_by_xref, neo_query_wrapper.get_template_TermInfo, get_type_TermInfo, get_anatomical_individual_TermInfo, get_DataSet_TermInfo
+(Note these methods can be accessed from VfbConnect.neo_query_wrapper)
 
-Methods for retrieving lists of available get_connected_neurons_by_type
+Function for any type of VFB entity (slow for long lists)
+.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_TermInfo
+
+Function for any type of VFB entity using an external ID
+.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_terms_by_xref
+
+Functions by type (these are faster then the generic queries)
+
+.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_template_TermInfo
+.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_type_TermInfo
+.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_anatomical_individual_TermInfo
+.. autofunction:: vfb_connect.neo.neo4j_tools.query_wrapper.QueryWrapper.get_DataSet_TermInfo
+
+Methods for retrieving lists of available 
 -----------------------------------------------------------------------
 
 .. automodule:: vfb_connect.cross_server_tools.VfbConnect.neo_query_wrapper
