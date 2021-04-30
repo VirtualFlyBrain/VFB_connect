@@ -84,13 +84,15 @@ class Neo4jConnect:
         self.pwd = pwd
         self.test_connection()
        
-    def commit_list(self, statements, return_graphs = False):
+    def commit_list(self, statements, return_graphs=False):
         """Commit a list of statements to neo4J DB via REST API.
-        Prints requests status and warnings if any problems with commit.
-            - statements = list of cypher statements as strings
-            - return_graphs, optionally specify graphs to be returned in JSON results.
-        Errors prompt warnings, not exceptions, and cause return  = FALSE.
-        Returns results list of results or False if any errors are encountered."""
+        Errors prompt warnings (STDERR), not exceptions, and cause return = FALSE.
+
+        :param: statements: A list of cypher statements.
+        :param: return_graphs: Optional. Boolean. Returns graphs under 'graph' key if True. Default: False
+        :Return: List of results or False if any errors are encountered.
+        """
+
         cstatements = []
         if return_graphs:
             for s in statements:
@@ -109,13 +111,16 @@ class Neo4jConnect:
         
         
     def commit_list_in_chunks(self, statements, verbose=False, chunk_length=1000):
-        """Commit a list of statements to neo4J DB via REST API, split into chunks.
-        cypher_statments = list of cypher statements as strings
-        base_uri = base URL for neo4J DB
-        Default chunk size = 1000 statements. This can be overridden by KWARG chunk_length.
-        Returns a list of results. Output is indistinguishable from output of commit_list (i.e. 
-        chunking is not reflected in results list).
-        """
+
+        """Commit multiple (chunked) commit of statements to neo4J DB via REST API.
+         Errors prompt warnings (STDOUT), not exceptions, and cause return = FALSE.
+
+         :param: statements: A list of cypher statements.
+         :param: verbose: Boolean. Optionally print periodic reports of progress to STDOUT
+         :param: chunk_length. Int. Optional. Set chunk size.  Default = 1000.
+         :Return: List of results or False if any errors are encountered. Chunking is not reflected in results.
+         """
+
         chunked_statements = chunks(l = statements, n=chunk_length)
         chunk_results = []
         i = 1

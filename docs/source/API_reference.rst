@@ -136,6 +136,6 @@ Methods for directly querying the VFB neo4j database
 These functions are accessible under VFBConnect.nc
 
 .. autofunction:: vfb_connect.neo.neo4j_tools.Neo4jConnect.commit_list
-
+.. autofunction:: vfb_connect.neo.neo4j_tools.Neo4jConnect.commit_list_in_chunks
 
 

@@ -191,9 +191,10 @@ class QueryWrapper(Neo4jConnect):
                 return r
 
     def get_images(self, short_forms: iter, template, image_folder, image_type='swc', stomp=False):
-        """Given an array of `short_forms` for instances, find all images of specified `image_type`
+        """Given an iterable of `short_forms` for instances, find all images of specified `image_type`
         registered to `template`. Save these to `image_folder` along with a manifest.tsv.  Return manifest as
         pandas DataFrame."""
+
         # TODO - make image type into array
         short_forms = list(short_forms)
         manifest = []
@@ -246,13 +247,13 @@ class QueryWrapper(Neo4jConnect):
         return self.get_anatomical_individual_TermInfo(short_forms, summary=summary)
 
     def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
-        """Map a list of node short_form IDs in VFB to external DB IDs
-        Args:
-         vfb_id: list of short_form IDs of nodes in the VFB KB
-         db: {optional} database identifier (short_form) in VFB
-         id_type: {optional} name of external id type (e.g. bodyId)
-         reverse_return:
-            Return if `reverse_return` is False:
+        """Map a list of short_form IDs in VFB to external DB IDs
+
+        :param: vfb_id: An iterable (e.g. a list) of VFB short_form IDs.
+        :param: db: optional specify the VFB id (short_form) of an external DB to map to. (use get_dbs to find options)
+        :param: id_type: optionally specify an external id_type
+        :param: reverse_return: Boolean: Optional (see return)
+        :return: if `reverse_return` is False:
                 dict { VFB_id : [{ db: <db> : acc : <acc> }
             Return if `reverse_return` is True:
                 dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
