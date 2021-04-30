@@ -26,9 +26,11 @@ For a brief introduction to the library please see :doc:`tutorials/overview`
    :maxdepth: 5
    :caption: Contents:
    
-   tutorials
    API_reference
    output_fomats
+   tutorials/overview.ipynb
+   tutorials/discovery.ipynb
+   tutorials/connectomics.ipynb
    modules
    neo
    owl
