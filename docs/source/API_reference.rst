@@ -21,15 +21,19 @@ Direct queries of our neo4j endpoint are available via methods on ``vc.nc`` (a s
 
    from vfb_connect.cross_server_tools import VfbConnect
    vc = VfbConnect()
+
    # Semantic queries returning rich metadata on entities found
    # method directly on VfbConnect object.
    vc.get_subclasses('DL1_adPN', summary=True)
+
    # Semantic queries returning IDs only
    # shortcut to vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_subclasses
    vc.oc.get_subclasses('DL1_adPN', summary=True)
+
    # Queries taking ID lists as input and returning rich metadata or mappings
    # shortcut to vfb_connect.neo.query_wrapper.QueryWrapper.get_TermInfo
-   vc.neo_query_wrapper.get_TermInfo(['FBbt_00003680']) #
+   vc.neo_query_wrapper.get_TermInfo(['FBbt_00003680'])
+
    # Direct cypher query of the VFB neo4j database
    # shortcut to vfb_connect.neo.neo4j_tools.Neo4jConnect.commit_list
    vc.nc.commit_list(['MATCH (n:neuron:Class { symbol: 'DL1_adPN'}) RETURN n'])
@@ -88,12 +92,12 @@ Connectivity queries
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_neurons_upstream_of
 
 
-VFB link generation methods
+VFB link generation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_vfb_link
 
-ID conversion methods
+ID conversion
 ~~~~~~~~~~~~~~~~~~~~~
 
 **Methods for converting between VFB_ids and external IDs, and vice versa**
@@ -102,7 +106,7 @@ ID conversion methods
 .. autofunction::  vfb_connect.neo.query_wrapper.QueryWrapper.vfb_id_2_xrefs
 .. autofunction::  vfb_connect.neo.query_wrapper.QueryWrapper.xref_2_vfb_id
 
-Methods for retrieving Term Information from arbitrary lists of IDs
+Retrieving Term Information by ID
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The methods can all be accessed from ```VfbConnect.neo_query_wrapper```
@@ -123,14 +127,14 @@ The methods can all be accessed from ```VfbConnect.neo_query_wrapper```
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_anatomical_individual_TermInfo
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_DataSet_TermInfo
 
-Methods for retrieving lists of all IDs for some specific type
+Retrieving all IDs for some specific type
 -----------------------------------------------------------------------
 
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_datasets
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_dbs
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_templates
 
-Methods for directly querying the VFB neo4j database
+Directly querying the VFB neo4j database
 ----------------------------------------------------
 
 These functions are accessible under VFBConnect.nc
