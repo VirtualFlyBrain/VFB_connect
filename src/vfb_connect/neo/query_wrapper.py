@@ -193,7 +193,15 @@ class QueryWrapper(Neo4jConnect):
     def get_images(self, short_forms: iter, template, image_folder, image_type='swc', stomp=False):
         """Given an iterable of `short_forms` for instances, find all images of specified `image_type`
         registered to `template`. Save these to `image_folder` along with a manifest.tsv.  Return manifest as
-        pandas DataFrame."""
+        pandas DataFrame.
+
+        :param: short_forms: iterable (e.g. list) of VFB IDs of Individuals with images
+        :param: template: template name
+        :param: image_folder: folder to save image files & manifest to.
+        :param: image_type: image type (file extension)
+        :param: stomp: Overwrite image_folder if already exists.
+        :return: Manifest as Pandas DataFrame
+        """
 
         # TODO - make image type into array
         short_forms = list(short_forms)
@@ -229,18 +237,34 @@ class QueryWrapper(Neo4jConnect):
         return manifest_df
 
     def get_dbs(self):
+        """Get a list of available database IDs
+
+        :return: list of VFB IDs."""
         query = "MATCH (i:Individual) " \
                 "WHERE 'Site' in labels(i) OR 'API' in labels(i)" \
                 "return i.short_form"
         return [d['i.short_form'] for d in self._query(query)]
 
     def get_datasets(self, summary=False):
+        """Generate JSON report of all datsets.
+
+            :param: summary: Optional.  Returns summary reports if true. Default `False`
+            :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+            :rtype: list of VFB_json or summary_report_json
+            """
+
         dc = self._query("MATCH (ds:DataSet) "
                          "RETURN ds.short_form AS sf")
         short_forms = [d['sf'] for d in dc]
         return self.get_DataSet_TermInfo(short_forms, summary=summary)
 
     def get_templates(self, summary=False):
+        """Generate JSON report of all available templates.
+
+            :param: summary: Optional.  Returns summary reports if true. Default `False`
+            :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+            :rtype: list of VFB_json or summary_report_json
+            """
         dc = self._query("MATCH (i:Individual:Template:Anatomy) "
                          "RETURN i.short_form as sf")
         short_forms = [d['sf'] for d in dc]
@@ -285,13 +309,17 @@ class QueryWrapper(Neo4jConnect):
         return [int(k) for k, v in mapping.items()]
 
     def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
-        """Map an external ID (acc) to a VFB_id
-        args:
-            acc: list of external DB IDs (accessions)
-            db: {optional} database identifier (short_form) in VFB
-            id_type: {optional} name of external id type (e.g. bodyId)
-        Return:
-            dict { VFB_id : [{ db: <db> : acc : <acc> }]}"""
+        """Map a list external DB IDs to VFB IDs
+
+          :param: ecc: An iterable (e.g. a list) of external IDs (e.g. neuprint bodyIDs).
+          :param: db: optional specify the VFB id (short_form) of an external DB to map to. (use get_dbs to find options)
+          :param: id_type: optionally specify an external id_type
+          :param: reverse_return: Boolean: Optional (see return)
+          :return: if `reverse_return` is False:
+                dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
+              Return if `reverse_return` is True:
+                dict { VFB_id : [{ db: <db> : acc : <acc> }
+          """
         match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) WHERE"
         conditions = []
         if not (acc is None):
@@ -314,10 +342,12 @@ class QueryWrapper(Neo4jConnect):
 
     @batch_query
     def get_terms_by_xref(self, acc, db='', id_type=''):
-        """Get terms in VFB corresponding to a
-            acc: list of external DB IDs (accession)
-            db: {optional} database identifier (short_form) in VFB
-            id_type: {optional} name of external id type (e.g. bodyId)"""
+        """
+        Generate JSON report for terms specified by a list of IDs
+
+        :param: short_forms: An iterable (e.g. a list) of VFB IDs (short_forms)
+        :return: list of term metadata as VFB_json
+        """
         return self.get_TermInfo(list(self.xref_2_vfb_id(acc,
                                                          db=db,
                                                          id_type=id_type,
@@ -338,7 +368,14 @@ class QueryWrapper(Neo4jConnect):
 
 
     @batch_query
-    def get_TermInfo(self, short_forms):
+    def get_TermInfo(self, short_forms: iter):
+        """
+        Generate JSON report for terms specified by a list of IDs
+        :param: short_forms: An iterable (e.g. a list) of VFB IDs (short_forms)
+        :param: db: optional specify the VFB id (short_form) of an external DB. (use get_dbs() to find options)
+        :param: id_type: optionally specify an external id_type
+        :return: list of term metadata as VFB_json
+        """
         pre_query = "MATCH (e:Entity) " \
                     "WHERE e.short_form in %s " \
                     "RETURN e.short_form as short_form, labels(e) as labs " % str(short_forms)
@@ -389,13 +426,41 @@ class QueryWrapper(Neo4jConnect):
         return dc
 
     def get_anatomical_individual_TermInfo(self, short_forms, summary=False):
+        """
+        Generate JSON reports for anatomical individuals from a list of VFB IDs (short_forms)
+
+        :param: short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of anatomical individuals
+        :param: summary: Optional.  Returns summary reports if true. Default `False`
+        :rtype: list of VFB_json or summary_report_json
+        """
         return self._get_TermInfo(short_forms, typ='Get JSON for Individual:Anatomy', summary=summary)
 
     def get_type_TermInfo(self, short_forms, summary=False):
+        """
+        Generate JSON reports for types from a list of VFB IDs (short_forms) of classes/types.
+
+        :param: short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of types
+        :param: summary: Optional.  Returns summary reports if true. Default `False`
+        :rtype: list of VFB_json or summary_report_json
+        """
         return self._get_TermInfo(short_forms, typ='Get JSON for Class', summary=summary)
 
     def get_DataSet_TermInfo(self, short_forms, summary=False):
+        """
+        Generate JSON reports for types from a list of VFB IDs (short_forms) of DataSets.
+
+        :param: short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of types
+        :param: summary: Optional.  Returns summary reports if true. Default `False`
+        :rtype: list of VFB_json or summary_report_json
+        """
         return self._get_TermInfo(short_forms, typ='Get JSON for DataSet', summary=summary)
 
     def get_template_TermInfo(self, short_forms):
+        """
+        Generate JSON reports for types from a list of VFB IDs (short_forms) of templates.
+
+        :param: short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of types
+        :param: summary: Optional.  Returns summary reports if true. Default `False`
+        :rtype: list of VFB_json or summary_report_json
+        """
         return self._get_TermInfo(short_forms, typ='Get JSON for Template')
