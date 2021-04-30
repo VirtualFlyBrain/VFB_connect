@@ -1,36 +1,76 @@
 API Reference
 =============
 
+Introduction
+~~~~~~~~~~~~
+
 It is sufficient to initialise a single ``VfbConnect`` object to get
 access to all the functions in VFB_connect acting on our default API
-endpoints.
+endpoints.  `Semantic queries <http:fu.bar>`__ returning `rich metadata <http:fu.bar>`__
+on entities found are available via direct methods on VfbConnect.  Semantic queries
+returning IDs only are available via methods on ``VfbConnect.oc`` (a shortcut to
+``vfb_connect.owl.owlery_query_tools.OWLeryConnect.``). Queries taking ID lists as input
+and returning rich metadata or mappings are available via methods on
+``VFBConnect.neo_query_wrapper`` (a shortcut to ``vfb_connect.neo.query_wrapper.QueryWrapper``)
+
+Direct queries of our neo4j endpoint are available via methods on ``vc.nc`` (a shortcut to
+``vfb_connect.neo.neo4j_tools.Neo4jConnect``).  See our
+`Guide to the VFB Neo4J schema and how to query it. <http://fu.bar>`__
 
 .. code:: Python
 
    from vfb_connect.cross_server_tools import VfbConnect
    vc = VfbConnect()
+   # Semantic queries returning rich metadata on entities found
+   # method directly on VfbConnect object.
+   vc.get_subclasses('DL1_adPN', summary=True)
+   # Semantic queries returning IDs only
+   # shortcut to vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_subclasses
+   vc.oc.get_subclasses('DL1_adPN', summary=True)
+   # Queries taking ID lists as input and returning rich metadata or mappings
+   # shortcut to vfb_connect.neo.query_wrapper.QueryWrapper.get_TermInfo
+   vc.neo_query_wrapper.get_TermInfo(['FBbt_00003680']) #
+   # Direct cypher query of the VFB neo4j database
+   # shortcut to vfb_connect.neo.neo4j_tools.Neo4jConnect.commit_list
+   vc.nc.commit_list(['MATCH (n:neuron:Class { symbol: 'DL1_adPN'}) RETURN n'])
 
-A range canned queries are available via methods directly accessible from this object, or via vc. Core, cross server methods are directly accessible from this object. Direct queries of our ``Neo4J`` database are available via methods under ``vc.nc`` OWL queries are available under ``vc.oc``.
+This document organises methods by their function.  For a general introduction, please see
+our `QuickStart documentation <http://fu.bar>`__.
 
-(Other direct query endpoint will be added in future)
 
-Queries for cell and anatomical types
+Semantic queries for cell and anatomical types
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Methods returning extended information about types
 
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_subclasses
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_superclasses
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_terms_by_region
 
 
-Queries for individual neurons
+Methods returning IDs only.  These methods are all accessible via ``VfbConnect.oc``
+
+.. autofunction:: vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_subclasses
+.. autofunction:: vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_superclasses
+
+Semantic queries for individual neurons
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Methods returning extended information about types
 
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_instances
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_instances_by_dataset
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_similar_neurons
 
+
+Methods returning IDs only.  These methods are accessible via ``VfbConnect.oc``
+
+.. autofunction:: vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_instances
+
 Queries for images
 ~~~~~~~~~~~~~~~~~~
+
+Semantic queries for images
 
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_images_by_type
 
@@ -57,7 +97,7 @@ ID conversion methods
 ~~~~~~~~~~~~~~~~~~~~~
 
 **Methods for converting between VFB_ids and external IDs, and vice versa**
-(Note these methods can be accessed from VfbConnect.neo_query_wrapper)
+(Note these methods can be accessed from ``VfbConnect.neo_query_wrapper``)
 
 .. autofunction::  vfb_connect.neo.query_wrapper.QueryWrapper.vfb_id_2_xrefs
 .. autofunction::  vfb_connect.neo.query_wrapper.QueryWrapper.xref_2_vfb_id
@@ -65,13 +105,11 @@ ID conversion methods
 Methods for retrieving Term Information from arbitrary lists of IDs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-(Note these methods can be accessed from VfbConnect.neo_query_wrapper)
-
+The methods can all be accessed from ```VfbConnect.neo_query_wrapper```
 
 **Function for any type of VFB entity (slow for long lists)**
 
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_TermInfo
-
 
 **Function for any type of VFB entity using an external ID**
 
@@ -91,3 +129,13 @@ Methods for retrieving lists of all IDs for some specific type
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_datasets
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_dbs
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_templates
+
+Methods for directly querying the VFB neo4j database
+----------------------------------------------------
+
+These functions are accessible under VFBConnect.nc
+
+.. autofunction:: vfb_connect.neo.neo4j_tools.Neo4jConnect.commit_list
+
+
+
