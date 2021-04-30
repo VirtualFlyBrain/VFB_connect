@@ -9,7 +9,7 @@ information reports.
 
 The confirms to a standard JSON schema: `raw schema
 docs <https://github.com/VirtualFlyBrain/VFB_json_schema/blob/master/src/json_schema/vfb_termInfo.json>`__;
-[schema in browsable form](https://virtualflybrain.github.io/VFB_json_schema/doc/schema_doc.html).
+`schema in browsable form <https://virtualflybrain.github.io/VFB_json_schema/doc/schema_doc.html>`.
 
 Summary reports
 ---------------
