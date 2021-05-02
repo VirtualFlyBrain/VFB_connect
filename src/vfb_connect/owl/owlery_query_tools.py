@@ -4,26 +4,34 @@ import re
 import json
 from ..default_servers import get_default_servers
 
-## MVP: queries when passed a curie map
-## desireable: obo curies automatically generated from query string.
 
 def gen_short_form(iri):
-    """Generate short_form (string) from an iri string
-    iri: An iri string"""
+    """Generate short_form (string) from an iri string,
+    assuming short_form delimiters, in order of precedence:
+    '#' '/'.
+    :param iri: An iri string
+    :return: short_form
+    """
     return re.split('/|#', iri)[-1]
 
 class OWLeryConnect:
+
+    """Wrapper class for querying the VFB OWLery endpoint.
+    Unless you have specialist configuration needs, it is
+    better to access this object with full default configurations
+    from VfbConnect.oc.
+
+        :param endpoint: owlery REST endpoint
+        :param lookup: Dict of name: ID;
+        :param: obo_curies: list of prefixes for generation of OBO curies.
+            Default: ('FBbt', 'RO')
+        :param: curies: Dict of curies"""
 
     def __init__(self,
                  endpoint=get_default_servers()['owlery_endpoint'],
                  lookup=None,
                  obo_curies=('FBbt', 'RO', 'BFO'),
                  curies=None):
-        """Endpoint: owlery REST endpoint
-           Lookup: Dict of name: ID;
-           obo_curies: list of prefixes for generation of OBO curies.
-                Default: ('FBbt', 'RO')
-           curies: Dict of curie: base"""
         self.owlery_endpoint = endpoint
         if not (lookup):
             self.lookup = {}
@@ -46,16 +54,16 @@ class OWLeryConnect:
         """
         A wrapper for querying Owlery Endpoints.  See
         https://owlery.phenoscape.org/api/ for doc
+
         :param query_type: Options: subclasses, superclasses,
         equivalent, instances, types
-        :param return_type:
         :param query: 'Manchester syntax query with owl entities as <iri>,
          curie (supporting curies declared on object)
          or single quoted label (if query_by_label isTrue)
         :param query_by_label: Boolean. Default False.
         :param direct: Boolean. Default False. Determines T/F
         :param verbose - print verbose output to stdout for debugging purposes.
-        :return:
+        :return: list of IRIs.
         """
         owl_endpoint = self.owlery_endpoint + query_type +"?"
         if query_by_label:
@@ -74,8 +82,15 @@ class OWLeryConnect:
             return False
 
     def get_subclasses(self, query, query_by_label=False, direct=False, return_short_forms=False):
-        """Get subclasses satisfying  query, where query is an OWL DL is any OWL DL class expression
-           """
+        """Generate list of IDs of all subclasses of class_expression.
+
+                :param class_expression: A valid OWL class expression, e.g. the name of a class.
+                :param query_by_label: Optional.  If `False``, class_expression takes CURIEs instead of labels.  Default `False`
+                :param direct: Return direct subclasses only.  Default `False`
+                :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs.
+                :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+                :rtype: list of IRIs or short_forms (depending on return_short_form option)
+                """
         out = self.query(query_type='subclasses', return_type='superClassOf',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
@@ -85,8 +100,15 @@ class OWLeryConnect:
             return out
 
     def get_instances(self, query, query_by_label=False, direct=False, return_short_forms=False):
-        """Get instances satisfying query, where query is an OWL DL is any OWL DL class expression
-           """
+        """Generate list of IDs of all instances of class_expression.
+
+                :param class_expression: A valid OWL class expression, e.g. the name of a class.
+                :param query_by_label: Optional.  If `False``, class_expression takes CURIEs instead of labels.  Default `False`
+                :param direct: Return direct instances only.  Default `False`
+                :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs.
+                :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+                :rtype: list of IRIs or short_forms (depending on return_short_form option)
+                """
         out = self.query(query_type='instances', return_type='hasInstance',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
@@ -96,8 +118,15 @@ class OWLeryConnect:
             return out
 
     def get_superclasses(self, query, query_by_label=False, direct=False, return_short_forms=False):
-        """Get superclasses satisfying `query`, where `query` is any OWL DL class expression.
-           """
+        """Generate list of IDs of all superclasses of class_expression.
+
+                       :param class_expression: A valid OWL class expression, e.g. the name (or CURIE) of a class.
+                       :param query_by_label: Optional.  If `False``, class_expression takes CURIEs instead of labels.  Default `False`
+                       :param direct: Return direct instances only.  Default `False`
+                       :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs.
+                       :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+                       :rtype: list of IRIs or short_forms (depending on return_short_form option)
+                       """
         out = self.query(query_type='superclasses', return_type='subClassOf',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
@@ -108,7 +137,12 @@ class OWLeryConnect:
 
 
     def labels_2_ids(self, query_string):
-        """Substitutes labels for IDs in a query string"""
+        """Substitutes labels for IDs in a query string
+
+        :param query_string: A OWL class expression in which all labels of OWL entities are single-quoted.  Internal
+        single quotes should be escaped with a backslash.
+        :return: query string in which labels have been converted to unquoted CURIES.
+        """
 
         def subgp1_or_fail(m):
             out = self.lookup.get(m.group(1))

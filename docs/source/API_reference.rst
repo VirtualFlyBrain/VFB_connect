@@ -1,21 +1,24 @@
 API Reference
 =============
 
+This document organises methods by their function.  For a general introduction, please see
+our QuickStart documentation :doc:`tutorials/overview`.
+
 Introduction
 ~~~~~~~~~~~~
 
 It is sufficient to initialise a single ``VfbConnect`` object to get
 access to all the functions in VFB_connect acting on our default API
-endpoints.  `Semantic queries <http:fu.bar>`__ returning `rich metadata <http:fu.bar>`__
-on entities found are available via direct methods on VfbConnect.  Semantic queries
+endpoints (see code snippet below).  :doc:`Semantic_queries` returning rich metadata (see :doc:`Semantic_queries`)
+on entities found are available via direct methods on ``VfbConnect``.  Semantic queries
 returning IDs only are available via methods on ``VfbConnect.oc`` (a shortcut to
 ``vfb_connect.owl.owlery_query_tools.OWLeryConnect.``). Queries taking ID lists as input
-and returning rich metadata or mappings are available via methods on
+and returning rich metadata or mappings to/from external IDs are available via methods on
 ``VFBConnect.neo_query_wrapper`` (a shortcut to ``vfb_connect.neo.query_wrapper.QueryWrapper``)
 
 Direct queries of our neo4j endpoint are available via methods on ``vc.nc`` (a shortcut to
-``vfb_connect.neo.neo4j_tools.Neo4jConnect``).  See our
-`Guide to the VFB Neo4J schema and how to query it. <http://fu.bar>`__
+``vfb_connect.neo.neo4j_tools.Neo4jConnect``).  A guide to the VFB Neo4J schema and how to
+query it is in preparation.
 
 .. code:: Python
 
@@ -23,23 +26,25 @@ Direct queries of our neo4j endpoint are available via methods on ``vc.nc`` (a s
    vc = VfbConnect()
 
    # Semantic queries returning rich metadata on entities found
-   # method directly on VfbConnect object.
+   # methods directly on VfbConnect object.
+   # e.g.
    vc.get_subclasses('DL1_adPN', summary=True)
 
    # Semantic queries returning IDs only
    # shortcut to vfb_connect.owl.owlery_query_tools.OWLeryConnect.get_subclasses
+   # e.g.
    vc.oc.get_subclasses('DL1_adPN', summary=True)
 
    # Queries taking ID lists as input and returning rich metadata or mappings
    # shortcut to vfb_connect.neo.query_wrapper.QueryWrapper.get_TermInfo
+   # e.g.
    vc.neo_query_wrapper.get_TermInfo(['FBbt_00003680'])
 
    # Direct cypher query of the VFB neo4j database
    # shortcut to vfb_connect.neo.neo4j_tools.Neo4jConnect.commit_list
+   # e.g.
    vc.nc.commit_list(['MATCH (n:neuron:Class { symbol: 'DL1_adPN'}) RETURN n'])
 
-This document organises methods by their function.  For a general introduction, please see
-our `QuickStart documentation <http://fu.bar>`__.
 
 
 Semantic queries for cell and anatomical types
