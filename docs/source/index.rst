@@ -28,12 +28,21 @@ For a brief introduction to the library please see :doc:`tutorials/overview`
    
    API_reference
    output_fomats
+   Semantic_queries
+
+
+.. toctree::
+   :caption: Tutorials
    tutorials/overview.ipynb
    tutorials/discovery.ipynb
    tutorials/connectomics.ipynb
-   modules
-   neo
-   owl
+
+.. toctree::
+   :caption: modules
+   VfbConnect
+   neo/neo4j_tools
+   neo/neo_query_wrapper
+   owl/owlery_query_tools
    
 
 
