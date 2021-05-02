@@ -27,6 +27,7 @@ Contents
 
 .. toctree::
    :maxdepth: 2
+   :caption: contents
    API_reference
    output_fomats
    Semantic_queries
