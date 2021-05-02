@@ -22,24 +22,28 @@ virtualflybrain.org".
 
 For a brief introduction to the library please see :doc:`tutorials/overview`
 
+Contents
+--------
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
    API_reference
    output_fomats
    Semantic_queries
 
+Tutorials
+---------
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Tutorials
+   :maxdepth: 1
    tutorials/overview.ipynb
    tutorials/discovery.ipynb
    tutorials/connectomics.ipynb
 
+Modules
+-------
+
 .. toctree::
-   :maxdepth: 2
-   :caption: modules
    VfbConnect
    neo/neo4j_tools
    neo/neo_query_wrapper
