@@ -22,14 +22,11 @@ virtualflybrain.org".
 
 For a brief introduction to the library please see :doc:`tutorials/overview`
 
-Contents
---------
-
 .. toctree::
    :maxdepth: 2
    :caption: contents
    API_reference
-   output_fomats
+   output_formats
    Semantic_queries
    tutorials/overview.ipynb
    tutorials/discovery.ipynb
