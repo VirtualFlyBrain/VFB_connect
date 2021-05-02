@@ -10,4 +10,3 @@ matplotlib
 sphinx-autodoc-typehints
 docutils
 myst-parser
-jupyter_contrib_nbextensions
