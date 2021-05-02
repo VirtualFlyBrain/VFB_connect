@@ -31,20 +31,9 @@ Contents
    API_reference
    output_fomats
    Semantic_queries
-
-Tutorials
----------
-
-.. toctree::
-   :maxdepth: 1
    tutorials/overview.ipynb
    tutorials/discovery.ipynb
    tutorials/connectomics.ipynb
-
-Modules
--------
-
-.. toctree::
    VfbConnect
    neo/neo4j_tools
    neo/neo_query_wrapper
