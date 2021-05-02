@@ -31,6 +31,9 @@ For a brief introduction to the library please see :doc:`tutorials/overview`
    tutorials/overview.ipynb
    tutorials/discovery.ipynb
    tutorials/connectomics.ipynb
+   modules
+   neo
+   owl
 
 
 
