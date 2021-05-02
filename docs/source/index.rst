@@ -23,7 +23,7 @@ virtualflybrain.org".
 For a brief introduction to the library please see :doc:`tutorials/overview`
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 2
    :caption: Contents:
    
    API_reference
