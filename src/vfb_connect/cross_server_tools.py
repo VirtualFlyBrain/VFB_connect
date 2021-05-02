@@ -193,9 +193,14 @@ class VfbConnect:
         else:
             return dc
 
-    def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', cutoff=None, source=None, return_dataframe=True):
+    def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_dataframe=True):
         """Get JSON report of individual neurons similar to input neuron
 
+        :param neuron:
+        :param similarity_score: Optionally specify similarity score to chose
+        :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+        :return: list of similar neurons (id, label, tags, source (db) id, accession_in_source) + similarity score.
+        rtype: pandas.DataFrame or list of dicts
         """
         query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) " \
                 "WHERE n1.short_form = '%s' " \
@@ -204,7 +209,7 @@ class VfbConnect:
                 "(n2)-[dbx2:database_cross_reference]->(s2:Site) " \
                 "WHERE s1.is_data_source and s2.is_data_source " \
                 "RETURN DISTINCT n2.short_form AS id, r.NBLAST_score[0] AS NBLAST_score, n2.label AS label, " \
-                "COLLECT(c2.label) AS types, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source " \
+                "COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source " \
                 "ORDER BY %s DESC""" % (neuron, similarity_score)
         dc = self.neo_query_wrapper._query(query)
         if return_dataframe:
@@ -216,17 +221,27 @@ class VfbConnect:
                                   return_dataframe=True):
         """Get all neurons downstream of individual `neuron`
 
-        (short_form if query_by_label=False, otherwise label)
-        with connection strength > threshold.  Optionally restrict target neurons to those specified by
-        `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'"."""
+        :param neuron: the name or id of a particular neuron (dependent on query_by_label setting)
+        :param weight: limit returned neurons to those with connected by >= weight synapses
+        :classification: optionally specify classification of downstream neuron using a class expression
+        e.g. "'Kenyon cell'" or "'neuron' that overlaps some 'lateral horn'"
+        :param query_by_label: query neuron may be specified with a label if true
+        :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+        """
         return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='upstream',
                                               classification=classification, query_by_label=query_by_label,
                                               return_dataframe=return_dataframe)
 
     def get_neurons_upstream_of(self, neuron, weight, classification=None, query_by_label=True, return_dataframe=True):
-        """Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
-         with connection strength > threshold.  Optionally restrict target neurons to those specified by
-         `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'"."""
+        """"Get all neurons downstream of individual `neuron`
+
+        :param neuron: the name or id of a particular neuron (dependent on query_by_label setting)
+        :param weight: limit returned neurons to those with connected by >= weight synapses
+        :classification: optionally specify classification of upstream neuron using a class expression
+        e.g. "'Kenyon cell'" or "'neuron' that overlaps some 'lateral horn'"
+        :param query_by_label: query neuron may be specified with a label if true
+        :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+        """
         return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='downstream',
                                               classification=classification, query_by_label=query_by_label,
                                               return_dataframe=return_dataframe)
@@ -234,7 +249,15 @@ class VfbConnect:
     def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True,
                                       return_dataframe=True):
         """Get all synaptic connections between individual neurons of `upstream_type` and `dowstream_type` where
-         each synapse count  >= `weight`.  Warning: Does not support Class Expressions."""
+          synapse count  >= `weight`.  Warning: Does not support Class Expressions.
+
+          :parm upstream_type: The upstream neuron type (e.g. 'GABAeric neuron').
+ 1        :param downstream_type: The upstream neuron type (e.g. 'Descending neuron').
+          :param query_by_label: query neuron types may be specified with a label if True (default) or
+          by short_form id if `False`
+          :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+
+          """
 
         # Note - chose not to do this with class expressions to avoid poor performance and blowing up results.
         # This might be confusing tough, given behavior of other, similar methods.
@@ -291,7 +314,11 @@ class VfbConnect:
     def get_vfb_link(self, short_forms: iter, template):
         """Takes a list of VFB IDs (short_forms) and the name (label) of a template.
          Returns a link to VFB loading all available images
-         of neurons on that template."""
+         of neurons on that template.
+
+         :param short_forms: A list (or other iterable) of VFB short_form IDs for individuals with images
+         :return: A url for viewing images and metadata for specified individuals on VFB.
+         """
         short_forms = list(short_forms)
         query = "MATCH (t:Template { label: '%s'}) return t.short_form" % template
         dc = self.neo_query_wrapper._query(query)
@@ -304,7 +331,9 @@ class VfbConnect:
                            image_type='swc', query_by_label=True, direct=False, stomp=False):
         """Retrieve images of instances of `class_expression` registered to `template` and save to disk,
         along with manifest and references, to `image_folder`. Default image type = swc. Also supported: obj, nrrd, rds, wlz.
-        Returns manifest dataframe. If `stomp` is true, overwrites existing template_folder."""
+        Returns manifest dataframe. If `stomp` is true, overwrites existing template_folder.
+
+        """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         instances = self.oc.get_instances(class_expression,

@@ -19,24 +19,29 @@ import pandas
 df = pd.DataFrame.from_records(vc.<some method call>)  # Add example
 ```
 
-Applies to | Column name | content
- -- | --
-all | label |  name of entity
-all | symbol | short symbol for entity (if any)
-all | id | VFB ID of entity
-all | tags | tags associated with entity (gross class; data flags)
-anatomical types & individuals | parents_label | parent class labels (`|` delim)
-anatomical types & individuals | parents_id | parent classes IDs (`|` delim)
-anatomical individuals | data_source | ID of data_source
-anatomical individuals | accession | ID of individual in data_source
-anatomical individuals | dataset | dataset(s) individual belongs to (`|` delim)
-anatomical individuals | templates | template(s) registered to (`|` delim)
-anatomical individuals | license | license data is available under
-dataset | description | DataSet description, if present
-dataset | miniref | minimal informtion for DataSet referece
-dataset | FlyBase | FlyBase ID for DataSet reference
-dataset | PMID | PMID for DataSet reference
-dataset | DOI | DOI for DataSet reference
+
+...
+
+
+| Applies to | Column name | content |
+| -- | -- | -- |
+| all | label |  name of entity |
+| all | symbol | short symbol for entity (if any) |
+| all | id | VFB ID of entity |
+| all | tags | tags associated with entity (gross class; data flags) |
+| anatomical types & individuals | parents_label | parent class labels (`|` delim)" |
+| anatomical types & individuals | parents_id | parent classes IDs (`|` delim) |
+| anatomical individuals | data_source | ID of data_source |
+| anatomical individuals | accession | ID of individual in data_source |
+| anatomical individuals | dataset | dataset(s) individual belongs to (`|` delim) |
+| anatomical individuals | templates | template(s) registered to (`|` delim) |
+| anatomical individuals | license | license data is available under |
+| dataset | description | DataSet description, if present |
+| dataset | miniref | minimal information for DataSet reference |
+| dataset | FlyBase | FlyBase ID for DataSet reference |
+| dataset | PMID | PMID for DataSet reference |
+| dataset | DOI | DOI for DataSet reference |
+
 
 ## ID Mappings
 

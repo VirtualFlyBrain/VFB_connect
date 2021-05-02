@@ -42,9 +42,10 @@ class OWLeryConnect:
         else:
             self.curies = curies
         if obo_curies:
-            self.add_obo_curies(obo_curies)
+            self._add_obo_curies(obo_curies)
 
-    def add_obo_curies(self, prefixes):
+    def _add_obo_curies(self, prefixes):
+
         obolib = "http://purl.obolibrary.org/obo/"
         c = {p : obolib + p + '_' for p in prefixes}
         self.curies.update(c)
