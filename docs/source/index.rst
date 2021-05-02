@@ -34,7 +34,7 @@ Contents
    tutorials/overview.ipynb
    tutorials/discovery.ipynb
    tutorials/connectomics.ipynb
-   VfbConnect
+   cross_server_tools
    neo/neo4j_tools
    neo/neo_query_wrapper
    owl/owlery_query_tools
