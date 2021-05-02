@@ -25,19 +25,20 @@ For a brief introduction to the library please see :doc:`tutorials/overview`
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-   
    API_reference
    output_fomats
    Semantic_queries
 
 
 .. toctree::
+   :maxdepth: 2
    :caption: Tutorials
    tutorials/overview.ipynb
    tutorials/discovery.ipynb
    tutorials/connectomics.ipynb
 
 .. toctree::
+   :maxdepth: 2
    :caption: modules
    VfbConnect
    neo/neo4j_tools
