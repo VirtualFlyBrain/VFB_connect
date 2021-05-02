@@ -31,16 +31,11 @@ Contents
    API_reference
    output_fomats
    Semantic_queries
-
-.. toctree::
-   :maxdepth: 2
-   :caption: tutorials
    tutorials/overview.ipynb
    tutorials/discovery.ipynb
    tutorials/connectomics.ipynb
 
 
-   
 
 
 
