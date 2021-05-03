@@ -25,6 +25,7 @@ For a brief introduction to the library please see :doc:`tutorials/overview`
 .. toctree::
    :maxdepth: 2
    :caption: contents
+   
    API_reference
    output_formats
    Semantic_queries
