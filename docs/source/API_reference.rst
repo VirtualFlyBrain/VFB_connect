@@ -9,10 +9,10 @@ Introduction
 
 It is sufficient to initialise a single ``VfbConnect`` object to get
 access to all the functions in VFB_connect acting on our default API
-endpoints (see code snippet below).  :doc:`Semantic_queries` returning rich metadata (see :doc:`Semantic_queries`)
-on entities found are available via direct methods on ``VfbConnect``.  Semantic queries
+endpoints (see code snippet below).  :doc:`Semantic_queries` returning rich metadata
+on entities found (see :doc:`output formats`) are available via direct methods on ``VfbConnect``.  Semantic queries
 returning IDs only are available via methods on ``VfbConnect.oc`` (a shortcut to
-``vfb_connect.owl.owlery_query_tools.OWLeryConnect.``). Queries taking ID lists as input
+``vfb_connect.owl.owlery_query_tools.OWLeryConnect.``). Queries taking ID lists as input (see :doc:`IDs_on_VFB`)
 and returning rich metadata or mappings to/from external IDs are available via methods on
 ``VFBConnect.neo_query_wrapper`` (a shortcut to ``vfb_connect.neo.query_wrapper.QueryWrapper``)
 
@@ -98,21 +98,22 @@ Connectivity queries
 
 
 VFB link generation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_vfb_link
 
 ID conversion
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 **Methods for converting between VFB_ids and external IDs, and vice versa**
-(Note these methods can be accessed from ``VfbConnect.neo_query_wrapper``)
+(Note these methods can be accessed from ``VfbConnect.neo_query_wrapper``
+For more information on IDs on VFB see :doc:`IDs_on_VFB`.
 
 .. autofunction::  vfb_connect.neo.query_wrapper.QueryWrapper.vfb_id_2_xrefs
 .. autofunction::  vfb_connect.neo.query_wrapper.QueryWrapper.xref_2_vfb_id
 
 Retrieving Term Information by ID
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The methods can all be accessed from ```VfbConnect.neo_query_wrapper```
 
@@ -123,7 +124,6 @@ The methods can all be accessed from ```VfbConnect.neo_query_wrapper```
 **Function for any type of VFB entity using an external ID**
 
 .. autofunction:: vfb_connect.neo.query_wrapper.QueryWrapper.get_terms_by_xref
-
 
 **Functions by type (these are faster then the generic queries)**
 

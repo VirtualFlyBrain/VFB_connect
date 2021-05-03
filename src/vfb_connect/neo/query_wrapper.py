@@ -20,7 +20,7 @@ from vfb_connect.neo.neo4j_tools import chunks, Neo4jConnect, dict_cursor, escap
 def batch_query(func):
     # Assumes first arg is to be batches and that return value is list. Only works on class methods.
     # There has to be a better way to work with the values of args and kwargs than this!!!!
-    @wraps(func)
+    @wraps(func)  # Boilerplate required for Sphinx autodoc
     def wrapper_batch(*args, **kwargs):
         arg_names = getfullargspec(func).args
         if len(args) > 1:
