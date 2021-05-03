@@ -9,6 +9,9 @@ from xml.sax import saxutils
 import pandas as pd
 import pkg_resources
 import requests
+from functools import wraps
+
+
 # from jsonpath_rw import parse as parse_jpath
 from vfb_connect.neo.neo4j_tools import chunks, Neo4jConnect, dict_cursor, escape_string
 
@@ -17,6 +20,7 @@ from vfb_connect.neo.neo4j_tools import chunks, Neo4jConnect, dict_cursor, escap
 def batch_query(func):
     # Assumes first arg is to be batches and that return value is list. Only works on class methods.
     # There has to be a better way to work with the values of args and kwargs than this!!!!
+    @wraps(func)
     def wrapper_batch(*args, **kwargs):
         arg_names = getfullargspec(func).args
         if len(args) > 1:
@@ -366,13 +370,12 @@ class QueryWrapper(Neo4jConnect):
         return self.get_anatomical_individual_TermInfo([d['ai.short_form']
                                                         for d in dc])
 
-
     @batch_query
     def get_TermInfo(self, short_forms: iter):
         """Generate JSON report for terms specified by a list of IDs
 
         :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms)
-        :param db: optionaly specify the VFB id (short_form) of external DB.
+        :param db: optionally specify the VFB id (short_form) of external DB.
         :param id_type: optionally specify an external id_type
         :return: list of term metadata as VFB_json
 
