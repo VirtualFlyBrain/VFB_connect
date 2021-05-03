@@ -369,13 +369,13 @@ class QueryWrapper(Neo4jConnect):
 
     @batch_query
     def get_TermInfo(self, short_forms: iter):
-        """
-        Generate JSON report for terms specified by a list of IDs
+        """Generate JSON report for terms specified by a list of IDs
 
         :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms)
         :param db: optional specify the VFB id (short_form) of an external DB. (use get_dbs() to find options)
         :param id_type: optionally specify an external id_type
         :return: list of term metadata as VFB_json
+
         """
         pre_query = "MATCH (e:Entity) " \
                     "WHERE e.short_form in %s " \
