@@ -372,7 +372,7 @@ class QueryWrapper(Neo4jConnect):
         """Generate JSON report for terms specified by a list of IDs
 
         :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms)
-        :param db: optional specify the VFB id (short_form) of an external DB. (use get_dbs() to find options)
+        :param db: optionaly specify the VFB id (short_form) of external DB.
         :param id_type: optionally specify an external id_type
         :return: list of term metadata as VFB_json
 
