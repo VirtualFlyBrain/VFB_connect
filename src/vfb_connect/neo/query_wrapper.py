@@ -250,7 +250,7 @@ class QueryWrapper(Neo4jConnect):
 
             :param summary: Optional.  Returns summary reports if `True`. Default `False`
             :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
-            :rtype: list of VFB_json or summary_report_json
+            :return type: list of VFB_json or summary_report_json
             """
 
         dc = self._query("MATCH (ds:DataSet) "
@@ -263,7 +263,7 @@ class QueryWrapper(Neo4jConnect):
 
             :param summary: Optional.  Returns summary reports if `True`. Default `False`
             :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
-            :rtype: list of VFB_json or summary_report_json
+            :return type: list of VFB_json or summary_report_json
             """
         dc = self._query("MATCH (i:Individual:Template:Anatomy) "
                          "RETURN i.short_form as sf")
@@ -311,7 +311,7 @@ class QueryWrapper(Neo4jConnect):
     def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
         """Map a list external DB IDs to VFB IDs
 
-          :param ecc: An iterable (e.g. a list) of external IDs (e.g. neuprint bodyIDs).
+          :param acc: An iterable (e.g. a list) of external IDs (e.g. neuprint bodyIDs).
           :param db: optional specify the VFB id (short_form) of an external DB to map to. (use get_dbs to find options)
           :param id_type: optionally specify an external id_type
           :param reverse_return: Boolean: Optional (see return)
@@ -371,6 +371,7 @@ class QueryWrapper(Neo4jConnect):
     def get_TermInfo(self, short_forms: iter):
         """
         Generate JSON report for terms specified by a list of IDs
+
         :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms)
         :param db: optional specify the VFB id (short_form) of an external DB. (use get_dbs() to find options)
         :param id_type: optionally specify an external id_type

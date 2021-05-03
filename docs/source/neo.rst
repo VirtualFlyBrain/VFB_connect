@@ -7,7 +7,7 @@ Submodules
 neo.neo4j\_tools module
 -----------------------
 
-.. automodule:: neo.neo4j_tools
+.. automodule:: vfb_connect.neo.neo4j_tools
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,7 +15,7 @@ neo.neo4j\_tools module
 neo.query\_wrapper module
 -------------------------
 
-.. automodule:: neo.query_wrapper
+.. automodule:: vfb_connect.neo.query_wrapper
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +23,7 @@ neo.query\_wrapper module
 Module contents
 ---------------
 
-.. automodule:: neo
+.. automodule:: vfb_connect.neo
    :members:
    :undoc-members:
    :show-inheritance:

@@ -7,7 +7,7 @@ Submodules
 owl.owlery\_query\_tools module
 -------------------------------
 
-.. automodule:: owl.owlery_query_tools
+.. automodule:: vfb_connect.owl.owlery_query_tools
    :members:
    :undoc-members:
    :show-inheritance:
@@ -15,7 +15,7 @@ owl.owlery\_query\_tools module
 Module contents
 ---------------
 
-.. automodule:: owl
+.. automodule:: vfb_connect..owl
    :members:
    :undoc-members:
    :show-inheritance:

@@ -200,7 +200,8 @@ class VfbConnect:
         :param similarity_score: Optionally specify similarity score to chose
         :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
         :return: list of similar neurons (id, label, tags, source (db) id, accession_in_source) + similarity score.
-        rtype: pandas.DataFrame or list of dicts
+        :rtype: pandas.DataFrame or list of dicts
+
         """
         query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) " \
                 "WHERE n1.short_form = '%s' " \
@@ -223,10 +224,10 @@ class VfbConnect:
 
         :param neuron: the name or id of a particular neuron (dependent on query_by_label setting)
         :param weight: limit returned neurons to those with connected by >= weight synapses
-        :classification: optionally specify classification of downstream neuron using a class expression
-        e.g. "'Kenyon cell'" or "'neuron' that overlaps some 'lateral horn'"
+        :classification: optionally specify classification of downstream neuron using a class expression e.g. `MBON`
         :param query_by_label: query neuron may be specified with a label if true
         :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+
         """
         return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='upstream',
                                               classification=classification, query_by_label=query_by_label,
@@ -237,10 +238,10 @@ class VfbConnect:
 
         :param neuron: the name or id of a particular neuron (dependent on query_by_label setting)
         :param weight: limit returned neurons to those with connected by >= weight synapses
-        :classification: optionally specify classification of upstream neuron using a class expression
-        e.g. "'Kenyon cell'" or "'neuron' that overlaps some 'lateral horn'"
+        :classification: optionally specify classification of upstream neuron using a class expression e.g. `MBON`
         :param query_by_label: query neuron may be specified with a label if true
         :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+
         """
         return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='downstream',
                                               classification=classification, query_by_label=query_by_label,
@@ -249,13 +250,12 @@ class VfbConnect:
     def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True,
                                       return_dataframe=True):
         """Get all synaptic connections between individual neurons of `upstream_type` and `dowstream_type` where
-          synapse count  >= `weight`.  Warning: Does not support Class Expressions.
+           synapse count  >= `weight`.  Warning: Does not support Class Expressions.
 
-          :parm upstream_type: The upstream neuron type (e.g. 'GABAeric neuron').
- 1        :param downstream_type: The upstream neuron type (e.g. 'Descending neuron').
-          :param query_by_label: query neuron types may be specified with a label if True (default) or
-          by short_form id if `False`
-          :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+           :parm upstream_type: The upstream neuron type (e.g. 'GABAeric neuron').
+           :param downstream_type: The upstream neuron type (e.g. 'Descending neuron').
+           :param query_by_label: specify neuron type by label if `True` (default) or by short_form id if `False`
+           :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
 
           """
 
@@ -302,7 +302,9 @@ class VfbConnect:
         :param dataset: dataset ID
         :param summary: Optional.  Returns summary reports if true. Default `False`
         :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
-        :rtype: list of VFB_json or summary_report_json"""
+        :rtype: list of VFB_json or summary_report_json
+
+        """
         if dataset:
             query = "MATCH (ds:DataSet)<-[:has_source]-(i:Individual) " \
                     "WHERE ds.short_form = '%s' " \
@@ -332,12 +334,13 @@ class VfbConnect:
         """Download all images of individuals specified by a class expression, e.g. all images of the nodulus
         or of MBON01.
 
-        :param class_expression: A valid OWL class expression, e.g. the name or symbols of a type of neuron (MBON01)
+        :param class_expression: A valid OWL class expression, e.g. the name or symbol of a type of neuron (MBON01)
         :param template: template name
         :param image_folder: folder to save image files & manifest to.
         :param image_type: image type (file extension)
         :param stomp: Overwrite image_folder if already exists.
         :return: Manifest as Pandas DataFrame
+
         """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
