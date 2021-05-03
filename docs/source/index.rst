@@ -44,9 +44,9 @@ the General Documentation should provide sufficient details in an accessible for
    :maxdepth: 2
    :caption: Complete Documentation
 
-    vfb_connect
-    neo
-    owl
+   vfb_connect
+   neo
+   owl
 
 
 
