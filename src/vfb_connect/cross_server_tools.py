@@ -329,10 +329,15 @@ class VfbConnect:
 
     def get_images_by_type(self, class_expression, template, image_folder,
                            image_type='swc', query_by_label=True, direct=False, stomp=False):
-        """Retrieve images of instances of `class_expression` registered to `template` and save to disk,
-        along with manifest and references, to `image_folder`. Default image type = swc. Also supported: obj, nrrd, rds, wlz.
-        Returns manifest dataframe. If `stomp` is true, overwrites existing template_folder.
+        """Download all images of individuals specified by a class expression, e.g. all images of the nodulus
+        or of MBON01.
 
+        :param class_expression: A valid OWL class expression, e.g. the name or symbols of a type of neuron (MBON01)
+        :param template: template name
+        :param image_folder: folder to save image files & manifest to.
+        :param image_type: image type (file extension)
+        :param stomp: Overwrite image_folder if already exists.
+        :return: Manifest as Pandas DataFrame
         """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
