@@ -75,6 +75,13 @@ easily loaded into Python Pandas:
 |                         |               | reference               |
 +-------------------------+---------------+-------------------------+
 
+Image manifest
+~~~~~~~~~~~~~~
+
+Image download methods save an image manifest to disk, consisting of a
+tsv with summary info for anatomical individuals depicted in the the
+downloaded images, with an addition column containing filenames.
+
 ID Mappings
 -----------
 
@@ -83,16 +90,50 @@ with the form:
 
 .. code:: Python
 
-   { VFB_id : [{ db: <db> : acc : <acc> }]
-   # Return if `reverse_return` is True:
-   { acc : [{ db: <db> : vfb_id : <VFB_id> }]
+   { VFB_id : [{ db: <db> : acc : <acc> }]}
+   # OR
+   { acc : [{ db: <db> : vfb_id : <VFB_id> }]}
 
-Connectivity and similarity results
------------------------------------
+This structure is necessary because the relationship of VFB_id and
+external identifier my not always be 1:1. ID mapping methods come with
+an option to switch between the two representations.
 
-image_queries
--------------
+.. _connectomics--neuron-similarity-reports:
 
-Image manifest
---------------
+Connectomics & neuron similarity reports
+----------------------------------------
 
+type: type
+
+====================== ========================================
+column                 content
+====================== ========================================
+upstream_neuron_id     VFB id (short_form) of upstream neuron
+upstream_neuron_name   name of upstream neuron in VFB
+weight                 weight
+downstream_neuron_id   VFB id (short_form) of downstream neuron
+downstream_neuron_name name of downstream neuron in VFB
+upstream_class         upstream neuron type(s) (name; \`
+downstream_class       downstream neuron type(s) (name; \`
+====================== ========================================
+
+\| up_data_source \| \| \| up_accession \| \| \| down_source \| \| \|
+down_accession \| \|
+
+Individual: type
+
+================== ====================================
+column             content
+================== ====================================
+query_neuron_id    VFB id (short_form) of query neuron
+query_neuron_name  name of query neuron in VFB
+weight             weight
+target_neuron_id   VFB id (short_form) of target neuron
+target_neuron_name name of target neuron in VFB
+================== ====================================
+
+Similarity
+
+\| column \| content \| \| id \| VFB id (short_form) of target neuron \|
+\| NBLAST_score \| \| \| label \| \| \| types \| \| \| source_id \| \|
+\| accession_in_source \| \|
