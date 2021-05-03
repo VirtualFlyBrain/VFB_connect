@@ -10,3 +10,5 @@ matplotlib
 sphinx-autodoc-typehints
 docutils
 myst-parser
+sphinx_rtd_theme
+

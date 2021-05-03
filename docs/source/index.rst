@@ -20,11 +20,12 @@ tracker <https://github.com/VirtualFlyBrain/VFB_connect/issues>`__.
 If you have any questions, please get in touch at "support ``at``
 virtualflybrain.org".
 
-For a brief introduction to the library please see :doc:`tutorials/overview`
+For a brief introduction to the library please see :doc:`tutorials/overview`.  For most users,
+the General Documentation should provide sufficient details in an accessible form.
 
 .. toctree::
    :maxdepth: 2
-   :caption: contents
+   :caption: General Documentation
    
    API_reference
    output_formats
@@ -32,7 +33,7 @@ For a brief introduction to the library please see :doc:`tutorials/overview`
 
 .. toctree::
    :maxdepth: 1
-   :caption: tutorials
+   :caption: Tutorials
 
    tutorials/overview.ipynb
    tutorials/discovery.ipynb
@@ -41,11 +42,12 @@ For a brief introduction to the library please see :doc:`tutorials/overview`
 
 .. toctree::
    :maxdepth: 2
-   :caption: complete
+   :caption: Complete Documentation
 
-   modules
-   neo
-   owl
+   cross_server_tools.py
+   neo/neo4j_tools.py
+   neo/query_wrapper.py
+   owl/owlery_query_tools.py
 
 
 
