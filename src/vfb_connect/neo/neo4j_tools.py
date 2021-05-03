@@ -35,7 +35,10 @@ def cli_neofj_connect():
 
 
 def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
+    """Yield successive n-sized chunks from l.
+
+    :param l: a list
+    :param: n, chunk size"""
     for i in range(0, len(l), n):
         yield l[i:i+n]
 
@@ -72,7 +75,11 @@ def chunks(l, n):
 
 class Neo4jConnect:
     """Thin layer over REST API to hold connection details, 
-    handle multi-statement POST queries, return results and report errors."""
+    handle multi-statement POST queries, return results and report errors.
+
+    :param endpoint: a neo4j REST endpoint
+    :param usr: username (content ignored if credentials not rqd)
+    :param pwd: password (content ignored if credentials not rqd)"""
     # Return results might be better handled in the case of multiple statements - especially when chunked.
     # Not connection with original query is kept.
 
@@ -84,13 +91,15 @@ class Neo4jConnect:
         self.pwd = pwd
         self.test_connection()
        
-    def commit_list(self, statements, return_graphs = False):
+    def commit_list(self, statements, return_graphs=False):
         """Commit a list of statements to neo4J DB via REST API.
-        Prints requests status and warnings if any problems with commit.
-            - statements = list of cypher statements as strings
-            - return_graphs, optionally specify graphs to be returned in JSON results.
-        Errors prompt warnings, not exceptions, and cause return  = FALSE.
-        Returns results list of results or False if any errors are encountered."""
+        Errors prompt warnings (STDERR), not exceptions, and cause return = FALSE.
+
+        :param: statements: A list of cypher statements.
+        :param: return_graphs: Optional. Boolean. Returns graphs under 'graph' key if True. Default: False
+        :Return: List of results or False if any errors are encountered.
+        """
+
         cstatements = []
         if return_graphs:
             for s in statements:
@@ -109,13 +118,16 @@ class Neo4jConnect:
         
         
     def commit_list_in_chunks(self, statements, verbose=False, chunk_length=1000):
-        """Commit a list of statements to neo4J DB via REST API, split into chunks.
-        cypher_statments = list of cypher statements as strings
-        base_uri = base URL for neo4J DB
-        Default chunk size = 1000 statements. This can be overridden by KWARG chunk_length.
-        Returns a list of results. Output is indistinguishable from output of commit_list (i.e. 
-        chunking is not reflected in results list).
-        """
+
+        """Commit multiple (chunked) commit of statements to neo4J DB via REST API.
+         Errors prompt warnings (STDOUT), not exceptions, and cause return = FALSE.
+
+         :param: statements: A list of cypher statements.
+         :param: verbose: Boolean. Optionally print periodic reports of progress to STDOUT
+         :param: chunk_length. Int. Optional. Set chunk size.  Default = 1000.
+         :Return: List of results or False if any errors are encountered. Chunking is not reflected in results.
+         """
+
         chunked_statements = chunks(l = statements, n=chunk_length)
         chunk_results = []
         i = 1
@@ -163,6 +175,7 @@ class Neo4jConnect:
                 return True
             
     def test_connection(self):
+        """Test neo4j endpoint connection"""
         statements = ["MATCH (n) RETURN n LIMIT 1"]
         if self.commit_list(statements):
             return True
@@ -182,10 +195,12 @@ class Neo4jConnect:
     def get_lookup(self, limit_by_prefix=None, include_individuals=False,
                    limit_properties_by_prefix=('RO', 'BFO', 'VFBext')):
 
-        """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a list of prefixes
-        limit_by_prefix -  Optional list of id prefixes for limiting lookup.
-        credentials - default = production DB
-        include_individuals: If true, individuals included in lookup.
+        """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a list of prefixes.
+
+        :param limit_by_prefix:  Optional list of id prefixes for limiting lookup of classes & individuals
+        :param include_individuals: If `True`, individuals included in lookup.
+        :param limit_properties_by_prefix:  Optional list of id prefixes for limiting lookup of properties.
+
         """
         if limit_by_prefix:
             regex_string = '.+|'.join(limit_by_prefix) + '.+'
@@ -216,12 +231,16 @@ class Neo4jConnect:
         q = self.commit_list([property_lookup_query])
         out.extend(dict_cursor(q))
         lookup = {x['name']: x['id'].replace('_', ':') for x in out}
+        lookup.update({x['id']: x['id'].replace('_', ':') for x in out})
         # print(lookup['neuron'])
         return lookup
 
 
 def dict_cursor(results):
     """Takes JSON results from a neo4J query and turns them into a list of dicts.
+
+    :param results: neo4j query results
+    :return: list of dicts
     """
     dc = []
     for n in results:
@@ -233,7 +252,7 @@ def dict_cursor(results):
 
 
 def escape_string(strng):
-    # Simple escaping for strings used in neo queries.
+    """Simple escaping for strings used in neo queries."""
     if type(strng) == str:
         strng = re.sub(r'\\', r'\\\\', strng)
         strng = re.sub("'", "\\'", strng)

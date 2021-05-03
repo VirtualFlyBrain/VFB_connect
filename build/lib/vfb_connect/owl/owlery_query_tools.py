@@ -43,9 +43,9 @@ class OWLeryConnect:
 
     def query(self, query_type, return_type,
               query, query_by_label=False, direct=False, verbose=False):
-        """
-        A wrapper for querying Owlery Endpoints.  See
-        https://owlery.phenoscape.org/api/ for doc
+        """A wrapper for querying Owlery Endpoints.  See
+        https://owlery.phenoscape.org/api/ for doc.
+
         :param query_type: Options: subclasses, superclasses,
         equivalent, instances, types
         :param return_type:
@@ -74,8 +74,8 @@ class OWLeryConnect:
             return False
 
     def get_subclasses(self, query, query_by_label=False, direct=False, return_short_forms=False):
-        """Get subclasses satisfying  query, where query is an OWL DL is any OWL DL class expression
-           """
+        """Get subclasses satisfying  query, where query is an OWL DL is any
+        OWL DL class expression."""
         out = self.query(query_type='subclasses', return_type='superClassOf',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
@@ -85,8 +85,8 @@ class OWLeryConnect:
             return out
 
     def get_instances(self, query, query_by_label=False, direct=False, return_short_forms=False):
-        """Get instances satisfying query, where query is an OWL DL is any OWL DL class expression
-           """
+        """Get instances satisfying query, where query is an OWL DL is any OWL
+        DL class expression."""
         out = self.query(query_type='instances', return_type='hasInstance',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
@@ -96,8 +96,8 @@ class OWLeryConnect:
             return out
 
     def get_superclasses(self, query, query_by_label=False, direct=False, return_short_forms=False):
-        """Get superclasses satisfying `query`, where `query` is any OWL DL class expression.
-           """
+        """Get superclasses satisfying `query`, where `query` is any OWL DL
+        class expression."""
         out = self.query(query_type='superclasses', return_type='subClassOf',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
@@ -108,7 +108,7 @@ class OWLeryConnect:
 
 
     def labels_2_ids(self, query_string):
-        """Substitutes labels for IDs in a query string"""
+        """Substitutes labels for IDs in a query string."""
 
         def subgp1_or_fail(m):
             out = self.lookup.get(m.group(1))

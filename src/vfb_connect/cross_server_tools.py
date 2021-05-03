@@ -43,6 +43,15 @@ class VfbConnect:
                  neo_credentials=get_default_servers()['neo_credentials'],
                  owlery_endpoint=get_default_servers()['owlery_endpoint'],
                  lookup_prefixes=('FBbt', 'VFBexp', 'VFBext')):
+
+        """
+        VFB connect constructor. All args optional.
+        With no args wraps connectsions to default public servers.
+
+        :neo_endpoint: Specify a neo4j REST endpoint.
+        :neo_credentials: Specify credential for Neo4j Rest endpoint.
+        :owlery_endpoint: specify owlery server REST endpoint.
+        :lookup_prefixes: A list of id prefixes to use for rolling name:ID lookups."""
         connections = {
             'neo': {
                 "endpoint": neo_endpoint,
@@ -50,6 +59,7 @@ class VfbConnect:
                 "pwd": neo_credentials[1]
             }
         }
+
         self.nc = Neo4jConnect(**connections['neo'])
         self.neo_query_wrapper = QueryWrapper(**connections['neo'])
         self.lookup = self.nc.get_lookup(limit_by_prefix=lookup_prefixes)
@@ -59,6 +69,7 @@ class VfbConnect:
 
 
     def lookup_id(self, key, return_short_form=True):
+
         if key in self.lookup.keys():
             out = self.lookup[key]
             if return_short_form:
@@ -68,12 +79,29 @@ class VfbConnect:
         else:
             raise ValueError("Unrecognised value: %s" % str(key))
 
+    # """[Summary]
+    #
+    # :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
+    # :type [ParamName]: [ParamType](, optional)
+    # ...
+    # :raises [ErrorType]: [ErrorDescription]
+    # ...
+    # :return: [ReturnDescription]
+    # :rtype: [ReturnType]
+    # """
 
+    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=False):
+        """Generate TermInfo reports for all terms relevant to annotating some specific region,
+        optionally limited to cells.
 
-    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True):
-        """Generate JSON reports for all terms relevant to
-         annotating some specific region,
-        optionally limited by to cells"""
+        :param region: The name (rdfs:label) of brain region (or CURIE style ID if query_by_label is False)
+        :param cells_only: Optional. Limits query to cell type if `True`. Defaults to `False`
+        :param verbose: Optional.
+        :param query_by_label: Optional (see region).  Default `True`
+        :param summary: Optional.  Returns summary reports if true. Default `False`
+        :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+        :rtype: list of VFB_json or summary_report_json
+    """
         preq = ''
         if cells_only:
             preq = "'cell' that "
@@ -88,25 +116,45 @@ class VfbConnect:
                                                         summary=summary)
 
     def get_subclasses(self, class_expression, query_by_label=True, direct=False, summary=False):
-        """Generate JSON report of all subclasses of class_expression."""
+        """Generate JSON report of all subclasses of class_expression.
+
+        :param class_expression: A valid OWL class expression, e.g. the name of a class.
+        :param query_by_label: Optional.  If false, class_expression takes IDs instead of labels   Default `True`
+        :param direct: Return direct subclasses only.  Default `False`
+        :param summary: Optional.  Returns summary reports if true. Default `False`
+        :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+        :rtype: list of VFB_json or summary_report_json
+        """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
-        terms = self.oc.get_subclasses("%s" % class_expression, query_by_label=query_by_label)
+        terms = self.oc.get_subclasses("%s" % class_expression, direct=direct, query_by_label=query_by_label)
         return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
                                                         summary=summary)
+
     def get_superclasses(self, class_expression, query_by_label=True, direct=False, summary=False):
-        """Generate JSON report of all superclasses of class_expression."""
+        """Generate JSON report of all superclasses of class_expression.
+
+        :param class_expression: A valid OWL class expression, e.g. the name of a class.
+        :param query_by_label: Optional.  If false, class_expression takes IDs instead of labels   Default `True`
+        :param direct: Return direct superclass only.  Default `False`
+        :param summary: Optional.  Returns summary reports if true. Default `False`
+        :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+        :rtype: list of VFB_json or summary_report_json        """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label)
         return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
                                                         summary=summary)
 
-    def get_instances(self, class_expression, query_by_label=True, direct=False, summary=False):
+    def get_instances(self, class_expression, query_by_label=True, summary=False):
         """Generate JSON report of all instances of class_expression. Instances are specific examples
-        of a type/class of structure, e.g. a specific instance of the neuron DA1 adPN from the FAFB_catmaid
-         database.  Instances are typically associated with registered 3D image data and may include
-         connectomics data."""
+         of a type/class, e.g. a neuron of type DA1 adPN from the FAFB_catmaid database.
+
+         :param class_expression: A valid OWL class expression, e.g. the name of a class.
+         :param query_by_label: Optional.  If false, class_expression takes IDs instead of labels   Default `True`
+         :param summary: Optional.  Returns summary reports if true. Default `False`
+         :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+         :rtype: list of VFB_json or summary_report_json        """
         if not re.search("'", class_expression):
             if query_by_label:
                 class_expression = self.lookup[class_expression].replace(':', '_')
@@ -145,8 +193,16 @@ class VfbConnect:
         else:
             return dc
 
-    def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', cutoff=None, source=None, return_dataframe=True):
-        """Get all neurons """
+    def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_dataframe=True):
+        """Get JSON report of individual neurons similar to input neuron
+
+        :param neuron:
+        :param similarity_score: Optionally specify similarity score to chose
+        :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+        :return: list of similar neurons (id, label, tags, source (db) id, accession_in_source) + similarity score.
+        :rtype: pandas.DataFrame or list of dicts
+
+        """
         query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) " \
                 "WHERE n1.short_form = '%s' " \
                 "WITH c1, n1, r, n2, c2 " \
@@ -154,7 +210,7 @@ class VfbConnect:
                 "(n2)-[dbx2:database_cross_reference]->(s2:Site) " \
                 "WHERE s1.is_data_source and s2.is_data_source " \
                 "RETURN DISTINCT n2.short_form AS id, r.NBLAST_score[0] AS NBLAST_score, n2.label AS label, " \
-                "COLLECT(c2.label) AS types, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source " \
+                "COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source " \
                 "ORDER BY %s DESC""" % (neuron, similarity_score)
         dc = self.neo_query_wrapper._query(query)
         if return_dataframe:
@@ -163,18 +219,30 @@ class VfbConnect:
             return dc
 
     def get_neurons_downstream_of(self, neuron, weight, classification=None, query_by_label=True,
-                                  return_dataframe = True):
-        """Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
-        with connection strength > threshold.  Optionally restrict target neurons to those specified by
-        `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'"."""
+                                  return_dataframe=True):
+        """Get all neurons downstream of individual `neuron`
+
+        :param neuron: the name or id of a particular neuron (dependent on query_by_label setting)
+        :param weight: limit returned neurons to those with connected by >= weight synapses
+        :classification: optionally specify classification of downstream neuron using a class expression e.g. `MBON`
+        :param query_by_label: query neuron may be specified with a label if true
+        :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+
+        """
         return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='upstream',
                                               classification=classification, query_by_label=query_by_label,
                                               return_dataframe=return_dataframe)
 
     def get_neurons_upstream_of(self, neuron, weight, classification=None, query_by_label=True, return_dataframe=True):
-        """Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
-         with connection strength > threshold.  Optionally restrict target neurons to those specified by
-         `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'"."""
+        """"Get all neurons downstream of individual `neuron`
+
+        :param neuron: the name or id of a particular neuron (dependent on query_by_label setting)
+        :param weight: limit returned neurons to those with connected by >= weight synapses
+        :classification: optionally specify classification of upstream neuron using a class expression e.g. `MBON`
+        :param query_by_label: query neuron may be specified with a label if true
+        :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+
+        """
         return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='downstream',
                                               classification=classification, query_by_label=query_by_label,
                                               return_dataframe=return_dataframe)
@@ -182,7 +250,14 @@ class VfbConnect:
     def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True,
                                       return_dataframe=True):
         """Get all synaptic connections between individual neurons of `upstream_type` and `dowstream_type` where
-         each synapse count  >= `weight`.  Warning: Does not support Class Expressions."""
+           synapse count  >= `weight`.  Warning: Does not support Class Expressions.
+
+           :parm upstream_type: The upstream neuron type (e.g. 'GABAeric neuron').
+           :param downstream_type: The upstream neuron type (e.g. 'Descending neuron').
+           :param query_by_label: specify neuron type by label if `True` (default) or by short_form id if `False`
+           :param return_dataframe: Returns pandas dataframe if true, otherwise returns list of dicts.
+
+          """
 
         # Note - chose not to do this with class expressions to avoid poor performance and blowing up results.
         # This might be confusing tough, given behavior of other, similar methods.
@@ -194,11 +269,11 @@ class VfbConnect:
             downstream_type = self.lookup_id(dequote(downstream_type))
         #        upstream_instances = self.oc.get_instances(upstream_type, query_by_label=query_by_label)
 
-        cypher_query =  "MATCH (up:Class:Neuron)<-[:SUBCLASSOF|INSTANCEOF*..10]-(n1:Neuron:Individual) " \
+        cypher_query =  "MATCH (up:Class:Neuron)<-[:SUBCLASSOF|INSTANCEOF*..]-(n1:Neuron:Individual) " \
                         'WHERE up.short_form = "%s" ' % upstream_type
         cypher_query += "MATCH (n1)-[r:synapsed_to]->(n2:Neuron:Individual) " \
                         "WHERE r.weight[0] >= %d " % weight
-        cypher_query += "MATCH (n2)-[:SUBCLASSOF|INSTANCEOF*..10]->(down:Class:Neuron) " \
+        cypher_query += "MATCH (n2)-[:SUBCLASSOF|INSTANCEOF*..]->(down:Class:Neuron) " \
                         'WHERE down.short_form = "%s" ' % downstream_type
         cypher_query += "MATCH (c1:Class)<-[:INSTANCEOF]-(n1),  (c2:Class)<-[:INSTANCEOF]-(n2) " \
                         "OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) " \
@@ -222,7 +297,14 @@ class VfbConnect:
             return dc
 
     def get_instances_by_dataset(self, dataset, summary=False):
-        """Returns metadata for a dataset"""
+        """Get JSON report of all individuals in a dataset
+
+        :param dataset: dataset ID
+        :param summary: Optional.  Returns summary reports if true. Default `False`
+        :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+        :rtype: list of VFB_json or summary_report_json
+
+        """
         if dataset:
             query = "MATCH (ds:DataSet)<-[:has_source]-(i:Individual) " \
                     "WHERE ds.short_form = '%s' " \
@@ -234,7 +316,11 @@ class VfbConnect:
     def get_vfb_link(self, short_forms: iter, template):
         """Takes a list of VFB IDs (short_forms) and the name (label) of a template.
          Returns a link to VFB loading all available images
-         of neurons on that template."""
+         of neurons on that template.
+
+         :param short_forms: A list (or other iterable) of VFB short_form IDs for individuals with images
+         :return: A url for viewing images and metadata for specified individuals on VFB.
+         """
         short_forms = list(short_forms)
         query = "MATCH (t:Template { label: '%s'}) return t.short_form" % template
         dc = self.neo_query_wrapper._query(query)
@@ -245,9 +331,17 @@ class VfbConnect:
 
     def get_images_by_type(self, class_expression, template, image_folder,
                            image_type='swc', query_by_label=True, direct=False, stomp=False):
-        """Retrieve images of instances of `class_expression` registered to `template` and save to disk,
-        along with manifest and references, to `image_folder`. Default image type = swc. Also supported: obj, nrrd, rds, wlz.
-        Returns manifest dataframe. If `stomp` is true, overwrites existing template_folder."""
+        """Download all images of individuals specified by a class expression, e.g. all images of the nodulus
+        or of MBON01.
+
+        :param class_expression: A valid OWL class expression, e.g. the name or symbol of a type of neuron (MBON01)
+        :param template: template name
+        :param image_folder: folder to save image files & manifest to.
+        :param image_type: image type (file extension)
+        :param stomp: Overwrite image_folder if already exists.
+        :return: Manifest as Pandas DataFrame
+
+        """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         instances = self.oc.get_instances(class_expression,
