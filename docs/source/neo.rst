@@ -1,14 +1,6 @@
 neo package
 ===========
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   neo.test
-
 Submodules
 ----------
 

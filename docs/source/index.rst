@@ -44,11 +44,9 @@ the General Documentation should provide sufficient details in an accessible for
    :maxdepth: 2
    :caption: Complete Documentation
 
-   cross_server_tools.py
-   neo/neo4j_tools.py
-   neo/query_wrapper.py
-   owl/owlery_query_tools.py
-
+    vfb_connect
+    neo
+    owl
 
 
 

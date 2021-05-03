@@ -1,14 +1,6 @@
 vfb\_connect.neo package
 ========================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   vfb_connect.neo.test
-
 Submodules
 ----------
 
