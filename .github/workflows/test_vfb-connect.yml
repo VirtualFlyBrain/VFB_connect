@@ -24,7 +24,7 @@ jobs:
       - name: Run the cross_server_tools tests
         run: |
           cd src
-          python -m vfb_connect.test.cross_server_tools_test
+          python -m vfb_connect.test.cross_server_tools_test.VfbConnectTest
       - name: Run the neo_tools tests
         run: |
           cd src
