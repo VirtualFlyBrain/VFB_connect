@@ -4,12 +4,16 @@ import glob
 
 here = path.abspath(path.dirname(__file__))
 
+from get_version import get_version
+__version__ = get_version(__file__)
+del get_version
+
 # Get the long description from the README file
 with open(path.join(here, 'README.md')) as f:
     long_description = f.read()
 
 setup(name='vfb_connect',  # Required
-      version=verstr,  # Required
+      version=__version__,  # Required
       packages=find_packages(where='src'),
       package_dir={'': 'src'},
       py_modules=[path.splitext(path.basename(path))[0] for path in glob.glob('src/*.py')],
