@@ -1,4 +1,4 @@
-name: Docs
+name: VFB_Connect-Tests
 on: [push, release]
 
 jobs:
