@@ -1,4 +1,4 @@
-name: VFB_Connect-Tests
+name: Jupyter Notebook checks
 on: [push, release]
 
 jobs:
