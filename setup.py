@@ -5,11 +5,11 @@ import glob
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(path.join(here, 'README.md')) as f:
     long_description = f.read()
 
 setup(name='vfb_connect',  # Required
-      version='v1.2.5',  # Required
+      version='v1.2.6',  # Required
       packages=find_packages(where='src'),
       package_dir={'': 'src'},
       py_modules=[path.splitext(path.basename(path))[0] for path in glob.glob('src/*.py')],
@@ -37,5 +37,6 @@ setup(name='vfb_connect',  # Required
       project_urls={  # Optional
           'Bug Reports': 'https://github.com/VirtualFlyBrain/VFB_connect/issues',
           'Source': 'https://github.com/VirtualFlyBrain/VFB_connect',
+          'Documentation': 'https://vfb-connect.readthedocs.io/en/stable/'
        },
 )

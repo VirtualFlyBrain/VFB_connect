@@ -1,13 +1,14 @@
 Metadata-Version: 2.1
 Name: vfb-connect
-Version: 1.2.5
+Version: 1.2.6
 Summary: Wrapper for querying VirtualFlyBrain servers.
 Home-page: https://github.com/VirtualFlyBrain/VFB_connect
 Author: David Osumi-Sutherland
 Author-email: dosumis@gmail.com
 License: UNKNOWN
-Project-URL: Bug Reports, https://github.com/VirtualFlyBrain/VFB_connect/issues
 Project-URL: Source, https://github.com/VirtualFlyBrain/VFB_connect
+Project-URL: Documentation, https://vfb-connect.readthedocs.io/en/stable/
+Project-URL: Bug Reports, https://github.com/VirtualFlyBrain/VFB_connect/issues
 Description: # VFB_connect [![Build Status](https://travis-ci.com/VirtualFlyBrain/VFB_connect.svg?branch=master)](https://travis-ci.com/VirtualFlyBrain/VFB_connect)
         
         VFB_connect is a Python lib that wraps data/knowledgeBase query endpoints and returns VFB_json.
