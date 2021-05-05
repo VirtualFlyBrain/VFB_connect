@@ -46,17 +46,17 @@ class VfbConnectTest(unittest.TestCase):
                                         image_folder='image_folder_tmp',
                                         template='JRC2018Unisex')
         self.assertTrue(len(fu) > 0)
-        bar = self.vc.get_images_by_type('octopaminergic VPM3 neuron', stomp=True, template='JFRC2018Unisex',
+        bar = self.vc.get_images_by_type('octopaminergic VPM3 neuron', stomp=True, template='JRC2018Unisex',
                                          image_folder='image_folder_tmp')
         self.assertTrue(len(bar) > 0)
 
 
     def test_get_downstream_neurons(self):
-        fu = self.vc.get_neurons_downstream_of('D_adPN_R - 5813055184', classification="'Kenyon cell'", weight=20)
+        fu = self.vc.get_neurons_downstream_of('D_adPN_R (FlyEM-HB:5813055184)', classification="'Kenyon cell'", weight=20)
         self.assertTrue(len(fu) > 0)
 
     def test_get_upstream_neurons(self):
-        fu = self.vc.get_neurons_upstream_of('D_adPN_R - 5813055184', classification="'GABAergic neuron'", weight=20)
+        fu = self.vc.get_neurons_upstream_of('D_adPN_R (FlyEM-HB:5813055184)', classification="'GABAergic neuron'", weight=20)
         self.assertTrue(len(fu) > 0)
 
     def test_get_connected_neurons_by_type(self):
