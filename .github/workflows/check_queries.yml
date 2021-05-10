@@ -24,8 +24,9 @@ jobs:
           git clone https://github.com/VirtualFlyBrain/VFB_json_schema.git
           cd VFB_json_schema/src
           python -c '
+          import json
           from vfb_query_builder.query_roller import QueryLibrary, term_info_export
-          print(term_info_export(escape=False))
+          print(json.dumps(term_info_export(escape=False), indent=4, sort_keys=True))
           ' > ../../VFB_connect/src/vfb_connect/resources/VFB_TermInfo_queries.json
       
       - name: Commit any changes
