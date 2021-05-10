@@ -26,7 +26,7 @@ jobs:
           python -c '
           from vfb_query_builder.query_roller import QueryLibrary, term_info_export
           print(term_info_export(escape=False))
-          '
+          ' > src/vfb_connect/resources/VFB_TermInfo_queries.json
       
       - name: Commit any changes
         run: |
