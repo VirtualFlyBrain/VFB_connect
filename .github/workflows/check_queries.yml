@@ -25,7 +25,7 @@ jobs:
           cd VFB_json_schema/src
           python -c '
           from vfb_query_builder.query_roller import QueryLibrary, term_info_export
-          term_info_export(escape=False)
+          print(term_info_export(escape=False))
           '
       
       - name: Commit any changes
@@ -33,5 +33,5 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add src/vfb_connect/resources/VFB_TermInfo_queries.json
-          git commit -m "Queries updated"
+          git commit -m "Queries updated" || true
           git push
