@@ -24,10 +24,11 @@ jobs:
           python -c '
           vfb_query_builder.query_roller.TermInfoExport()
           '
-          
-      - name: Auto-commit
-        uses: cdssnc/auto-commit-github-action
-        needs: [Run Query Roller]
-        args: Queries have changed
-        secrets: ${{ secrets.GITHUB_TOKEN }}
-}
+      
+      - name: Commit any changes
+      - run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add src/vfb_connect/resources/VFB_TermInfo_queries.json
+          git commit -m "Queries updated"
+          git push
