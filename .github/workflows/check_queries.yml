@@ -1,0 +1,33 @@
+name: Query Roller
+on: [push, release]
+
+jobs:
+  notebooks:
+    name: "Roll Queries"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r requirements.txt
+          
+      - name: Run Query Roller
+        run: |
+          cd src
+          python -c '
+          vfb_query_builder.query_roller.TermInfoExport()
+          '
+          
+      - name: Auto-commit
+        uses: docker://cdssnc/auto-commit-github-action
+        needs: [Run Query Roller]
+        args: Queries have changed
+        secrets: ${{ secrets.GITHUB_TOKEN }}
+}
