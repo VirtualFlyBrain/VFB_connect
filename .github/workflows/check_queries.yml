@@ -23,7 +23,7 @@ jobs:
           cd ../
           git clone https://github.com/VirtualFlyBrain/VFB_json_schema.git
           cd VFB_json_schema/src
-          python -c 'vfb_connect.vfb_query_builder.query_roller.term_info_export(escape=False)'
+          python -c 'vfb_query_builder.query_roller.term_info_export(escape=False)'
       
       - name: Commit any changes
         run: |
