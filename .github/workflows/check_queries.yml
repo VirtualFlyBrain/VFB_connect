@@ -26,7 +26,7 @@ jobs:
           '
           
       - name: Auto-commit
-        uses: docker://cdssnc/auto-commit-github-action
+        uses: cdssnc/auto-commit-github-action
         needs: [Run Query Roller]
         args: Queries have changed
         secrets: ${{ secrets.GITHUB_TOKEN }}
