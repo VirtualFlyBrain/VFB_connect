@@ -92,7 +92,7 @@ class Neo4jConnect:
         self.commit = "/db/data/transaction/commit"
         self.headers = {}
         if not self.test_connection():
-            print("swapping to NEO4J 4.X")
+            print("Connecting to Neo4j v4+")
             self.commit = "/db/neo4j/tx/commit"
             self.headers = {'Content-type': 'application/json'}
             self.test_connection()
