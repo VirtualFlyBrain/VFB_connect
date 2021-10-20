@@ -120,6 +120,7 @@ class Neo4jConnect:
         if self.rest_return_check(response):
             return response.json()['results']
         else:
+            warnings.warn("Error %s (%s) returned while commiting cypher queries: %s" % (response.status_code, response.reason, statements))
             return False
         
         
