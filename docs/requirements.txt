@@ -12,3 +12,4 @@ docutils
 myst-parser
 sphinx_rtd_theme
 
+mistune>=2.0.1 # not directly required, pinned by Snyk to avoid a vulnerability
