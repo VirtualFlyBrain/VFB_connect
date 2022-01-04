@@ -390,10 +390,10 @@ class QueryWrapper(Neo4jConnect):
                 out.extend(self.get_type_TermInfo([e['short_form']]))
             elif 'Template' in e['labs'] and 'Individual' in e['labs']:
                 out.extend(self.get_template_TermInfo([e['short_form']]))
-            elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
-                out.extend(self.get_anatomical_individual_TermInfo([e['short_form']]))
             elif 'DataSet' in e['labs']:
                 out.extend(self.get_DataSet_TermInfo([e['short_form']]))
+            elif 'Individual' in e['labs']:
+                out.extend(self.get_anatomical_individual_TermInfo([e['short_form']]))
         return out
 
     @batch_query
