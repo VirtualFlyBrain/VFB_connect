@@ -388,6 +388,8 @@ class QueryWrapper(Neo4jConnect):
         for e in r:
             if 'Class' in e['labs']:
                 out.extend(self.get_type_TermInfo([e['short_form']]))
+            elif 'Template' in e['labs'] and 'Individual' in e['labs']:
+                out.extend(self.get_template_TermInfo([e['short_form']]))
             elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
                 out.extend(self.get_anatomical_individual_TermInfo([e['short_form']]))
             elif 'DataSet' in e['labs']:
@@ -427,6 +429,8 @@ class QueryWrapper(Neo4jConnect):
                 dc.append(_populate_anatomical_entity_summary(r))
             elif typ == 'Get JSON for DataSet':
                 dc.append(_populate_dataset_summary_tab(r))
+            elif typ == 'Get JSON for Template':
+                dc.append(_populate_instance_summary_tab(r))
         return dc
 
     def get_anatomical_individual_TermInfo(self, short_forms, summary=False):
