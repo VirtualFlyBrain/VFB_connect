@@ -1,0 +1,16 @@
+vfb_connect
+navis
+python-catmaid
+neuprint-python
+flybrains
+requests
+psycopg2-binary
+pandas
+pandasql
+jupyter
+nbsphinx
+matplotlib
+sphinx-autodoc-typehints
+ipywidgets
+jsonpath_rw
+seaborn

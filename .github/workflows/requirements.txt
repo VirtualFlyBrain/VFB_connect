@@ -1,4 +1,3 @@
-vfb_connect
 navis
 python-catmaid
 neuprint-python
