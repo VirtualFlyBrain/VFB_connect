@@ -13,3 +13,5 @@ sphinx-autodoc-typehints
 ipywidgets
 jsonpath_rw
 seaborn
+nbmake
+pytest-xdist

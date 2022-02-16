@@ -21,7 +21,7 @@ jobs:
 
       - name: Execute the notebooks
         run: |
-          jupyter run docs/source/tutorials/*.ipynb
+          pytest --nbmake -n=auto docs/source/tutorials/*.ipynb
 
       - uses: actions/upload-artifact@v2
         with:
