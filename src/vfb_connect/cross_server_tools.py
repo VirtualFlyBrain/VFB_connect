@@ -142,7 +142,7 @@ class VfbConnect:
         :rtype: list of VFB_json or summary_report_json        """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
-        terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label)
+        terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label, direct=direct)
         return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
                                                         summary=summary)
 
@@ -234,7 +234,7 @@ class VfbConnect:
                                               return_dataframe=return_dataframe)
 
     def get_neurons_upstream_of(self, neuron, weight, classification=None, query_by_label=True, return_dataframe=True):
-        """"Get all neurons downstream of individual `neuron`
+        """"Get all neurons upstream of individual `neuron`
 
         :param neuron: the name or id of a particular neuron (dependent on query_by_label setting)
         :param weight: limit returned neurons to those with connected by >= weight synapses
@@ -249,7 +249,7 @@ class VfbConnect:
 
     def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True,
                                       return_dataframe=True):
-        """Get all synaptic connections between individual neurons of `upstream_type` and `dowstream_type` where
+        """Get all synaptic connections between individual neurons of `upstream_type` and `downstream_type` where
            synapse count  >= `weight`.  Warning: Does not support Class Expressions.
 
            :parm upstream_type: The upstream neuron type (e.g. 'GABAeric neuron').
