@@ -89,11 +89,11 @@ class Neo4jConnect:
         self.base_uri = endpoint
         self.usr = usr
         self.pwd = pwd
-        self.commit = "/db/data/transaction/commit"
+        self.commit = "/db/neo4j/tx/commit"
         self.headers = {}
         if not self.test_connection():
-            print("Connecting to Neo4j v4+")
-            self.commit = "/db/neo4j/tx/commit"
+            print("Connecting to Neo4j v3.x")
+            self.commit = "/db/data/transaction/commit"
             self.headers = {'Content-type': 'application/json'}
             self.test_connection()
        
