@@ -96,7 +96,7 @@ class Neo4jConnect:
             self.commit = "/db/data/transaction/commit"
             self.headers = {}
             if not self.test_connection():
-                warnings.warn("The connection to " + self.base_uri + " has failed please check you can connect to the server directly via " + self.base_uri + "/browser/ ")
+                raise RuntimeError("The connection to " + self.base_uri + " has failed please check you can connect to the server directly via " + self.base_uri + "/browser/ ")
        
     def commit_list(self, statements, return_graphs=False):
         """Commit a list of statements to neo4J DB via REST API.
