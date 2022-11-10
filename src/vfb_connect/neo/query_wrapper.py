@@ -407,21 +407,22 @@ class QueryWrapper(Neo4jConnect):
             return self._query(qs)
 
     def _get_anatomical_individual_TermInfo_by_type(self, classification, summary=False):
-        typ = 'Get JSON for Individual:Anatomy_by_type'
+        typ = 'Get JSON for 
+        _by_type'
         qs = Template(self.queries[typ]).substitute(ID=classification)
         if summary:
-            return self._termInfo_2_summary(self._query(qs), typ='Get JSON for Individual:Anatomy')
+            return self._termInfo_2_summary(self._query(qs), typ='Get JSON for Individual')
         else:
             return self._query(qs)
 
     def _termInfo_2_summary(self, TermInfo, typ):
         # type_2_summary = {
-        #     'Get JSON for Individual:Anatomy': '_populate_instance_summary_tab',
+        #     'Get JSON for Individual': '_populate_instance_summary_tab',
         #     'Get JSON for Class': '_populate_anatomical_entity_summary',
         # }
         dc = []
         for r in TermInfo:
-            if typ == 'Get JSON for Individual:Anatomy':
+            if typ == 'Get JSON for Individual':
                 dc.append(_populate_instance_summary_tab(r))
             elif typ == 'Get JSON for Class':
                 dc.append(_populate_anatomical_entity_summary(r))
@@ -437,7 +438,7 @@ class QueryWrapper(Neo4jConnect):
         :param summary: Optional.  Returns summary reports if `True`. Default `False`
         :rtype: list of VFB_json or summary_report_json
         """
-        return self._get_TermInfo(short_forms, typ='Get JSON for Individual:Anatomy', summary=summary)
+        return self._get_TermInfo(short_forms, typ='Get JSON for Individual', summary=summary)
 
     def get_type_TermInfo(self, short_forms, summary=False):
         """
