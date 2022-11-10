@@ -407,8 +407,7 @@ class QueryWrapper(Neo4jConnect):
             return self._query(qs)
 
     def _get_anatomical_individual_TermInfo_by_type(self, classification, summary=False):
-        typ = 'Get JSON for 
-        _by_type'
+        typ = 'Get JSON for Individual:Anatomy_by_type'
         qs = Template(self.queries[typ]).substitute(ID=classification)
         if summary:
             return self._termInfo_2_summary(self._query(qs), typ='Get JSON for Individual')
