@@ -353,6 +353,20 @@ class VfbConnect:
                                                  image_type=image_type,
                                                  stomp=stomp)
 
+    def get_gene_function_filters(self):
+        """Get list of all gene function labels.
+
+        :return: List of unique gene function labels in alphabetical order.
+        :rtype: list
+        """
+        query = ("MATCH (g:Gene) RETURN DISTINCT apoc.coll.subtract(labels(g), "
+                 "['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS gene_labels")
+        result = self.neo_query_wrapper._query(query)
+        labels = []
+        for r in result:
+            labels.extend(r['gene_labels'])
+        labels = sorted(list(set(labels)))
+        return labels
 
 
 
