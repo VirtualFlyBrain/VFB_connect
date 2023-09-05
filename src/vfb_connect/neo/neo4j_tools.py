@@ -237,7 +237,7 @@ class Neo4jConnect:
         q = self.commit_list([property_lookup_query])
         out.extend(dict_cursor(q))
         lookup = {x['name']: x['id'].replace('_', ':') for x in out}
-        lookup.update({x['id']: x['id'].replace('_', ':') for x in out})
+        lookup.update({x['name']: x['id'].replace('_', ':') for x in out})
         # print(lookup['neuron'])
         return lookup
 
