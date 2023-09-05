@@ -368,9 +368,54 @@ class VfbConnect:
         labels = sorted(list(set(labels)))
         return labels
 
+    def get_transcriptomic_profile(self, cell_type, gene_type=False):
+        """Get gene expression data for a given cell_type.
 
+        Returns a DataFrame of gene expression data for clusters of cells annotated as cell_type (or subtypes).
+        Can optionally restrict to a gene_type - these can be retrieved by running get_gene_function_filters.
+        If no data is found, returns False.
 
+        :param cell_type: The ID, name or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
+        :param gene_type: Optional. A gene function label - these can be retrieved by running get_gene_function_filters().
+        :return: DataFrame with gene expression data for clusters of cells annotated as cell_type (or subtypes).
+        :rtype: DataFrame
+        """
 
+        try:
+            cell_type_short_form = self.lookup[cell_type].replace(':', '_')
+        except KeyError:
+            if cell_type.replace('_', ':') in self.lookup.values():
+                cell_type_short_form = cell_type.replace(':', '_')
+            else:
+                raise KeyError("cell_type must be a valid ID, label or symbol from the Drosophila Anatomy Ontology")
 
+        if not cell_type_short_form.startswith('FBbt'):
+            raise KeyError("cell_type must be a valid ID, label or symbol from the Drosophila Anatomy Ontology")
 
+        if gene_type:
+            if gene_type not in self.get_gene_function_filters():
+                raise KeyError("gene_type must be a valid gene function label, try running get_gene_function_filters()")
+            else:
+                gene_label = ':' + gene_type
+        else:
+            gene_label = ''
+
+        query = ("MATCH (g:Gene%s)<-[e:expresses]-(clus:Cluster)-"
+                 "[:composed_primarily_of]->(c2)-[:SUBCLASSOF*0..]->(c1:Neuron) "
+                 "WHERE c1.short_form = '%s' "
+                 "OPTIONAL MATCH (clus)-[:has_source]->(ds:DataSet) OPTIONAL MATCH (ds)-[:has_reference]->(p:pub) "
+                 "OPTIONAL MATCH (ds)-[dbx:database_cross_reference]->(s:Site) "
+                 "RETURN c2.label AS cell_type, c2.short_form AS cell_type_id, "
+                 "p.miniref[0] as ref, g.label AS gene, g.short_form AS gene_id, "
+                 "apoc.coll.subtract(labels(g), ['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS function, "
+                 "e.expression_extent[0] as extent, e.expression_level[0] as level order by cell_type, g.label"
+                 % (gene_label, cell_type_short_form))
+        result = self.neo_query_wrapper._query(query)
+        if result:
+            result_df = pd.DataFrame.from_dict(data=result, orient='columns')
+            result_df['level'] = result_df['level'].astype(float)
+            return result_df
+        else:
+            print('No transcriptomics data for %s' % cell_type)
+            return False
 
