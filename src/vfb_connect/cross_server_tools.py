@@ -400,12 +400,18 @@ class VfbConnect:
         else:
             gene_label = ''
 
-        query = ("MATCH (g:Gene%s)<-[e:expresses]-(clus:Cluster)-"
-                 "[:composed_primarily_of]->(c2)-[:SUBCLASSOF*0..]->(c1:Neuron) "
+        query = ("MATCH (g:Gene:Class%s)<-[e:expresses]-(clus:Cluster:Individual)-"
+                 "[:composed_primarily_of]->(c2:Class)-[:SUBCLASSOF*0..]->(c1:Neuron:Class) "
                  "WHERE c1.short_form = '%s' "
-                 "OPTIONAL MATCH (clus)-[:has_source]->(ds:DataSet) OPTIONAL MATCH (ds)-[:has_reference]->(p:pub) "
-                 "OPTIONAL MATCH (ds)-[dbx:database_cross_reference]->(s:Site) "
-                 "RETURN c2.label AS cell_type, c2.short_form AS cell_type_id, "
+                 "MATCH (clus)-[:part_of]->()-[:has_part]->(sa:Sample:Individual) "
+                 "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) "
+                 "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] "
+                 "OPTIONAL MATCH (sa)-[:overlaps]->(tis:Class:Anatomy) "
+                 "OPTIONAL MATCH (clus)-[:has_source]->(ds:DataSet:Individual) "
+                 "OPTIONAL MATCH (ds)-[:has_reference]->(p:pub:Individual) "
+                 "OPTIONAL MATCH (ds)-[dbx:database_cross_reference]->(s:Site:Individual) "
+                 "RETURN DISTINCT c2.label AS cell_type, c2.short_form AS cell_type_id, "
+                 "sex.label AS sample_sex, COLLECT(tis.label) AS sample_tissue, "
                  "p.miniref[0] as ref, g.label AS gene, g.short_form AS gene_id, "
                  "apoc.coll.subtract(labels(g), ['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS function, "
                  "e.expression_extent[0] as extent, e.expression_level[0] as level order by cell_type, g.label"
