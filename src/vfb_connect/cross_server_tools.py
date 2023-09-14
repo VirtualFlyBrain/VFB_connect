@@ -368,7 +368,7 @@ class VfbConnect:
         labels = sorted(list(set(labels)))
         return labels
 
-    def get_transcriptomic_profile(self, cell_type, gene_type=False):
+    def get_transcriptomic_profile(self, cell_type, gene_type=False, return_dataframe=True):
         """Get gene expression data for a given cell_type.
 
         Returns a DataFrame of gene expression data for clusters of cells annotated as cell_type (or subtypes).
@@ -414,14 +414,12 @@ class VfbConnect:
                  "sex.label AS sample_sex, COLLECT(tis.label) AS sample_tissue, "
                  "p.miniref[0] as ref, g.label AS gene, g.short_form AS gene_id, "
                  "apoc.coll.subtract(labels(g), ['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS function, "
-                 "e.expression_extent[0] as extent, e.expression_level[0] as level order by cell_type, g.label"
+                 "e.expression_extent[0] as extent, toFloat(e.expression_level[0]) as level order by cell_type, g.label"
                  % (gene_label, cell_type_short_form))
-        result = self.neo_query_wrapper._query(query)
-        if result:
-            result_df = pd.DataFrame.from_dict(data=result, orient='columns')
-            result_df['level'] = result_df['level'].astype(float)
-            return result_df
+        r = self.nc.commit_list([query])
+        dc = dict_cursor(r)
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
         else:
-            print('No transcriptomics data for %s' % cell_type)
-            return False
+            return dc
 
