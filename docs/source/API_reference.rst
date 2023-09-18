@@ -101,9 +101,8 @@ Transcriptomics Queries
 
 **Methods for retrieving transcriptomics data**
 
-.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_transcriptomics_data
-.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_transcriptomics_data_for_class
-.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_transcriptomics_data_for_term
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_transcriptomic_profile
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_gene_function_filters
 
 VFB link generation
 ~~~~~~~~~~~~~~~~~~~~
