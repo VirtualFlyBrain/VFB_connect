@@ -20,7 +20,7 @@ jobs:
 
       - name: Execute the notebooks
         run: |
-          jupyter nbconvert --to notebook --execute docs/source/tutorials/*.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=600 docs/source/tutorials/*.ipynb
 
       - uses: actions/upload-artifact@v2
         with:
