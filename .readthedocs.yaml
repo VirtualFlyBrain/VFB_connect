@@ -14,7 +14,3 @@ python:
     - requirements: docs/requirements.txt
     - method: pip
       path: .
-
-build:
-  commands:
-    - make -C docs/ html
