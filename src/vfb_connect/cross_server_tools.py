@@ -159,7 +159,7 @@ class VfbConnect:
             if query_by_label:
                 class_expression = self.lookup[class_expression].replace(':', '_')
             out = self.neo_query_wrapper._get_anatomical_individual_TermInfo_by_type(class_expression,
-                                                                                     summary=True)
+                                                                                     summary=summary)
         else:
             terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
             out = self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)),
