@@ -18,9 +18,14 @@ jobs:
           python -m pip install -U pip
           python -m pip install -r .github/workflows/requirements.txt
 
-      - name: Execute the notebooks
+      - name: Execute the tutorial notebooks
         run: |
           jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/*.ipynb
+
+      - name: Execute the snippet notebooks
+        run: |
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 snippets/*.ipynb
+
 
       - uses: actions/upload-artifact@v2
         with:
