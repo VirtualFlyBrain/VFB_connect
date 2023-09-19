@@ -329,6 +329,16 @@ class VfbConnect:
         else:
             return self.vfb_base + short_forms.pop() + "&i=" + dc[0]['t.short_form'] + ',' + ','.join(short_forms)
 
+    def get_images(self, *args, **kwargs):
+        """
+        This is a passthrough function to call the get_images method in the neo_query_wrapper.
+
+        :param args: Positional arguments to be passed to the neo_query_wrapper's get_images method.
+        :param kwargs: Keyword arguments to be passed to the neo_query_wrapper's get_images method.
+        :return: The return value from the neo_query_wrapper's get_images method.
+        """
+        return self.neo_query_wrapper.get_images(*args, **kwargs)
+    
     def get_images_by_type(self, class_expression, template, image_folder,
                            image_type='swc', query_by_label=True, direct=False, stomp=False):
         """Download all images of individuals specified by a class expression, e.g. all images of the nodulus
