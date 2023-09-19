@@ -53,7 +53,7 @@ Classes
         `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'".
 
     `get_neurons_upstream_of(self, neuron, weight, classification=None, query_by_label=True, return_dataframe=True)`
-    :   Get all neurons downstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
+    :   Get all neurons upstream of individual `neuron` (short_form if query_by_label=False, otherwise label)
         with connection strength > threshold.  Optionally restrict target neurons to those specified by
         `classification = 'class expression' e.g. "'Kenyon cell'" or "'neuron' that overlaps 'lateral horn'".
 
@@ -75,3 +75,12 @@ Classes
     :   Takes a list of VFB IDs (short_forms) and the name (label) of a template.
         Returns a link to VFB loading all available images
         of neurons on that template.
+
+    `get_gene_function_filters(self)`
+    :   Returns a list of all unique gene function labels in the database in alphabetical order.
+
+    `get_transcriptomic_profile(self, cell_type, gene_type=False, return_dataframe=True)`
+    :   Takes a cell_type (name, ID or symbol) from the Drosophila anatomy ontology as a String.
+        Returns transcriptomics data for clusters annotated as the given cell_type (and subtypes).
+        Can optionally be restricted to genes of a particular function by specifying gene_type as a String.
+        Available gene functions can be retrieved by running get_gene_function_filters().

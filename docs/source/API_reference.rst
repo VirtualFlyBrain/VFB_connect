@@ -96,6 +96,13 @@ Connectivity queries
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_neurons_downstream_of
 .. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_neurons_upstream_of
 
+Transcriptomics Queries
+~~~~~~~~~~~~~~~~~~~~~~~
+
+**Methods for retrieving transcriptomics data**
+
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_transcriptomic_profile
+.. autofunction:: vfb_connect.cross_server_tools.VfbConnect.get_gene_function_filters
 
 VFB link generation
 ~~~~~~~~~~~~~~~~~~~~
