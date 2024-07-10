@@ -4,3 +4,4 @@ pandas
 pandasql
 jsonpath_rw
 setuptools~=50.3.2
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
