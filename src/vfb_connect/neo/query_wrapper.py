@@ -245,7 +245,7 @@ class QueryWrapper(Neo4jConnect):
 
         :return: list of VFB IDs."""
         query = "MATCH (i:Individual) " \
-                "WHERE 'Site' in labels(i) OR 'API' in labels(i)" \
+                "WHERE NOT I::Deprecated AND ('Site' in labels(i) OR 'API' in labels(I))" \
                 "return i.short_form"
         return [d['i.short_form'] for d in self._query(query)]
 
@@ -288,7 +288,7 @@ class QueryWrapper(Neo4jConnect):
         """
         vfb_id = list(set(vfb_id))
         match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) " \
-                "WHERE i.short_form in %s" % str(vfb_id)
+                "WHERE i.short_form in %s AND NOT s:Deprecated" % str(vfb_id)
         clause1 = ''
         if db:
             clause1 = "AND s.short_form = '%s'" % db
@@ -324,7 +324,7 @@ class QueryWrapper(Neo4jConnect):
               Return if `reverse_return` is `True`:
                 dict { VFB_id : [{ db: <db> : acc : <acc> }
           """
-        match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) WHERE"
+        match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) WHERE NOT s:Deprecated AND"
         conditions = []
         if not (acc is None):
             acc = [str(a) for a in set(acc)]
