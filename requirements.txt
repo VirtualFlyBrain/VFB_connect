@@ -3,4 +3,4 @@ psycopg2
 pandas
 pandasql
 jsonpath_rw
-setuptools~=50.3.2
+setuptools~=70.0.0
