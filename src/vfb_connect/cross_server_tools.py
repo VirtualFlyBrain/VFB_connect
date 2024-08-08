@@ -90,7 +90,7 @@ class VfbConnect:
     # :rtype: [ReturnType]
     # """
 
-    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=False):
+    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True):
         """Generate TermInfo reports for all terms relevant to annotating some specific region,
         optionally limited to cells.
 
@@ -115,7 +115,7 @@ class VfbConnect:
         return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
                                                         summary=summary)
 
-    def get_subclasses(self, class_expression, query_by_label=True, direct=False, summary=False):
+    def get_subclasses(self, class_expression, query_by_label=True, direct=False, summary=True):
         """Generate JSON report of all subclasses of class_expression.
 
         :param class_expression: A valid OWL class expression, e.g. the name of a class.
@@ -131,7 +131,7 @@ class VfbConnect:
         return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
                                                         summary=summary)
 
-    def get_superclasses(self, class_expression, query_by_label=True, direct=False, summary=False):
+    def get_superclasses(self, class_expression, query_by_label=True, direct=False, summary=True):
         """Generate JSON report of all superclasses of class_expression.
 
         :param class_expression: A valid OWL class expression, e.g. the name of a class.
@@ -146,7 +146,7 @@ class VfbConnect:
         return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
                                                         summary=summary)
 
-    def get_instances(self, class_expression, query_by_label=True, summary=False):
+    def get_instances(self, class_expression, query_by_label=True, summary=True):
         """Generate JSON report of all instances of class_expression. Instances are specific examples
          of a type/class, e.g. a neuron of type DA1 adPN from the FAFB_catmaid database.
 
@@ -296,7 +296,7 @@ class VfbConnect:
         else:
             return dc
 
-    def get_instances_by_dataset(self, dataset, summary=False):
+    def get_instances_by_dataset(self, dataset, summary=True):
         """Get JSON report of all individuals in a dataset
 
         :param dataset: dataset ID
