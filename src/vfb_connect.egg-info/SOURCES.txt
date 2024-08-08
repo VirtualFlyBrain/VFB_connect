@@ -1,3 +1,4 @@
+LICENSE
 README.md
 setup.py
 src/vfb_connect/__init__.py
