@@ -118,6 +118,53 @@ def _populate_manifest(filename, instance):
     d['filename'] = filename
     return d
 
+def _populate_summary(TermInfo):
+    """
+    Generalized function to populate a summary dictionary based on the fields available in the TermInfo JSON,
+    including cross-reference (xref) terms formatted as 'DB:xxxxx'.
+
+    :param TermInfo: The JSON object containing term information.
+    :rtype: dict
+    """
+    def get_value(key, default=''):
+        return TermInfo.get(key, default)
+    
+    d = dict()
+    
+    # Populate minimal summary tab
+    d['label'] = get_value('term', {}).get('core', {}).get('symbol') or get_value('term', {}).get('core', {}).get('label', '')
+    d['symbol'] = get_value('term', {}).get('core', {}).get('symbol', '')
+    d['id'] = get_value('term', {}).get('core', {}).get('short_form', '')
+    d['tags'] = '|'.join(get_value('term', {}).get('core', {}).get('types', []))
+    
+    # Populate anatomical entity summary if available
+    if 'parents' in TermInfo:
+        d['parents_label'] = '|'.join([str(p['label']) for p in TermInfo['parents']])
+        d['parents_id'] = '|'.join([str(p['short_form']) for p in TermInfo['parents']])
+
+    # Populate instance summary tab if available
+    if 'xrefs' in TermInfo:
+        d['xrefs'] = '|'.join([f"{p['site']['core'].get('symbol', p['site']['core']['short_form'])}:{p['accession']}" for p in TermInfo['xrefs']])
+
+    if 'channel_image' in TermInfo:
+        d['templates'] = '|'.join([str(x['image']['template_anatomy']['label']) for x in TermInfo['channel_image']])
+    
+    if 'dataset_license' in TermInfo:
+        d['dataset'] = '|'.join([str(x['dataset']['core']['short_form']) for x in TermInfo['dataset_license']])
+        d['license'] = '|'.join([str(x['license']['link']) for x in TermInfo['dataset_license'] if 'link' in x['license'].keys()])
+
+    # Populate dataset summary tab if available
+    if 'term' in TermInfo:
+        d['description'] = get_value('term', {}).get('description', '')
+    
+    if 'pubs' in TermInfo:
+        d['miniref'] = '|'.join([str(x['core']['label']) for x in TermInfo['pubs']])
+        d['FlyBase'] = '|'.join([str(x['FlyBase']) for x in TermInfo['pubs'] if 'FlyBase' in x])
+        d['PMID'] = '|'.join([str(x['PubMed']) for x in TermInfo['pubs'] if 'PubMed' in x])
+        d['DOI'] = '|'.join([str(x['DOI']) for x in TermInfo['pubs'] if 'DOI' in x])
+
+    return d
+
 # def filter_term_content(func):
 #     """Decorator function that wraps queries that return lists of JSON objects and which have
 #      an arg named filters.  The filters arg takes a filter object, which specifics JPATH queries which are applied
@@ -371,7 +418,7 @@ class QueryWrapper(Neo4jConnect):
                                                         for d in dc])
 
     @batch_query
-    def get_TermInfo(self, short_forms: iter):
+    def get_TermInfo(self, short_forms: iter, summary=True, cache=True):
         """Generate JSON report for terms specified by a list of IDs
 
         :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms)
@@ -380,19 +427,50 @@ class QueryWrapper(Neo4jConnect):
         :return: list of term metadata as VFB_json
 
         """
+        if cache:
+            result = self._get_Cached_TermInfo(short_forms)
+            if result.length == short_forms.length:
+                if summary:
+                    return self._populate_summary(result)
+                else:
+                    return result
+            else:
+                return self.get_TermInfo(short_forms, summary=summary, cache=False)
         pre_query = "MATCH (e:Entity) " \
                     "WHERE e.short_form in %s " \
                     "RETURN e.short_form as short_form, labels(e) as labs " % str(short_forms)
         r = self._query(pre_query)
         out = []
         for e in r:
+            if 'class' in e['labs'] and 'Neuron' in e['labs']:
+                out.extend(self.get_neuron_class_TermInfo([e['short_form']], summary=summary))
+            elif 'class' in e['labs'] and 'Split' in e['labs']:
+                out.extend(self.get_split_class_TermInfo([e['short_form']], summary=summary))
             if 'Class' in e['labs']:
-                out.extend(self.get_type_TermInfo([e['short_form']]))
-            elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
-                out.extend(self.get_anatomical_individual_TermInfo([e['short_form']]))
+                out.extend(self.get_type_TermInfo([e['short_form']], summary=summary))
             elif 'DataSet' in e['labs']:
-                out.extend(self.get_DataSet_TermInfo([e['short_form']]))
+                out.extend(self.get_DataSet_TermInfo([e['short_form']], summary=summary))
+            elif 'License' in e['labs']:
+                out.extend(self.get_License_TermInfo([e['short_form']], summary=summary))
+            elif 'Template' in e['labs']:
+                out.extend(self.get_template_TermInfo([e['short_form']], summary=summary))
+            elif 'pub' in e['labs']:
+                out.extend(self.get_pub_TermInfo([e['short_form']], summary=summary))
+            elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
+                out.extend(self.get_anatomical_individual_TermInfo([e['short_form']], summary=summary))
         return out
+
+    @batch_query
+    def _get_Cached_TermInfo(self, short_forms: iter, summary=True):
+        # Connect to the VFB SOLR server
+        vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
+        results=[]
+        for short_form in short_forms:
+            result = vfb_solr.search('id:' + short_form)
+            results.extend(self._serialize_solr_output(result))
+        return results
+
+
 
     @batch_query
     def _get_TermInfo(self, short_forms: iter, typ, show_query=False, summary=True):
@@ -421,13 +499,22 @@ class QueryWrapper(Neo4jConnect):
         # }
         dc = []
         for r in TermInfo:
-            if typ == 'Get JSON for Individual':
-                dc.append(_populate_instance_summary_tab(r))
-            elif typ == 'Get JSON for Class':
+            if 'Class' in typ:
                 dc.append(_populate_anatomical_entity_summary(r))
             elif typ == 'Get JSON for DataSet':
                 dc.append(_populate_dataset_summary_tab(r))
+            else:
+                dc.append(_populate_instance_summary_tab(r))
         return dc
+
+    def _serialize_solr_output(results):
+        # Serialize the sanitized dictionary to JSON
+        json_string = json.dumps(results.docs[0], ensure_ascii=False)
+        json_string = json_string.replace('\\', '')
+        json_string = json_string.replace('"{', '{')
+        json_string = json_string.replace('}"', '}')
+        json_string = json_string.replace("\'", '-')
+        return json_string 
 
     def get_anatomical_individual_TermInfo(self, short_forms, summary=True):
         """
@@ -449,22 +536,73 @@ class QueryWrapper(Neo4jConnect):
         """
         return self._get_TermInfo(short_forms, typ='Get JSON for Class', summary=summary)
 
-    def get_DataSet_TermInfo(self, short_forms, summary=True):
+    def get_neuron_class_TermInfo(self, short_forms, summary=True):
         """
-        Generate JSON reports for types from a list of VFB IDs (short_forms) of DataSets.
+        Generate JSON reports for neuron classes from a list of VFB IDs (short_forms) of neuron classes.
 
-        :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of types
+        :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of neuron classes
+        :param summary: Optional.  Returns summary reports if `True`. Default `True`
+        :rtype: list of VFB_json or summary_report_json
+        """
+        return self._get_TermInfo(short_forms, typ='Get JSON for Neuron Class', summary=summary)
+
+    def get_split_class_TermInfo(self, short_forms, summary=True):
+        """
+        Generate JSON reports for split classes from a list of VFB IDs (short_forms) of split classes.
+
+        :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of split classes
+        :param summary: Optional.  Returns summary reports if `True`. Default `True`
+        :rtype: list of VFB_json or summary_report_json
+        """
+        return self._get_TermInfo(short_forms, typ='Get JSON for Split Class', summary=summary)
+
+    def get_dataset_TermInfo(self, short_forms, summary=True):
+        """
+        Generate JSON reports for datasets from a list of VFB IDs (short_forms) of datasets.
+
+        :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of datasets
         :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :rtype: list of VFB_json or summary_report_json
         """
         return self._get_TermInfo(short_forms, typ='Get JSON for DataSet', summary=summary)
 
-    def get_template_TermInfo(self, short_forms):
+    def get_license_TermInfo(self, short_forms, summary=True):
         """
-        Generate JSON reports for types from a list of VFB IDs (short_forms) of templates.
+        Generate JSON reports for licenses from a list of VFB IDs (short_forms) of licenses.
 
-        :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of types
+        :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of licenses
         :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :rtype: list of VFB_json or summary_report_json
         """
-        return self._get_TermInfo(short_forms, typ='Get JSON for Template')
+        return self._get_TermInfo(short_forms, typ='Get JSON for License', summary=summary)
+
+    def get_template_TermInfo(self, short_forms, summary=True):
+        """
+        Generate JSON reports for templates from a list of VFB IDs (short_forms) of templates.
+
+        :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of templates
+        :param summary: Optional.  Returns summary reports if `True`. Default `True`
+        :rtype: list of VFB_json or summary_report_json
+        """
+        return self._get_TermInfo(short_forms, typ='Get JSON for Template', summary=summary)
+
+    def get_pub_TermInfo(self, short_forms, summary=True):
+        """
+        Generate JSON reports for publications from a list of VFB IDs (short_forms) of publications.
+
+        :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of publications
+        :param summary: Optional.  Returns summary reports if `True`. Default `True`
+        :rtype: list of VFB_json or summary_report_json
+        """
+        return self._get_TermInfo(short_forms, typ='Get JSON for pub', summary=summary)
+
+    def get_anatomy_by_type_TermInfo(self, short_forms, summary=True):
+        """
+        Generate JSON reports for anatomical individuals by type from a list of VFB IDs (short_forms).
+
+        :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms) of anatomical types
+        :param summary: Optional.  Returns summary reports if `True`. Default `True`
+        :rtype: list of VFB_json or summary_report_json
+        """
+        return self._get_TermInfo(short_forms, typ='Get JSON for Individual:Anatomy_by_type', summary=summary)
+
