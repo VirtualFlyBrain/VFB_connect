@@ -400,10 +400,14 @@ class QueryWrapper(Neo4jConnect):
         :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms)
         :return: list of term metadata as VFB_json
         """
-        return self.get_TermInfo(list(self.xref_2_vfb_id(acc,
-                                                         db=db,
-                                                         id_type=id_type,
-                                                         reverse_return=True).keys()))
+        # Fetch VFB IDs associated with the xref
+        vfb_ids = self.xref_2_vfb_id(acc, db=db, id_type=id_type)
+
+        # Extract the list of IDs from the response
+        ids_to_query = [item['id'] for sublist in vfb_ids for item in sublist]
+
+        # Retrieve term information for all IDs
+        return self.get_TermInfo(ids_to_query)
 
     def get_images_by_filename(self, filenames, dataset=None):
         """Takes a list of filenames as input and returns a list of image terminfo.
