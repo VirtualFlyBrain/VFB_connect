@@ -561,7 +561,7 @@ class QueryWrapper(Neo4jConnect):
         """
         return self._get_TermInfo(short_forms, typ='Get JSON for Split Class', summary=summary)
 
-    def get_Dataset_TermInfo(self, short_forms, summary=True):
+    def get_DataSet_TermInfo(self, short_forms, summary=True):
         """
         Generate JSON reports for datasets from a list of VFB IDs (short_forms) of datasets.
 
