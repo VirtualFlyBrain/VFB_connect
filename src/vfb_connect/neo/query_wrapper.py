@@ -404,7 +404,12 @@ class QueryWrapper(Neo4jConnect):
         vfb_ids = self.xref_2_vfb_id(acc, db=db, id_type=id_type)
 
         # Extract the list of IDs from the response
-        ids_to_query = [item.get('id') for item in vfb_ids]
+        ids_to_query = []
+        for key in acc:
+            if key not in vfb_ids.keys():
+                warnings.warn("No VFB ID found for %s" % key)
+            else:
+                ids_to_query.append(vfb_ids[key])
 
         # Retrieve term information for all IDs
         return self.get_TermInfo(ids_to_query)
