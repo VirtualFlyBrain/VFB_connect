@@ -512,7 +512,7 @@ class QueryWrapper(Neo4jConnect):
                 dc.append(_populate_instance_summary_tab(r))
         return dc
 
-    def _serialize_solr_output(results):
+    def _serialize_solr_output(self, results):
         # Serialize the sanitized dictionary to JSON
         json_string = json.dumps(results.docs[0], ensure_ascii=False)
         json_string = json_string.replace('\\', '')
