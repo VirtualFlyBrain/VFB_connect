@@ -434,7 +434,7 @@ class QueryWrapper(Neo4jConnect):
         """
         if cache:
             result = self._get_Cached_TermInfo(short_forms)
-            if result.length == short_forms.length:
+            if len(result) == len(short_forms):
                 if summary:
                     return self._populate_summary(result)
                 else:
