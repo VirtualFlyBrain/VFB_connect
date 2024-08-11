@@ -26,9 +26,9 @@ class NeoQueryWrapperTest(unittest.TestCase):
         self.assertTrue(self.qw.get_type_TermInfo(short_forms=['FBbt_00003686']))
         self.assertTrue(self.qw.get_type_TermInfo(short_forms=['FBbt_00003686'], summary=True))
 
-    def test_get_DataSet_TermInfo(self):
+    def test_get_dataSet_TermInfo(self):
         self.assertTrue(
-            self.qw.get_DataSet_TermInfo(['Ito2013']))
+            self.qw.get_dataSet_TermInfo(['Ito2013']))
 
     def test_get_anatomical_individual_TermInfo(self):
         self.assertTrue(
