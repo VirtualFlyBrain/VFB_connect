@@ -12,4 +12,5 @@ docutils
 myst-parser
 sphinx_rtd_theme
 neuprint-python
+pysolr
 numpy>=1.22.2 # not directly required, pinned by Snyk to avoid a vulnerability

@@ -10,6 +10,7 @@ import pandas as pd
 import pkg_resources
 import requests
 from functools import wraps
+import pysolr
 
 
 # from jsonpath_rw import parse as parse_jpath
