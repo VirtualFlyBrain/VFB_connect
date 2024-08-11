@@ -98,7 +98,7 @@ class VfbConnect:
         :param cells_only: Optional. Limits query to cell type if `True`. Defaults to `False`
         :param verbose: Optional.
         :param query_by_label: Optional (see region).  Default `True`
-        :param summary: Optional.  Returns summary reports if true. Default `False`
+        :param summary: Optional. Returns summary reports if `True`. Default `True`
         :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
         :rtype: list of VFB_json or summary_report_json
     """
@@ -121,7 +121,7 @@ class VfbConnect:
         :param class_expression: A valid OWL class expression, e.g. the name of a class.
         :param query_by_label: Optional.  If false, class_expression takes IDs instead of labels   Default `True`
         :param direct: Return direct subclasses only.  Default `False`
-        :param summary: Optional.  Returns summary reports if true. Default `False`
+        :param summary: Optional. Returns summary reports if `True`. Default `True`
         :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
         :rtype: list of VFB_json or summary_report_json
         """
@@ -135,9 +135,9 @@ class VfbConnect:
         """Generate JSON report of all superclasses of class_expression.
 
         :param class_expression: A valid OWL class expression, e.g. the name of a class.
-        :param query_by_label: Optional.  If false, class_expression takes IDs instead of labels   Default `True`
+        :param query_by_label: Optional. If false, class_expression takes IDs instead of labels. Default `True`
         :param direct: Return direct superclass only.  Default `False`
-        :param summary: Optional.  Returns summary reports if true. Default `False`
+        :param summary: Optional. Returns summary reports if `True`. Default `True`
         :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
         :rtype: list of VFB_json or summary_report_json        """
         if not re.search("'", class_expression):
@@ -151,8 +151,8 @@ class VfbConnect:
          of a type/class, e.g. a neuron of type DA1 adPN from the FAFB_catmaid database.
 
          :param class_expression: A valid OWL class expression, e.g. the name of a class.
-         :param query_by_label: Optional.  If false, class_expression takes IDs instead of labels   Default `True`
-         :param summary: Optional.  Returns summary reports if true. Default `False`
+         :param query_by_label: Optional. If false, class_expression takes IDs instead of labels. Default `True`
+         :param summary: Optional.  Returns summary reports if `True`. Default `True`
          :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
          :rtype: list of VFB_json or summary_report_json        """
         if not re.search("'", class_expression):
@@ -300,7 +300,7 @@ class VfbConnect:
         """Get JSON report of all individuals in a dataset
 
         :param dataset: dataset ID
-        :param summary: Optional.  Returns summary reports if true. Default `False`
+        :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
         :rtype: list of VFB_json or summary_report_json
 

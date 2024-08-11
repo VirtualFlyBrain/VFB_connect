@@ -74,7 +74,7 @@ def chunks(l, n):
 
 
 class Neo4jConnect:
-    """Thin layer over REST API to hold connection details, 
+    """Thin layer over REST API to hold connection details,
     handle multi-statement POST queries, return results and report errors.
 
     :param endpoint: a neo4j REST endpoint
@@ -96,7 +96,7 @@ class Neo4jConnect:
             self.commit = "/db/data/transaction/commit"
             self.headers = {}
             self.test_connection()
-       
+
     def commit_list(self, statements, return_graphs=False):
         """Commit a list of statements to neo4J DB via REST API.
         Errors prompt warnings (STDERR), not exceptions, and cause return = FALSE.
@@ -110,19 +110,18 @@ class Neo4jConnect:
         if return_graphs:
             for s in statements:
                 cstatements.append({'statement': s, "resultDataContents" : [ "row", "graph" ]})
-        else:        
+        else:
             for s in statements:
                 cstatements.append({'statement': s}) # rows an columns are returned by default.
         payload = {'statements': cstatements}
-        response = requests.post(url = "%s%s" 
+        response = requests.post(url = "%s%s"
                                  % (self.base_uri, self.commit), auth = (self.usr, self.pwd) ,
                                   data = json.dumps(payload), headers = self.headers)
         if self.rest_return_check(response):
             return response.json()['results']
         else:
             return False
-        
-        
+
     def commit_list_in_chunks(self, statements, verbose=False, chunk_length=1000):
 
         """Commit multiple (chunked) commit of statements to neo4J DB via REST API.
@@ -142,7 +141,7 @@ class Neo4jConnect:
             if verbose:
                 start_time = time.time()
                 print("Processing chunk of %d of %d starting with: %s" % (i,
-                                                                          c_no, 
+                                                                          c_no,
                                                                           c[0].encode('utf8')))
             r = self.commit_list(c)
             if verbose:
@@ -179,7 +178,7 @@ class Neo4jConnect:
                 return False
             else:
                 return True
-            
+
     def test_connection(self):
         """Test neo4j endpoint connection"""
         statements = ["MATCH (n) RETURN n LIMIT 1"]
@@ -187,19 +186,19 @@ class Neo4jConnect:
             return True
         else:
             return False
-        
+
     def list_all_node_props(self):
         r = self.commit_list(['MATCH (n) with keys(n) AS kl UNWIND kl as k RETURN DISTINCT k'])
         d = dict_cursor(r)
         return [x['k'] for x in d]
-    
+
     def list_all_edge_props(self):
         r = self.commit_list(['MATCH ()-[r]-() with keys(r) AS kl UNWIND kl as k RETURN DISTINCT k'])
         d = dict_cursor(r)
         return [x['k'] for x in d]
 
     def get_lookup(self, limit_by_prefix=None, include_individuals=False,
-                   limit_properties_by_prefix=('RO', 'BFO', 'VFBext'), curies=False):
+                   limit_properties_by_prefix=('RO', 'BFO', 'VFBext'), curies=False, include_synonyms=True):
 
         """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a list of prefixes.
 
@@ -226,6 +225,16 @@ class Neo4jConnect:
                            "RETURN a.short_form as id, a.symbol[0] as name" % (l, where)
             q = self.commit_list([lookup_query])
             out.extend(dict_cursor(q))
+            if include_synonyms:
+                lookup_query = "MATCH (a:%s) %s AND EXISTS(a.synonyms) OR (a)-[:has_reference {typ:'syn'}]->(:pub:Individual) " \
+                               "UNWIND a.synonyms AS synonym2 " \
+                               "RETURN DISTINCT a.short_form AS id, synonym2 AS name " \
+                               "UNION ALL MATCH (n)-[r:has_reference {typ:'syn'}]->(:pub:Individual) " \
+                               "UNWIND r.value AS synonym1 " \
+                               "WITH a.short_form AS id, synonym1 AS synonym " \
+                               "RETURN DISTINCT id, synonym AS name" % (l, where)
+                q = self.commit_list([lookup_query])
+                out.extend(dict_cursor(q))
         # All ObjectProperties wanted, irrespective of ID
         if limit_properties_by_prefix:
             regex_string = '.+|'.join(limit_properties_by_prefix) + '.+'
@@ -266,7 +275,7 @@ def escape_string(strng):
     if type(strng) == str:
         strng = re.sub(r'\\', r'\\\\', strng)
         strng = re.sub("'", "\\'", strng)
-        strng = re.sub('"', '\\"', strng)        
+        strng = re.sub('"', '\\"', strng)
     return strng
 
 

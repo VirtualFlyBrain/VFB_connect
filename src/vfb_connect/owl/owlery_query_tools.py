@@ -83,13 +83,13 @@ class OWLeryConnect:
             warnings.warn(str(r.content))
             return False
 
-    def get_subclasses(self, query, query_by_label=True, direct=False, return_short_forms=False):
+    def get_subclasses(self, query, query_by_label=True, direct=False, return_short_forms=True):
         """Generate list of IDs of all subclasses of class_expression.
 
                 :param class_expression: A valid OWL class expression, e.g. the name of a class.
                 :param query_by_label: Optional.  If `False``, class_expression takes CURIEs instead of labels.  Default `False`
                 :param direct: Return direct subclasses only.  Default `False`
-                :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs.
+                :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs. Default `True`
                 :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
                 :rtype: list of IRIs or short_forms (depending on return_short_form option)
                 """
@@ -101,13 +101,13 @@ class OWLeryConnect:
         else:
             return out
 
-    def get_instances(self, query, query_by_label=True, direct=False, return_short_forms=False):
+    def get_instances(self, query, query_by_label=True, direct=False, return_short_forms=True):
         """Generate list of IDs of all instances of class_expression.
 
                 :param class_expression: A valid OWL class expression, e.g. the name of a class.
                 :param query_by_label: Optional.  If `False``, class_expression takes CURIEs instead of labels.  Default `False`
                 :param direct: Return direct instances only.  Default `False`
-                :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs.
+                :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs. Default `True`
                 :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
                 :rtype: list of IRIs or short_forms (depending on return_short_form option)
                 """
@@ -119,13 +119,13 @@ class OWLeryConnect:
         else:
             return out
 
-    def get_superclasses(self, query, query_by_label=True, direct=False, return_short_forms=False):
+    def get_superclasses(self, query, query_by_label=True, direct=False, return_short_forms=True):
         """Generate list of IDs of all superclasses of class_expression.
 
                        :param class_expression: A valid OWL class expression, e.g. the name (or CURIE) of a class.
                        :param query_by_label: Optional.  If `False``, class_expression takes CURIEs instead of labels.  Default `False`
                        :param direct: Return direct instances only.  Default `False`
-                       :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs.
+                       :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs. Default `True`
                        :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
                        :rtype: list of IRIs or short_forms (depending on return_short_form option)
                        """
