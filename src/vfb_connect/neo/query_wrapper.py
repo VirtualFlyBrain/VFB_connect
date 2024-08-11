@@ -55,8 +55,8 @@ def batch_query(func):
 
 def _populate_minimal_summary_tab(TermInfo):
     d = dict()
-    d['label'] = TermInfo['term']['core']['label']
-    d['symbol'] = TermInfo['term']['core']['symbol']
+    d['label'] = TermInfo['term']['core'].get('symbol') or TermInfo['term']['core']['label']
+    d['symbol'] = TermInfo['term']['core'].get('symbol', '')
     d['id'] = TermInfo['term']['core']['short_form']
     d['tags'] = '|'.join(TermInfo['term']['core']['types'])
     return d

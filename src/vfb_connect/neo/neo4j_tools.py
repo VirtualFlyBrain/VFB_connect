@@ -236,7 +236,7 @@ class Neo4jConnect:
                                 "RETURN a.short_form as id, a.label as name"
         q = self.commit_list([property_lookup_query])
         out.extend(dict_cursor(q))
-        lookup = {x['name']: x['id'].replace('_', ':') for x in out}
+        lookup = {x['name']: x['id'] for x in out}
         lookup.update({x['id']: x['id'].replace('_', ':') for x in out})
         # print(lookup['neuron'])
         return lookup
