@@ -18,13 +18,13 @@ class NeoQueryWrapperTest(unittest.TestCase):
         self.qw = QueryWrapper()
 
     def test_get_term_info(self):
-        fu = self.qw.get_TermInfo(['FBbt_00003686', 'VFB_00010001', 'Ito2013'])
+        fu = self.qw.get_TermInfo(['FBbt_00003686', 'VFB_00010001', 'Ito2013'], summary=False)
         self.assertTrue(
             len(fu) == 3)
 
     def test_get_type_term_info(self):
+        self.assertTrue(self.qw.get_type_TermInfo(short_forms=['FBbt_00003686'], summary=False))
         self.assertTrue(self.qw.get_type_TermInfo(short_forms=['FBbt_00003686']))
-        self.assertTrue(self.qw.get_type_TermInfo(short_forms=['FBbt_00003686'], summary=True))
 
     def test_get_dataSet_TermInfo(self):
         self.assertTrue(
@@ -32,9 +32,9 @@ class NeoQueryWrapperTest(unittest.TestCase):
 
     def test_get_anatomical_individual_TermInfo(self):
         self.assertTrue(
-            self.qw.get_anatomical_individual_TermInfo(['VFB_00010001']))
+            self.qw.get_anatomical_individual_TermInfo(['VFB_00010001'], summary=False))
         self.assertTrue(
-            self.qw.get_anatomical_individual_TermInfo(['VFB_00010001'], summary=True))
+            self.qw.get_anatomical_individual_TermInfo(['VFB_00010001']))
 
     def test_get_terms_by_xref(self):
         self.assertTrue(self.qw.get_terms_by_xref(['Trh-F-500041'], db='FlyCircuit'))
