@@ -472,6 +472,10 @@ class QueryWrapper(Neo4jConnect):
 
     @batch_query
     def _get_Cached_TermInfo(self, short_forms: iter, summary=True):
+        # Flatten the list of short_forms in case it's nested
+        if isinstance(short_forms, list):
+            short_forms = list(chain.from_iterable(short_forms)) if any(isinstance(i, list) for i in short_forms) else short_forms
+
         # Connect to the VFB SOLR server
         vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
         results=[]
