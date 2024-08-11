@@ -199,13 +199,14 @@ class Neo4jConnect:
         return [x['k'] for x in d]
 
     def get_lookup(self, limit_by_prefix=None, include_individuals=False,
-                   limit_properties_by_prefix=('RO', 'BFO', 'VFBext')):
+                   limit_properties_by_prefix=('RO', 'BFO', 'VFBext'), curies=False):
 
         """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a list of prefixes.
 
         :param limit_by_prefix:  Optional list of id prefixes for limiting lookup of classes & individuals
         :param include_individuals: If `True`, individuals included in lookup.
         :param limit_properties_by_prefix:  Optional list of id prefixes for limiting lookup of properties.
+        :param curies: If `True`, returns CURIEs instead of IDs.
 
         """
         if limit_by_prefix:
@@ -236,9 +237,12 @@ class Neo4jConnect:
                                 "RETURN a.short_form as id, a.label as name"
         q = self.commit_list([property_lookup_query])
         out.extend(dict_cursor(q))
-        lookup = {x['name']: x['id'] for x in out}
-        lookup.update({x['id']: x['id'].replace('_', ':') for x in out})
-        # print(lookup['neuron'])
+        if curies:
+            out = {x['name']: x['id'].replace('_', ':') for x in out}
+            lookup.update({x['id']: x['id'].replace('_', ':') for x in out})
+        else:
+            lookup = {x['name']: x['id'] for x in out}
+            lookup.update({x['id']: x['id'] for x in out})
         return lookup
 
 

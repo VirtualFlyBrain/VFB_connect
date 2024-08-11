@@ -73,7 +73,7 @@ class VfbConnect:
         if key in self.lookup.keys():
             out = self.lookup[key]
             if return_short_form:
-                return out.replace(':', '_')
+                return out
             else:
                 return out
         else:
@@ -157,7 +157,7 @@ class VfbConnect:
          :rtype: list of VFB_json or summary_report_json        """
         if not re.search("'", class_expression):
             if query_by_label:
-                class_expression = self.lookup[class_expression].replace(':', '_')
+                class_expression = self.lookup[class_expression]
             out = self.neo_query_wrapper._get_anatomical_individual_TermInfo_by_type(class_expression,
                                                                                      summary=summary)
         else:
@@ -382,10 +382,10 @@ class VfbConnect:
         """
 
         try:
-            cell_type_short_form = self.lookup[cell_type].replace(':', '_')
+            cell_type_short_form = self.lookup[cell_type]
         except KeyError:
-            if cell_type.replace('_', ':') in self.lookup.values():
-                cell_type_short_form = cell_type.replace(':', '_')
+            if cell_type in self.lookup.values():
+                cell_type_short_form = cell_type
             else:
                 raise KeyError("cell_type must be a valid ID, label or symbol from the Drosophila Anatomy Ontology")
 

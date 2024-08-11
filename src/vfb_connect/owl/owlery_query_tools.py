@@ -31,7 +31,8 @@ class OWLeryConnect:
                  endpoint=get_default_servers()['owlery_endpoint'],
                  lookup=None,
                  obo_curies=('FBbt', 'RO', 'BFO'),
-                 curies=None):
+                 curies=None,
+                 obo_format=True):
         self.owlery_endpoint = endpoint
         if not (lookup):
             self.lookup = {}
@@ -51,7 +52,7 @@ class OWLeryConnect:
         self.curies.update(c)
 
     def query(self, query_type, return_type,
-              query, query_by_label=False, direct=False, verbose=False):
+              query, query_by_label=True, direct=False, verbose=False):
         """
         A wrapper for querying Owlery Endpoints.  See
         https://owlery.phenoscape.org/api/ for doc
@@ -82,7 +83,7 @@ class OWLeryConnect:
             warnings.warn(str(r.content))
             return False
 
-    def get_subclasses(self, query, query_by_label=False, direct=False, return_short_forms=False):
+    def get_subclasses(self, query, query_by_label=True, direct=False, return_short_forms=False):
         """Generate list of IDs of all subclasses of class_expression.
 
                 :param class_expression: A valid OWL class expression, e.g. the name of a class.
@@ -100,7 +101,7 @@ class OWLeryConnect:
         else:
             return out
 
-    def get_instances(self, query, query_by_label=False, direct=False, return_short_forms=False):
+    def get_instances(self, query, query_by_label=True, direct=False, return_short_forms=False):
         """Generate list of IDs of all instances of class_expression.
 
                 :param class_expression: A valid OWL class expression, e.g. the name of a class.
@@ -118,7 +119,7 @@ class OWLeryConnect:
         else:
             return out
 
-    def get_superclasses(self, query, query_by_label=False, direct=False, return_short_forms=False):
+    def get_superclasses(self, query, query_by_label=True, direct=False, return_short_forms=False):
         """Generate list of IDs of all superclasses of class_expression.
 
                        :param class_expression: A valid OWL class expression, e.g. the name (or CURIE) of a class.
@@ -138,15 +139,15 @@ class OWLeryConnect:
 
 
     def labels_2_ids(self, query_string):
-        """Substitutes labels for IDs in a query string
+        """Substitutes labels for CURIEs in a query string
 
         :param query_string: A OWL class expression in which all labels of OWL entities are single-quoted.  Internal
         single quotes should be escaped with a backslash.
-        :return: query string in which labels have been converted to unquoted CURIES.
+        :return: query string in which labels have been converted to unquoted CURIEs.
         """
 
         def subgp1_or_fail(m):
-            out = self.lookup.get(m.group(1))
+            out = self.lookup.get(m.group(1)).replace('_', ':')
             if not out:
                 raise ValueError("Query includes unknown term label: " + query_string)
             else:
