@@ -229,7 +229,7 @@ class Neo4jConnect:
                 lookup_query = "MATCH (a:%s) %s AND EXISTS(a.synonyms) OR (a)-[:has_reference {typ:'syn'}]->(:pub:Individual) " \
                                "UNWIND a.synonyms AS synonym2 " \
                                "RETURN DISTINCT a.short_form AS id, synonym2 AS name " \
-                               "UNION ALL MATCH (n)-[r:has_reference {typ:'syn'}]->(:pub:Individual) " \
+                               "UNION ALL MATCH (a)-[r:has_reference {typ:'syn'}]->(:pub:Individual) " \
                                "UNWIND r.value AS synonym1 " \
                                "WITH a.short_form AS id, synonym1 AS synonym " \
                                "RETURN DISTINCT id, synonym AS name" % (l, where)
