@@ -249,7 +249,7 @@ class QueryWrapper(Neo4jConnect):
         else:
             r = dict_cursor(qr)
             if not r:
-                warnings.warn('No results returned')
+                warnings.warn('No results returned for query: %s -> %s -> %s' % (q, qr, r))
                 return []
             else:
                 return r
@@ -400,7 +400,6 @@ class QueryWrapper(Neo4jConnect):
             ret = "RETURN i.short_form as key, " \
                   "collect({ db: s.short_form, acc: r.accession[0]}) as mapping"
         q = ' '.join([match, condition_clauses, ret])
-#        print(q)
         dc = self._query(q)
         return {d['key']: d['mapping'] for d in dc}
 
@@ -421,7 +420,7 @@ class QueryWrapper(Neo4jConnect):
             if key not in vfb_ids.keys():
                 warnings.warn("No VFB ID found for %s" % key)
             else:
-                ids_to_query.extend(vfb_ids[key][0]['vfb_id'])
+                ids_to_query.append(vfb_ids[key][0]['vfb_id'])
 
         # Retrieve term information for all IDs
         return self.get_TermInfo(ids_to_query, summary=summary)
@@ -453,7 +452,10 @@ class QueryWrapper(Neo4jConnect):
             result = self._get_Cached_TermInfo(short_forms)
             if len(result) == len(short_forms):
                 if summary:
-                    return _populate_summary(result)
+                    results = []
+                    for r in result:
+                        results.append(_populate_summary(r))
+                    return results
                 else:
                     return result
             else:
@@ -544,11 +546,9 @@ class QueryWrapper(Neo4jConnect):
         for doc in results.docs:
             # Ensure 'term_info' exists and is not empty
             if 'term_info' in doc and doc['term_info']:
-                # Serialize and then deserialize the first element in 'term_info'
-                json_string = json.dumps(doc['term_info'][0], ensure_ascii=False)
+                json_string = doc['term_info'][0]
                 result = json.loads(json_string)
                 serialized_results.append(result)
-
         return serialized_results
 
     def get_anatomical_individual_TermInfo(self, short_forms, summary=True):
