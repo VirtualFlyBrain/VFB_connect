@@ -467,15 +467,7 @@ class QueryWrapper(Neo4jConnect):
 
         # Connect to the VFB SOLR server
         vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
-        results=[]
-        for short_form in short_forms:
-            # Ensure short_form is a string
-            if isinstance(short_form, str) and short_form:
-                result = vfb_solr.search('id:' + short_form)
-                if len(result.docs) > 0:
-                    results.extend(result)
-            else:
-                raise ValueError(f"Invalid short_form: {short_form}. Expected a string.")
+        results = self._serialize_solr_output(vfb_solr.search('*', **{'fl': 'term_info','df': 'id', 'defType': 'edismax', 'q.op': 'OR','rows': len(short_forms)+10,'fq':'{!terms f=id}'+ ','.join(short_forms)}))
         return results
 
 
@@ -515,14 +507,24 @@ class QueryWrapper(Neo4jConnect):
                 dc.append(_populate_instance_summary_tab(r))
         return dc
 
-    def _serialize_solr_output(self, results):
-        # Serialize the sanitized dictionary to JSON
-        json_string = json.dumps(results.docs[0], ensure_ascii=False)
-        json_string = json_string.replace('\\', '')
-        json_string = json_string.replace('"{', '{')
-        json_string = json_string.replace('}"', '}')
-        json_string = json_string.replace("\'", '-')
-        return json_string 
+    def _serialize_solr_output(results):
+        """
+        Serialize the sanitized dictionary to JSON for all documents returned by Solr.
+
+        :param results: The results object containing multiple documents from Solr.
+        :return: A list of deserialized JSON objects.
+        """
+        serialized_results = []
+
+        for doc in results.docs:
+            # Ensure 'term_info' exists and is not empty
+            if 'term_info' in doc and doc['term_info']:
+                # Serialize and then deserialize the first element in 'term_info'
+                json_string = json.dumps(doc['term_info'][0], ensure_ascii=False)
+                result = json.loads(json_string)
+                serialized_results.append(result)
+
+        return serialized_results
 
     def get_anatomical_individual_TermInfo(self, short_forms, summary=True):
         """
