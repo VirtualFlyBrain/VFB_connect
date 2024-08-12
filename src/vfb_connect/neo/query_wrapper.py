@@ -394,7 +394,7 @@ class QueryWrapper(Neo4jConnect):
         return {d['key']: d['mapping'] for d in dc}
 
     @batch_query
-    def get_terms_by_xref(self, acc, db='', id_type=''):
+    def get_terms_by_xref(self, acc, db='', id_type='', summary=True):
         """
         Generate JSON report for terms specified by a list of IDs
 
@@ -413,7 +413,7 @@ class QueryWrapper(Neo4jConnect):
                 ids_to_query.extend(vfb_ids[key][0]['vfb_id'])
 
         # Retrieve term information for all IDs
-        return self.get_TermInfo(ids_to_query)
+        return self.get_TermInfo(ids_to_query, summary=summary)
 
     def get_images_by_filename(self, filenames, dataset=None):
         """Takes a list of filenames as input and returns a list of image terminfo.
