@@ -126,26 +126,26 @@ def _populate_summary(TermInfo):
     d['tags'] = '|'.join(get_value('term', {}).get('core', {}).get('types', []))
     
     # Populate anatomical entity summary if available
-    if 'parents' in TermInfo:
+    if 'parents' in TermInfo.keys():
         d['parents_label'] = '|'.join([str(p['label']) for p in TermInfo['parents']])
         d['parents_id'] = '|'.join([str(p['short_form']) for p in TermInfo['parents']])
 
     # Populate instance summary tab if available
-    if 'xrefs' in TermInfo:
+    if 'xrefs' in TermInfo.keys():
         d['xrefs'] = '|'.join([f"{p['site']['core'].get('symbol', p['site']['core']['short_form'])}:{p['accession']}" for p in TermInfo['xrefs']])
 
-    if 'channel_image' in TermInfo:
+    if 'channel_image' in TermInfo.keys():
         d['templates'] = '|'.join([str(x['image']['template_anatomy']['label']) for x in TermInfo['channel_image']])
     
-    if 'dataset_license' in TermInfo:
+    if 'dataset_license' in TermInfo.keys():
         d['dataset'] = '|'.join([str(x['dataset']['core']['short_form']) for x in TermInfo['dataset_license']])
         d['license'] = '|'.join([str(x['license']['link']) for x in TermInfo['dataset_license'] if 'link' in x['license'].keys()])
 
     # Populate dataset summary tab if available
-    if 'term' in TermInfo:
+    if 'term' in TermInfo.keys() & 'description' in TermInfo['term'].keys():
         d['description'] = get_value('term', {}).get('description', '')
     
-    if 'pubs' in TermInfo:
+    if 'pubs' in TermInfo.keys():
         d['miniref'] = '|'.join([str(x['core']['label']) for x in TermInfo['pubs']])
         d['FlyBase'] = '|'.join([str(x['FlyBase']) for x in TermInfo['pubs'] if 'FlyBase' in x])
         d['PMID'] = '|'.join([str(x['PubMed']) for x in TermInfo['pubs'] if 'PubMed' in x])
