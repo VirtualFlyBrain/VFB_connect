@@ -410,7 +410,7 @@ class QueryWrapper(Neo4jConnect):
             if key not in vfb_ids.keys():
                 warnings.warn("No VFB ID found for %s" % key)
             else:
-                ids_to_query.extend(vfb_ids[key])
+                ids_to_query.extend(vfb_ids[key]['vfb_id'])
 
         # Retrieve term information for all IDs
         return self.get_TermInfo(ids_to_query)
