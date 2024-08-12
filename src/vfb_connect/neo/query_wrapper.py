@@ -276,7 +276,7 @@ class QueryWrapper(Neo4jConnect):
             else:
                 warnings.warn("Not deleting %s, stomp option not supported on this system for security reasons,"
                               "please delete manually." % image_folder)
-        os.mkdir(image_folder)
+        os.makedirs(image_folder, exist_ok=True)
         inds = self.get_anatomical_individual_TermInfo(short_forms=short_forms)
         for i in inds:
             if not ('has_image' in i['term']['core']['types']):
