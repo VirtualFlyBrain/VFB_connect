@@ -37,7 +37,7 @@ class NeoQueryWrapperTest(unittest.TestCase):
             self.qw.get_anatomical_individual_TermInfo(['VFB_00010001']))
 
     def test_get_terms_by_xref(self):
-        self.assertTrue(self.qw.get_terms_by_xref(['Trh-F-500041'], db='FlyCircuit', summary=False))
+        self.assertTrue(self.qw.get_terms_by_xref(['Trh-F-500041'], db='FlyCircuit'))
 
     def test_get_vfb_id_by_xref(self):
         self.assertTrue(self.qw.xref_2_vfb_id(['Trh-F-500041'], db='FlyCircuit'))
