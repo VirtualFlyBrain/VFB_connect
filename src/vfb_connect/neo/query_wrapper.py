@@ -63,14 +63,34 @@ def _populate_minimal_summary_tab(TermInfo):
     d['tags'] = '|'.join(TermInfo['term']['core']['types'])
     return d
 
+def _populate_data_source_id(TermInfo, d = dict()):
+    # Populate data source summary tab if source xrefs
+    if 'xrefs' in TermInfo.keys():
+        data_sources = []
+        ds_accessions = []
+
+        for p in TermInfo['xrefs']:
+            # Check if 'is_data_source' is set and truthy
+            if p.get('is_data_source'):
+                # Add site short_form or symbol to data_sources
+                data_sources.append(p['site'].get('symbol', p['site']['short_form']))
+                # Add accession if available
+                if 'accession' in p:
+                    ds_accessions.append(p['accession'])
+
+        # Join the results with '|'
+        d['data_source'] = '|'.join(data_sources)
+        d['accession'] = '|'.join(ds_accessions)
+    return d
+
 
 def _populate_anatomical_entity_summary(TermInfo):
     d = _populate_minimal_summary_tab(TermInfo)
+    d = _populate_data_source_id(TermInfo, d)
 #   d['parents_symbol'] = pop_from_jpath("$.parents[*].symbol", TermInfo)
 #   d['parents_label'] = pop_from_jpath("$.parents[*].label", TermInfo)
-
     d['parents_label'] = '|'.join([str(p['label']) for p in TermInfo['parents']])
-#    d['parents_id'] = pop_from_jpath("$.parents[*].short_form", TermInfo)
+#   d['parents_id'] = pop_from_jpath("$.parents[*].short_form", TermInfo)
     d['parents_id'] = '|'.join([str(p['short_form']) for p in TermInfo['parents']])
 
     return d
@@ -525,7 +545,7 @@ class QueryWrapper(Neo4jConnect):
                 dc.append(_populate_instance_summary_tab(r))
         return dc
 
-    def _serialize_solr_output(results):
+    def _serialize_solr_output(self, results):
         """
         Serialize the sanitized dictionary to JSON for all documents returned by Solr.
 
