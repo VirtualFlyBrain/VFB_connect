@@ -71,11 +71,14 @@ def _populate_data_source_id(TermInfo, d = dict()):
 
         for p in TermInfo['xrefs']:
             # Check if 'is_data_source' is set and truthy
-            if p.get('is_data_source'):
+            if p.get('is_data_source') and p.get('is_data_source') is True:
                 # Add site short_form or symbol to data_sources
-                data_sources.append(p['site'].get('symbol', p['site']['short_form']))
+                symbol = p['site'].get('symbol')
+                if not symbol:  # This covers both None and empty string
+                    symbol = p['site']['short_form']
+                data_sources.append(symbol)
                 # Add accession if available
-                if 'accession' in p:
+                if 'accession' in p.keys():
                     ds_accessions.append(p['accession'])
 
         # Join the results with '|'
@@ -150,23 +153,7 @@ def _populate_summary(TermInfo):
         d['parents_label'] = '|'.join([str(p['label']) for p in TermInfo['parents']])
         d['parents_id'] = '|'.join([str(p['short_form']) for p in TermInfo['parents']])
 
-    # Populate data source summary tab if source xrefs
-    if 'xrefs' in TermInfo.keys():
-        data_sources = []
-        ds_accessions = []
-
-        for p in TermInfo['xrefs']:
-            # Check if 'is_data_source' is set and truthy
-            if p.get('is_data_source'):
-                # Add site short_form or symbol to data_sources
-                data_sources.append(p['site'].get('symbol', p['site']['short_form']))
-                # Add accession if available
-                if 'accession' in p:
-                    ds_accessions.append(p['accession'])
-
-        # Join the results with '|'
-        d['data_source'] = '|'.join(data_sources)
-        d['accession'] = '|'.join(ds_accessions)
+    d = _populate_data_source_id(TermInfo, d)
 
     # Populate instance summary tab if available
     if 'xrefs' in TermInfo.keys():
