@@ -410,7 +410,7 @@ class QueryWrapper(Neo4jConnect):
             if key not in vfb_ids.keys():
                 warnings.warn("No VFB ID found for %s" % key)
             else:
-                ids_to_query.append(vfb_ids[key])
+                ids_to_query.extend(vfb_ids[key])
 
         # Retrieve term information for all IDs
         return self.get_TermInfo(ids_to_query)
@@ -482,7 +482,8 @@ class QueryWrapper(Neo4jConnect):
         results=[]
         for short_form in short_forms:
             result = vfb_solr.search('id:' + short_form)
-            results.extend(self._serialize_solr_output(result))
+            if len(result.docs) > 0:
+                results.extend(self._serialize_solr_output(result))
         return results
 
 
