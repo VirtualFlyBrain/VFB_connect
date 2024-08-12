@@ -460,6 +460,8 @@ class QueryWrapper(Neo4jConnect):
     @batch_query
     def _get_Cached_TermInfo(self, short_forms: iter, summary=True):
         # Flatten the list of short_forms in case it's nested
+        if isinstance(short_forms, str):
+            short_forms = [short_forms]
         if isinstance(short_forms, list):
             short_forms = list(chain.from_iterable(short_forms)) if any(isinstance(i, list) for i in short_forms) else short_forms
 
@@ -471,7 +473,7 @@ class QueryWrapper(Neo4jConnect):
             if isinstance(short_form, str) and short_form:
                 result = vfb_solr.search('id:' + short_form)
                 if len(result.docs) > 0:
-                    results.extend(self._serialize_solr_output(result))
+                    results.extend(result)
             else:
                 raise ValueError(f"Invalid short_form: {short_form}. Expected a string.")
         return results
