@@ -130,9 +130,27 @@ def _populate_summary(TermInfo):
         d['parents_label'] = '|'.join([str(p['label']) for p in TermInfo['parents']])
         d['parents_id'] = '|'.join([str(p['short_form']) for p in TermInfo['parents']])
 
+    # Populate data source summary tab if source xrefs
+    if 'xrefs' in TermInfo.keys():
+        data_sources = []
+        ds_accessions = []
+
+        for p in TermInfo['xrefs']:
+            # Check if 'is_data_source' is set and truthy
+            if p.get('is_data_source'):
+                # Add site short_form or symbol to data_sources
+                data_sources.append(p['site'].get('symbol', p['site']['short_form']))
+                # Add accession if available
+                if 'accession' in p:
+                    ds_accessions.append(p['accession'])
+
+        # Join the results with '|'
+        d['data_source'] = '|'.join(data_sources)
+        d['accession'] = '|'.join(ds_accessions)
+
     # Populate instance summary tab if available
     if 'xrefs' in TermInfo.keys():
-        d['xrefs'] = '|'.join([f"{p['site']['core'].get('symbol', p['site']['core']['short_form'])}:{p['accession']}" for p in TermInfo['xrefs']])
+        d['xrefs'] = '|'.join([f"{p['site'].get('symbol', p['site']['short_form'])}:{p['accession']}" for p in TermInfo['xrefs']])
 
     if 'channel_image' in TermInfo.keys():
         d['templates'] = '|'.join([str(x['image']['template_anatomy']['label']) for x in TermInfo['channel_image']])
