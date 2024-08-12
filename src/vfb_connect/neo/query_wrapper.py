@@ -481,9 +481,13 @@ class QueryWrapper(Neo4jConnect):
         vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
         results=[]
         for short_form in short_forms:
-            result = vfb_solr.search('id:' + short_form)
-            if len(result.docs) > 0:
-                results.extend(self._serialize_solr_output(result))
+            # Ensure short_form is a string
+            if isinstance(short_form, str) and short_form:
+                result = vfb_solr.search('id:' + short_form)
+                if len(result.docs) > 0:
+                    results.extend(self._serialize_solr_output(result))
+            else:
+                raise ValueError(f"Invalid short_form: {short_form}. Expected a string.")
         return results
 
 
