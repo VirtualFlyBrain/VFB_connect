@@ -11,6 +11,7 @@ import pkg_resources
 import requests
 from functools import wraps
 import pysolr
+from itertools import chain
 
 
 # from jsonpath_rw import parse as parse_jpath
