@@ -82,22 +82,8 @@ def _populate_instance_summary_tab(TermInfo):
 #    acc_expr = "$.xrefs.[*].accession"
 #    is_data_source_expr = "$.xrefs.[*].is_data_source"
 #   sites = pop_from_jpath(site_expr, TermInfo, join=False)
-    sites = [str(p['site']['short_form']) for p in TermInfo['xrefs']]
-    accessions = [str(p['accession']) for p in TermInfo['xrefs']
-                           if 'accession' in p.keys()]
-    is_data_source = [p['is_data_source'] for p in TermInfo['xrefs']
-                               if 'is_data_source' in p.keys()]
-
     i = 0
-    data_sources = []
-    ds_accessions = []
-    for ids in is_data_source:
-        if ids:
-            data_sources.append(sites[i])
-            ds_accessions.append(accessions[i])
-        i += 1
-    d['data_source'] = '|'.join(data_sources)
-    d['accession'] = '|'.join(ds_accessions)
+    d['xrefs'] = '|'.join([f"{p['site']['core'].get('symbol', p['site']['core']['short_form'])}:{p['accession']}" for p in TermInfo['xrefs']])
     d['templates'] = '|'.join([str(x['image']['template_anatomy']['label']) for x in TermInfo['channel_image']])
     d['dataset'] = '|'.join([str(x['dataset']['core']['short_form']) for x in TermInfo['dataset_license']])
     d['license'] = '|'.join([str(x['license']['link']) for x in TermInfo['dataset_license']
