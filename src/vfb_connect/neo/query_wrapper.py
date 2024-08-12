@@ -83,7 +83,7 @@ def _populate_instance_summary_tab(TermInfo):
 #    is_data_source_expr = "$.xrefs.[*].is_data_source"
 #   sites = pop_from_jpath(site_expr, TermInfo, join=False)
     i = 0
-    d['xrefs'] = '|'.join([f"{p['site']['core'].get('symbol', p['site']['core']['short_form'])}:{p['accession']}" for p in TermInfo['xrefs']])
+    d['xrefs'] = '|'.join([f"{p['site'].get('symbol', p['site']['short_form'])}:{p['accession']}" for p in TermInfo['xrefs']])
     d['templates'] = '|'.join([str(x['image']['template_anatomy']['label']) for x in TermInfo['channel_image']])
     d['dataset'] = '|'.join([str(x['dataset']['core']['short_form']) for x in TermInfo['dataset_license']])
     d['license'] = '|'.join([str(x['license']['link']) for x in TermInfo['dataset_license']
