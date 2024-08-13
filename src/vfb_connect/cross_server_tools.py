@@ -554,14 +554,18 @@ class VfbConnect:
         :return: List of terms.
         :rtype: list
         """
-        return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db, summary=summary, return_dataframe=return_dataframe)
+        return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db)
     
-    def vfb_id_2_xrefs(self, vfbids, db, summary=True, return_dataframe=True):
-        """Get cross-reference by VFB ID.
+    def vfb_id_2_xrefs(self, vfbids, db, reversed_return=False ,summary=True, return_dataframe=True):
+        """Map a list of short_form IDs in VFB to external DB IDs
 
-        :param vfbids: List of VFB IDs.
-        :param db: Database name.
-        :return: List of cross-references.
-        :rtype: list
+        :param vfb_id: An iterable (e.g. a list) of VFB short_form IDs.
+        :param db: optional specify the VFB id (short_form) of an external DB to map to. (use get_dbs to find options)
+        :param id_type: optionally specify an external id_type
+        :param reverse_return: Boolean: Optional (see return)
+        :return: if `reverse_return` is False:
+                dict { VFB_id : [{ db: <db> : acc : <acc> }
+            Return if `reverse_return` is `True`:
+                dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
         """
-        return self.neo_query_wrapper.vfb_id_2_xrefs(vfbids, db=db, summary=summary, return_dataframe=return_dataframe)
+        return self.neo_query_wrapper.vfb_id_2_xrefs(vfbids, db=db, reverse_return=reversed_return)
