@@ -556,7 +556,7 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db)
     
-    def vfb_id_2_xrefs(self, vfbids, db, reversed_return=False ,summary=True, return_dataframe=True):
+    def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
         """Map a list of short_form IDs in VFB to external DB IDs
 
         :param vfb_id: An iterable (e.g. a list) of VFB short_form IDs.
@@ -568,4 +568,4 @@ class VfbConnect:
             Return if `reverse_return` is `True`:
                 dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
         """
-        return self.neo_query_wrapper.vfb_id_2_xrefs(vfbids, db=db, reverse_return=reversed_return)
+        return self.neo_query_wrapper.vfb_id_2_xrefs(vfb_id=vfb_id, db=db, id_type=id_type, reverse_return=reverse_return)
