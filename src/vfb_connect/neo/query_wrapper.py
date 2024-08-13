@@ -421,7 +421,7 @@ class QueryWrapper(Neo4jConnect):
         return {d['key']: d['mapping'] for d in dc}
 
     @batch_query
-    def get_terms_by_xref(self, acc, db='', id_type='', summary=True, return_dataset=True):
+    def get_terms_by_xref(self, acc, db='', id_type='', summary=True, return_dataframe=True):
         """
         Generate a JSON report for terms specified by a list of cross-reference IDs (xrefs).
 
