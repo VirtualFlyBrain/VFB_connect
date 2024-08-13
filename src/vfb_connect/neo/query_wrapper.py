@@ -323,7 +323,7 @@ class QueryWrapper(Neo4jConnect):
                 "return i.short_form"
         return [d['i.short_form'] for d in self._query(query)]
 
-    def get_datasets(self, summary=True, return_datasets=True):
+    def get_datasets(self, summary=True, return_dataframe=True):
         """Generate JSON report of all datsets.
 
             :param summary: Optional. Returns summary reports if `True`. Default `True`
@@ -335,11 +335,11 @@ class QueryWrapper(Neo4jConnect):
                          "RETURN ds.short_form AS sf")
         short_forms = [d['sf'] for d in dc]
         results = self.get_DataSet_TermInfo(short_forms, summary=summary)
-        if return_datasets and summary:
+        if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
 
-    def get_templates(self, summary=True, return_datasets=True):
+    def get_templates(self, summary=True, return_dataframe=True):
         """Generate JSON report of all available templates.
 
             :param summary: Optional.  Returns summary reports if `True`. Default `True`
@@ -421,7 +421,7 @@ class QueryWrapper(Neo4jConnect):
         return {d['key']: d['mapping'] for d in dc}
 
     @batch_query
-    def get_terms_by_xref(self, acc, db='', id_type='', summary=True, return_datasets=True):
+    def get_terms_by_xref(self, acc, db='', id_type='', summary=True, return_dataset=True):
         """
         Generate a JSON report for terms specified by a list of cross-reference IDs (xrefs).
 
@@ -432,7 +432,7 @@ class QueryWrapper(Neo4jConnect):
         :param db: Optional. Specify the VFB ID (short_form) of an external database to map to. (Use `get_dbs()` to find options).
         :param id_type: Optional. Specify an external ID type to filter the mapping results.
         :param summary: Optional. Returns summary reports if `True`. Default is `True`.
-        :param return_datasets: Optional. Includes related datasets in the report if `True`. Default is `True`.
+        :param return_dataframe: Optional. Includes related datasets in the report if `True`. Default is `True`.
         :return: A list of term metadata as VFB_json or summary_report_json.
         :rtype: list of dicts
         :raises Warning: If no VFB ID is found for a given xref.
@@ -449,7 +449,7 @@ class QueryWrapper(Neo4jConnect):
                 ids_to_query.append(vfb_ids[key][0]['vfb_id'])
 
         # Retrieve term information for all IDs
-        return self.get_TermInfo(ids_to_query, summary=summary, return_datasets=return_datasets)
+        return self.get_TermInfo(ids_to_query, summary=summary, return_dataframe=return_dataframe)
 
     def get_images_by_filename(self, filenames, dataset=None):
         """Takes a list of filenames as input and returns a list of image terminfo.
@@ -465,7 +465,7 @@ class QueryWrapper(Neo4jConnect):
                                                         for d in dc])
 
     @batch_query
-    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_datasets=True):
+    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True):
         """Generate JSON report for terms specified by a list of IDs
 
         :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms)
@@ -508,12 +508,12 @@ class QueryWrapper(Neo4jConnect):
                 out.extend(self.get_pub_TermInfo([e['short_form']], summary=summary))
             elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
                 out.extend(self.get_anatomical_individual_TermInfo([e['short_form']], summary=summary))
-        if return_datasets and summary:
+        if return_dataframe and summary:
             return pd.DataFrame.from_records(out)
         return out
 
     @batch_query
-    def _get_Cached_TermInfo(self, short_forms: iter, summary=True, return_datasets=True):
+    def _get_Cached_TermInfo(self, short_forms: iter, summary=True, return_dataframe=True):
         # Flatten the list of short_forms in case it's nested
         if isinstance(short_forms, str):
             short_forms = [short_forms]
@@ -528,20 +528,20 @@ class QueryWrapper(Neo4jConnect):
 
 
     @batch_query
-    def _get_TermInfo(self, short_forms: iter, typ, show_query=False, summary=True, return_datasets=True):
+    def _get_TermInfo(self, short_forms: iter, typ, show_query=False, summary=True, return_dataframe=True):
         short_forms = list(short_forms)
         sfl = "', '".join(short_forms)
         qs = Template(self.queries[typ]).substitute(ID=sfl)
         if show_query:
             print(qs)
         if summary:
-            if return_datasets:
+            if return_dataframe:
                 return pd.DataFrame.from_records(self._termInfo_2_summary(self._query(qs), typ=typ))
             return self._termInfo_2_summary(self._query(qs), typ=typ)
         else:
             return self._query(qs)
 
-    def _get_anatomical_individual_TermInfo_by_type(self, classification, summary=True, return_datasets=True):
+    def _get_anatomical_individual_TermInfo_by_type(self, classification, summary=True, return_dataframe=True):
         typ = 'Get JSON for Individual:Anatomy_by_type'
         qs = Template(self.queries[typ]).substitute(ID=classification)
         if summary:
@@ -581,7 +581,7 @@ class QueryWrapper(Neo4jConnect):
                 serialized_results.append(result)
         return serialized_results
 
-    def get_anatomical_individual_TermInfo(self, short_forms, summary=True, return_datasets=True):
+    def get_anatomical_individual_TermInfo(self, short_forms, summary=True, return_dataframe=True):
         """
         Generate JSON reports for anatomical individuals from a list of VFB IDs (short_forms)
 
@@ -589,9 +589,9 @@ class QueryWrapper(Neo4jConnect):
         :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :rtype: list of VFB_json or summary_report_json
         """
-        return self._get_TermInfo(short_forms, typ='Get JSON for Individual', summary=summary, return_datasets=return_datasets)
+        return self._get_TermInfo(short_forms, typ='Get JSON for Individual', summary=summary, return_dataframe=return_dataframe)
 
-    def get_type_TermInfo(self, short_forms, summary=True, return_datasets=True):
+    def get_type_TermInfo(self, short_forms, summary=True, return_dataframe=True):
         """
         Generate JSON reports for types from a list of VFB IDs (short_forms) of classes/types.
 
@@ -599,9 +599,9 @@ class QueryWrapper(Neo4jConnect):
         :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :rtype: list of VFB_json or summary_report_json
         """
-        return self._get_TermInfo(short_forms, typ='Get JSON for Class', summary=summary, return_datasets=return_datasets)
+        return self._get_TermInfo(short_forms, typ='Get JSON for Class', summary=summary, return_dataframe=return_dataframe)
 
-    def get_neuron_class_TermInfo(self, short_forms, summary=True, return_datasets=True):
+    def get_neuron_class_TermInfo(self, short_forms, summary=True, return_dataframe=True):
         """
         Generate JSON reports for neuron classes from a list of VFB IDs (short_forms) of neuron classes.
 
@@ -609,9 +609,9 @@ class QueryWrapper(Neo4jConnect):
         :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :rtype: list of VFB_json or summary_report_json
         """
-        return self._get_TermInfo(short_forms, typ='Get JSON for Neuron Class', summary=summary, return_datasets=return_datasets)
+        return self._get_TermInfo(short_forms, typ='Get JSON for Neuron Class', summary=summary, return_dataframe=return_dataframe)
 
-    def get_split_class_TermInfo(self, short_forms, summary=True, return_datasets=True):
+    def get_split_class_TermInfo(self, short_forms, summary=True, return_dataframe=True):
         """
         Generate JSON reports for split classes from a list of VFB IDs (short_forms) of split classes.
 
@@ -619,9 +619,9 @@ class QueryWrapper(Neo4jConnect):
         :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :rtype: list of VFB_json or summary_report_json
         """
-        return self._get_TermInfo(short_forms, typ='Get JSON for Split Class', summary=summary, return_datasets=return_datasets)
+        return self._get_TermInfo(short_forms, typ='Get JSON for Split Class', summary=summary, return_dataframe=return_dataframe)
 
-    def get_DataSet_TermInfo(self, short_forms, summary=True, return_datasets=True):
+    def get_DataSet_TermInfo(self, short_forms, summary=True, return_dataframe=True):
         """
         Generate JSON reports for datasets from a list of VFB IDs (short_forms) of datasets.
 
@@ -629,9 +629,9 @@ class QueryWrapper(Neo4jConnect):
         :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :rtype: list of VFB_json or summary_report_json
         """
-        return self._get_TermInfo(short_forms, typ='Get JSON for DataSet', summary=summary, return_datasets=return_datasets)
+        return self._get_TermInfo(short_forms, typ='Get JSON for DataSet', summary=summary, return_dataframe=return_dataframe)
 
-    def get_license_TermInfo(self, short_forms, summary=True, return_datasets=True):
+    def get_license_TermInfo(self, short_forms, summary=True, return_dataframe=True):
         """
         Generate JSON reports for licenses from a list of VFB IDs (short_forms) of licenses.
 
@@ -639,9 +639,9 @@ class QueryWrapper(Neo4jConnect):
         :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :rtype: list of VFB_json or summary_report_json
         """
-        return self._get_TermInfo(short_forms, typ='Get JSON for License', summary=summary, return_datasets=return_datasets)
+        return self._get_TermInfo(short_forms, typ='Get JSON for License', summary=summary, return_dataframe=return_dataframe)
 
-    def get_template_TermInfo(self, short_forms, summary=True, return_datasets=True):
+    def get_template_TermInfo(self, short_forms, summary=True, return_dataframe=True):
         """
         Generate JSON reports for templates from a list of VFB IDs (short_forms) of templates.
 
@@ -649,9 +649,9 @@ class QueryWrapper(Neo4jConnect):
         :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :rtype: list of VFB_json or summary_report_json
         """
-        return self._get_TermInfo(short_forms, typ='Get JSON for Template', summary=summary, return_datasets=return_datasets)
+        return self._get_TermInfo(short_forms, typ='Get JSON for Template', summary=summary, return_dataframe=return_dataframe)
 
-    def get_pub_TermInfo(self, short_forms, summary=True, return_datasets=True):
+    def get_pub_TermInfo(self, short_forms, summary=True, return_dataframe=True):
         """
         Generate JSON reports for publications from a list of VFB IDs (short_forms) of publications.
 
@@ -659,9 +659,9 @@ class QueryWrapper(Neo4jConnect):
         :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :rtype: list of VFB_json or summary_report_json
         """
-        return self._get_TermInfo(short_forms, typ='Get JSON for pub', summary=summary, return_datasets=return_datasets)
+        return self._get_TermInfo(short_forms, typ='Get JSON for pub', summary=summary, return_dataframe=return_dataframe)
 
-    def get_anatomy_by_type_TermInfo(self, short_forms, summary=True, return_datasets=True):
+    def get_anatomy_by_type_TermInfo(self, short_forms, summary=True, return_dataframe=True):
         """
         Generate JSON reports for anatomical individuals by type from a list of VFB IDs (short_forms).
 
@@ -669,5 +669,5 @@ class QueryWrapper(Neo4jConnect):
         :param summary: Optional.  Returns summary reports if `True`. Default `True`
         :rtype: list of VFB_json or summary_report_json
         """
-        return self._get_TermInfo(short_forms, typ='Get JSON for Individual:Anatomy_by_type', summary=summary, return_datasets=return_datasets)
+        return self._get_TermInfo(short_forms, typ='Get JSON for Individual:Anatomy_by_type', summary=summary, return_dataframe=return_dataframe)
 
