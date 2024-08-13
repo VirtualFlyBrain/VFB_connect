@@ -209,7 +209,7 @@ def _populate_summary(TermInfo):
     # return filter_wrapper
 
 
-def gen_simple_report(terms):
+def gen_simple_report(terms, dataframe=True):
     nc = Neo4jConnect("https://pdb.virtualflybrain.org", "neo4j", "neo4j")
     query = """MATCH (n:Class) WHERE n.iri in %s WITH n 
                 OPTIONAL MATCH  (n)-[r]->(p:pub) WHERE r.typ = 'syn' 
@@ -226,6 +226,10 @@ def gen_simple_report(terms):
                  """ % str(terms)
     q = nc.commit_list([query])
     # add check
+    if not q:
+        raise Exception('Query failed.')
+    if dataframe:
+        return pd.DataFrame.from_records(dict_cursor(q))
     return dict_cursor(q)
 
 

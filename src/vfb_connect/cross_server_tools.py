@@ -68,12 +68,12 @@ class VfbConnect:
         self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
 
 
-    def lookup_id(self, key, return_short_form=True):
+    def lookup_id(self, key, return_curie=False):
 
         if key in self.lookup.keys():
             out = self.lookup[key]
-            if return_short_form:
-                return out
+            if return_curie:
+                return out.replace('_',':')
             else:
                 return out
         else:
@@ -90,7 +90,7 @@ class VfbConnect:
     # :rtype: [ReturnType]
     # """
 
-    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True):
+    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True, return_dataframe=True):
         """Generate TermInfo reports for all terms relevant to annotating some specific region,
         optionally limited to cells.
 
@@ -115,7 +115,7 @@ class VfbConnect:
         return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
                                                         summary=summary)
 
-    def get_subclasses(self, class_expression, query_by_label=True, direct=False, summary=True):
+    def get_subclasses(self, class_expression, query_by_label=True, direct=False, summary=True, return_dataframe=True):
         """Generate JSON report of all subclasses of class_expression.
 
         :param class_expression: A valid OWL class expression, e.g. the name of a class.
@@ -128,10 +128,12 @@ class VfbConnect:
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_subclasses("%s" % class_expression, direct=direct, query_by_label=query_by_label)
-        return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
-                                                        summary=summary)
+        results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)), summary=summary)
+        if return_dataframe:
+            return pd.DataFrame.from_records(results)
+        return results
 
-    def get_superclasses(self, class_expression, query_by_label=True, direct=False, summary=True):
+    def get_superclasses(self, class_expression, query_by_label=True, direct=False, summary=True, return_dataframe=True):
         """Generate JSON report of all superclasses of class_expression.
 
         :param class_expression: A valid OWL class expression, e.g. the name of a class.
@@ -143,10 +145,12 @@ class VfbConnect:
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label, direct=direct)
-        return self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
-                                                        summary=summary)
+        results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)), summary=summary)
+        if return_dataframe:
+            return pd.DataFrame.from_records(results)
+        return results
 
-    def get_instances(self, class_expression, query_by_label=True, summary=True):
+    def get_instances(self, class_expression, query_by_label=True, summary=True, return_dataframe=True):
         """Generate JSON report of all instances of class_expression. Instances are specific examples
          of a type/class, e.g. a neuron of type DA1 adPN from the FAFB_catmaid database.
 
@@ -164,6 +168,8 @@ class VfbConnect:
             terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
             out = self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)),
                                                                             summary=summary)
+        if return_dataframe:
+            return pd.DataFrame.from_records(out)
         return out
 
     def _get_neurons_connected_to(self, neuron, weight, direction, classification=None, query_by_label=True,
@@ -296,7 +302,7 @@ class VfbConnect:
         else:
             return dc
 
-    def get_instances_by_dataset(self, dataset, summary=True):
+    def get_instances_by_dataset(self, dataset, summary=True, return_dataframe=True):
         """Get JSON report of all individuals in a dataset
 
         :param dataset: dataset ID
@@ -310,7 +316,10 @@ class VfbConnect:
                     "WHERE ds.short_form = '%s' " \
                     "RETURN collect(i.short_form) as inds" % dataset
             dc = self.neo_query_wrapper._query(query)  # Would better to use the original column oriented return!
-            return self.neo_query_wrapper.get_anatomical_individual_TermInfo(dc[0]['inds'], summary=summary)
+            results =  self.neo_query_wrapper.get_anatomical_individual_TermInfo(dc[0]['inds'], summary=summary)
+            if return_dataframe:
+                return pd.DataFrame.from_records(results)
+            return results
     
 
     def get_vfb_link(self, short_forms: iter, template):
@@ -327,7 +336,8 @@ class VfbConnect:
         if not dc:
             raise ValueError("Unrecognised template name %s" % template)
         else:
-            return self.vfb_base + short_forms.pop() + "&i=" + dc[0]['t.short_form'] + ',' + ','.join(short_forms)
+            results = self.vfb_base + short_forms.pop() + "&i=" + dc[0]['t.short_form'] + ',' + ','.join(short_forms)
+            return results
 
     def get_images_by_type(self, class_expression, template, image_folder,
                            image_type='swc', query_by_label=True, direct=False, stomp=False):
