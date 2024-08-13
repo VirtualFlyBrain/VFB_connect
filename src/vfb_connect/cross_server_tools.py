@@ -117,7 +117,7 @@ class VfbConnect:
         if verbose:
             print("Found: %d terms" % len(terms))
         results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
-                                                           summary=summary)
+                                                           summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
@@ -136,7 +136,7 @@ class VfbConnect:
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_subclasses("%s" % class_expression, direct=direct, query_by_label=query_by_label)
-        results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)), summary=summary)
+        results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)), summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
@@ -155,7 +155,7 @@ class VfbConnect:
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label, direct=direct)
-        results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)), summary=summary)
+        results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)), summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
@@ -180,7 +180,7 @@ class VfbConnect:
         else:
             terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
             out = self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)),
-                                                                            summary=summary)
+                                                                            summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(out)
         return out
@@ -337,7 +337,7 @@ class VfbConnect:
                     "WHERE ds.short_form = '%s' " \
                     "RETURN collect(i.short_form) as inds" % dataset
             dc = self.neo_query_wrapper._query(query) # TODO - Would better to use the original column oriented return!
-            results = self.neo_query_wrapper.get_anatomical_individual_TermInfo(dc[0]['inds'], summary=summary)
+            results = self.neo_query_wrapper.get_anatomical_individual_TermInfo(dc[0]['inds'], summary=summary, return_dataframe=False)
             if return_dataframe and summary:
                 return pd.DataFrame.from_records(results)
             return results
@@ -555,3 +555,13 @@ class VfbConnect:
         :rtype: list
         """
         return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db, summary=summary, return_dataframe=return_dataframe)
+    
+    def vfb_id_2_xrefs(self, vfbids, db, summary=True, return_dataframe=True):
+        """Get cross-reference by VFB ID.
+
+        :param vfbids: List of VFB IDs.
+        :param db: Database name.
+        :return: List of cross-references.
+        :rtype: list
+        """
+        return self.neo_query_wrapper.vfb_id_2_xrefs(vfbids, db=db, summary=summary, return_dataframe=return_dataframe)

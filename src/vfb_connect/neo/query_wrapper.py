@@ -334,7 +334,7 @@ class QueryWrapper(Neo4jConnect):
         dc = self._query("MATCH (ds:DataSet) "
                          "RETURN ds.short_form AS sf")
         short_forms = [d['sf'] for d in dc]
-        results = self.get_DataSet_TermInfo(short_forms, summary=summary)
+        results = self.get_DataSet_TermInfo(short_forms, summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
@@ -493,21 +493,21 @@ class QueryWrapper(Neo4jConnect):
         out = []
         for e in r:
             if 'class' in e['labs'] and 'Neuron' in e['labs']:
-                out.extend(self.get_neuron_class_TermInfo([e['short_form']], summary=summary))
+                out.extend(self.get_neuron_class_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'class' in e['labs'] and 'Split' in e['labs']:
-                out.extend(self.get_split_class_TermInfo([e['short_form']], summary=summary))
+                out.extend(self.get_split_class_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             if 'Class' in e['labs']:
-                out.extend(self.get_type_TermInfo([e['short_form']], summary=summary))
+                out.extend(self.get_type_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'DataSet' in e['labs']:
-                out.extend(self.get_DataSet_TermInfo([e['short_form']], summary=summary))
+                out.extend(self.get_DataSet_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'License' in e['labs']:
-                out.extend(self.get_License_TermInfo([e['short_form']], summary=summary))
+                out.extend(self.get_License_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'Template' in e['labs']:
-                out.extend(self.get_template_TermInfo([e['short_form']], summary=summary))
+                out.extend(self.get_template_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'pub' in e['labs']:
-                out.extend(self.get_pub_TermInfo([e['short_form']], summary=summary))
+                out.extend(self.get_pub_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
-                out.extend(self.get_anatomical_individual_TermInfo([e['short_form']], summary=summary))
+                out.extend(self.get_anatomical_individual_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
         if return_dataframe and summary:
             return pd.DataFrame.from_records(out)
         return out
