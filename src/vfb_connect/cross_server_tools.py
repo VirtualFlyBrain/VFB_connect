@@ -129,7 +129,7 @@ class VfbConnect:
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_subclasses("%s" % class_expression, direct=direct, query_by_label=query_by_label)
         results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)), summary=summary)
-        if return_dataframe:
+        if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
 
@@ -146,7 +146,7 @@ class VfbConnect:
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label, direct=direct)
         results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)), summary=summary)
-        if return_dataframe:
+        if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
 
@@ -168,7 +168,7 @@ class VfbConnect:
             terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
             out = self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)),
                                                                             summary=summary)
-        if return_dataframe:
+        if return_dataframe and summary:
             return pd.DataFrame.from_records(out)
         return out
 
@@ -194,7 +194,7 @@ class VfbConnect:
                         "downstream.short_form as target_neuron_id, downstream.label as target_neuron_name"
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
-        if return_dataframe:
+        if return_dataframe and summary:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
@@ -219,7 +219,7 @@ class VfbConnect:
                 "COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source " \
                 "ORDER BY %s DESC""" % (neuron, similarity_score)
         dc = self.neo_query_wrapper._query(query)
-        if return_dataframe:
+        if return_dataframe and summary:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
@@ -297,7 +297,7 @@ class VfbConnect:
 #       print(cypher_query)
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
-        if return_dataframe:
+        if return_dataframe and summary:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
@@ -317,7 +317,7 @@ class VfbConnect:
                     "RETURN collect(i.short_form) as inds" % dataset
             dc = self.neo_query_wrapper._query(query)  # Would better to use the original column oriented return!
             results =  self.neo_query_wrapper.get_anatomical_individual_TermInfo(dc[0]['inds'], summary=summary)
-            if return_dataframe:
+            if return_dataframe and summary:
                 return pd.DataFrame.from_records(results)
             return results
     
@@ -428,7 +428,7 @@ class VfbConnect:
                  % (gene_label, cell_type_short_form))
         r = self.nc.commit_list([query])
         dc = dict_cursor(r)
-        if return_dataframe:
+        if return_dataframe and summary:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
