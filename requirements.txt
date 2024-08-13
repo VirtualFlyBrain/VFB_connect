@@ -3,7 +3,8 @@ psycopg2
 pandas
 pandasql
 jsonpath_rw
-setuptools~=50.3.2
+setuptools
 neuprint-python
 pysolr
 bottleneck<=1.3.6
+backports.tarfile

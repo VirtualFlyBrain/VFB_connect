@@ -313,7 +313,7 @@ class QueryWrapper(Neo4jConnect):
                 "return i.short_form"
         return [d['i.short_form'] for d in self._query(query)]
 
-    def get_datasets(self, summary=True):
+    def get_datasets(self, summary=True, return_datasets=True):
         """Generate JSON report of all datsets.
 
             :param summary: Optional. Returns summary reports if `True`. Default `True`
@@ -324,7 +324,10 @@ class QueryWrapper(Neo4jConnect):
         dc = self._query("MATCH (ds:DataSet) "
                          "RETURN ds.short_form AS sf")
         short_forms = [d['sf'] for d in dc]
-        return self.get_DataSet_TermInfo(short_forms, summary=summary)
+        results = self.get_DataSet_TermInfo(short_forms, summary=summary)
+        if return_datasets and summary:
+            return pd.DataFrame.from_records(results)
+        return results
 
     def get_templates(self, summary=True):
         """Generate JSON report of all available templates.

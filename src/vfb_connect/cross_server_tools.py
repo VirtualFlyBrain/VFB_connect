@@ -432,4 +432,74 @@ class VfbConnect:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
+        
+    #  Wrapped neo_query_wrapper methods
+    def get_datasets(self, summary=True, return_dataframe=True):
+        """Get all datasets in the database.
 
+        :return: List of datasets in the database.
+        :rtype: list
+        """
+        return self.neo_query_wrapper.get_datasets(summary=summary, return_dataframe=return_dataframe)
+    
+    def get_images(self, short_forms, template=None, image_folder=None, image_type='swc', stomp=False):
+        """Get images for a list of individuals.
+
+        :param short_forms: List of short_form IDs for individuals.
+        :param template: Optional. Template name.
+        :param image_folder: Optional. Folder to save image files & manifest to.
+        :param image_type: Optional. Image type (file extension).
+        :param stomp: Optional. Overwrite image_folder if already exists.
+        :return: Manifest as Pandas DataFrame
+        """
+        return self.neo_query_wrapper.get_images(short_forms, template=template, image_folder=image_folder,
+                                                 image_type=image_type, stomp=stomp)
+    
+    def get_templates(self, summary=True, return_dataframe=True):
+        """Get all templates in the database.
+
+        :return: List of templates in the database.
+        :rtype: list
+        """
+        return self.neo_query_wrapper.get_templates(summary=summary, return_dataframe=return_dataframe)
+    
+    def get_terms_by_xref(self, xrefs, db, summary=True, return_dataframe=True):
+        """Get terms by cross-reference.
+
+        :param xrefs: List of cross-references.
+        :param db: Database name.
+        :return: List of terms.
+        :rtype: list
+        """
+        return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db, summary=summary, return_dataframe=return_dataframe)
+    
+    def get_vfb_id_by_xref(self, xrefs, db, summary=True, return_dataframe=True):
+        """Get VFB ID by cross-reference.
+
+        :param xrefs: List of cross-references.
+        :param db: Database name.
+        :return: List of VFB IDs.
+        :rtype: list
+        """
+        return self.neo_query_wrapper.xref_2_vfb_id(xrefs, db=db, summary=summary, return_dataframe=return_dataframe)
+    
+    def get_xref_by_vfbid(self, vfbids, db, summary=True, return_dataframe=True):
+        """Get cross-reference by VFB ID.
+
+        :param vfbids: List of VFB IDs.
+        :param db: Database name.
+        :return: List of cross-references.
+        :rtype: list
+        """
+        return self.neo_query_wrapper.vfb_id_2_xrefs(vfbids, db=db, summary=summary, return_dataframe=return_dataframe)
+    
+    def get_images_by_filename(self, filenames, dataset=None, summary=True, return_dataframe=True):
+        """Get images by filename.
+
+        :param filenames: List of filenames.
+        :param dataset: Optional. Dataset name.
+        :return: List of images.
+        :rtype: list
+        """
+        return self.neo_query_wrapper.get_images_by_filename(filenames, dataset=dataset, summary=summary,
+                                                             return_dataframe=return_dataframe)
