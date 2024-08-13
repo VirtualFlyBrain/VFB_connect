@@ -20,17 +20,24 @@ from vfb_connect.neo.neo4j_tools import chunks, Neo4jConnect, dict_cursor, escap
 
 
 def batch_query(func):
-    # Assumes first arg is to be batches and that return value is list. Only works on class methods.
-    # There has to be a better way to work with the values of args and kwargs than this!!!!
-    @wraps(func)  # Boilerplate required for Sphinx autodoc
+    """Decorator to batch the first argument of the function (assumed to be an iterable) and apply the function to each batch.
+    
+    Assumes the first argument is to be batched and that the return value is a list. Only works on class methods.
+    
+    :param func: The function to be wrapped and batched.
+    :return: A wrapper function that processes the input in batches.
+    """
+    @wraps(func)
     def wrapper_batch(*args, **kwargs):
         arg_names = getfullargspec(func).args
+
         if len(args) > 1:
             arg1v = args[1]
             arg1typ = 'a'
         else:
-            arg1v = kwargs[arg_names[1]]
+            arg1v = kwargs.get(arg_names[1])
             arg1typ = 'k'
+
         cs = chunks(arg1v, 2500)
         out = []
         for c in cs:
@@ -43,8 +50,11 @@ def batch_query(func):
                 kwargdict = dict(kwargs)
                 kwargdict[arg_names[1]] = c
                 out.extend(func(*args, **kwargdict))
+        
         return out
+    
     return wrapper_batch
+
 
 
 # def pop_from_jpath(jpath, json, join=True):
