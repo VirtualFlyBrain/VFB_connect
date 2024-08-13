@@ -332,15 +332,22 @@ class QueryWrapper(Neo4jConnect):
         return [d['i.short_form'] for d in self._query(query)]
 
     def get_datasets(self, summary=True, return_dataframe=True):
-        """Generate JSON report of all datsets.
+        """
+        Generate a report of all datasets available in the system.
 
-            :param summary: Optional. Returns summary reports if `True`. Default `True`
-            :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
-            :return type: list of VFB_json or summary_report_json
-            """
+        This method retrieves all datasets and returns their information as either full JSON data structures or summaries.
+        The results can be returned as a list of dictionaries or as a pandas DataFrame, depending on the `return_dataframe` flag.
+
+        :param summary: Optional. If `True`, returns summary reports instead of full metadata. Default is `True`.
+        :param return_dataframe: Optional. If `True` and `summary` is also `True`, returns the results as a pandas DataFrame.
+                                Default is `True`.
+        :return: A list of terms as nested Python data structures (VFB_json or summary_report_json), or a pandas DataFrame if 
+                `return_dataframe` is `True` and `summary` is `True`.
+        :rtype: list of dicts or pandas.DataFrame
+        """
 
         dc = self._query("MATCH (ds:DataSet) "
-                         "RETURN ds.short_form AS sf")
+                        "RETURN ds.short_form AS sf")
         short_forms = [d['sf'] for d in dc]
         results = self.get_DataSet_TermInfo(short_forms, summary=summary, return_dataframe=False)
         if return_dataframe and summary:
