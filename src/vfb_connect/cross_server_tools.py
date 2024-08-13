@@ -526,3 +526,32 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.get_images_by_filename(filenames, dataset=dataset, summary=summary,
                                                              return_dataframe=return_dataframe)
+
+    def get_anatomical_individual_TermInfo(self, short_forms, summary=True, return_dataframe=True):
+        """Get anatomical individual term info.
+
+        :param short_forms: List of short_form IDs.
+        :return: List of anatomical individual term info.
+        :rtype: list
+        """
+        return self.neo_query_wrapper.get_anatomical_individual_TermInfo(short_forms, summary=summary,
+                                                                         return_dataframe=return_dataframe)
+    
+    def get_TermInfo(self, short_forms, summary=True, return_dataframe=True):
+        """Get term info.
+
+        :param short_forms: List of short_form IDs.
+        :return: List of term info.
+        :rtype: list
+        """
+        return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, return_dataframe=return_dataframe)
+    
+    def get_terms_by_xref(self, xrefs, db, summary=True, return_dataframe=True):
+        """Get terms by cross-reference.
+
+        :param xrefs: List of cross-references.
+        :param db: Database name.
+        :return: List of terms.
+        :rtype: list
+        """
+        return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db, summary=summary, return_dataframe=return_dataframe)
