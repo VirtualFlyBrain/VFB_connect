@@ -1,7 +1,7 @@
 import warnings
 from .owl.owlery_query_tools import OWLeryConnect
 from .neo.neo4j_tools import Neo4jConnect, re, dict_cursor
-from .neo.query_wrapper import QueryWrapper
+from .neo.query_wrapper import QueryWrapper, batch_query
 from .default_servers import get_default_servers
 import pandas as pd
 
@@ -465,7 +465,8 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.get_datasets(summary=summary, return_dataframe=return_dataframe)
     
-    def get_images(self, short_forms, template=None, image_folder=None, image_type='swc', stomp=False):
+    @batch_query
+    def get_images(self, short_forms: iter, template=None, image_folder=None, image_type='swc', stomp=False):
         """Get images for a list of individuals.
 
         :param short_forms: List of short_form IDs for individuals.
@@ -486,7 +487,8 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.get_templates(summary=summary, return_dataframe=return_dataframe)
     
-    def get_terms_by_xref(self, xrefs, db, summary=True, return_dataframe=True):
+    @batch_query
+    def get_terms_by_xref(self, xrefs: iter, db, summary=True, return_dataframe=True):
         """Get terms by cross-reference.
 
         :param xrefs: List of cross-references.
@@ -494,29 +496,24 @@ class VfbConnect:
         :return: List of terms.
         :rtype: list
         """
-        return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db, summary=summary, return_dataframe=return_dataframe)
+        return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db, summary=summary, return_dataframe=False)
     
-    def get_vfb_id_by_xref(self, xrefs, db, summary=True, return_dataframe=True):
-        """Get VFB ID by cross-reference.
+    def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
+        """Map a list external DB IDs to VFB IDs
 
-        :param xrefs: List of cross-references.
-        :param db: Database name.
-        :return: List of VFB IDs.
-        :rtype: list
+        :param acc: An iterable (e.g. a list) of external IDs (e.g. neuprint bodyIDs).
+        :param db: optional specify the VFB id (short_form) of an external DB to map to. (use get_dbs to find options)
+        :param id_type: optionally specify an external id_type
+        :param reverse_return: Boolean: Optional (see return)
+        :return: if `reverse_return` is False:
+            dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
+            Return if `reverse_return` is `True`:
+            dict { VFB_id : [{ db: <db> : acc : <acc> }
         """
-        return self.neo_query_wrapper.xref_2_vfb_id(xrefs, db=db, summary=summary, return_dataframe=return_dataframe)
+        return self.neo_query_wrapper.xref_2_vfb_id(acc=acc, db=db, id_type=id_type, reverse_return=reverse_return)
     
-    def get_xref_by_vfbid(self, vfbids, db, summary=True, return_dataframe=True):
-        """Get cross-reference by VFB ID.
-
-        :param vfbids: List of VFB IDs.
-        :param db: Database name.
-        :return: List of cross-references.
-        :rtype: list
-        """
-        return self.neo_query_wrapper.vfb_id_2_xrefs(vfbids, db=db, summary=summary, return_dataframe=return_dataframe)
-    
-    def get_images_by_filename(self, filenames, dataset=None, summary=True, return_dataframe=True):
+    @batch_query
+    def get_images_by_filename(self, filenames: iter, dataset=None, summary=True, return_dataframe=True):
         """Get images by filename.
 
         :param filenames: List of filenames.
@@ -525,27 +522,27 @@ class VfbConnect:
         :rtype: list
         """
         return self.neo_query_wrapper.get_images_by_filename(filenames, dataset=dataset, summary=summary,
-                                                             return_dataframe=return_dataframe)
-
-    def get_anatomical_individual_TermInfo(self, short_forms, summary=True, return_dataframe=True):
-        """Get anatomical individual term info.
-
-        :param short_forms: List of short_form IDs.
-        :return: List of anatomical individual term info.
-        :rtype: list
-        """
-        return self.neo_query_wrapper.get_anatomical_individual_TermInfo(short_forms, summary=summary,
-                                                                         return_dataframe=return_dataframe)
+                                                             return_dataframe=False)
     
-    def get_TermInfo(self, short_forms, summary=True, return_dataframe=True):
-        """Get term info.
-
-        :param short_forms: List of short_form IDs.
-        :return: List of term info.
-        :rtype: list
+    @batch_query
+    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True):
         """
-        return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, return_dataframe=return_dataframe)
+        Generate a JSON report or summary for terms specified by a list of VFB IDs.
+
+        This method retrieves term information for a list of specified VFB IDs (short_forms). It can return either 
+        full metadata or a summary of the terms. The results can be returned as a pandas DataFrame if `return_dataframe` 
+        is set to `True`.
+
+        :param short_forms: An iterable (e.g., a list) of VFB IDs (short_forms).
+        :param summary: Optional. If `True`, returns a summary report instead of full metadata. Default is `True`.
+        :param cache: Optional. If `True`, attempts to retrieve cached results before querying. Default is `True`.
+        :param return_dataframe: Optional. If `True`, returns the results as a pandas DataFrame. Default is `True`.
+        :return: A list of term metadata as VFB_json or summary_report_json, or a pandas DataFrame if `return_dataframe` is `True`.
+        :rtype: list of dicts or pandas.DataFrame
+        """
+        return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, cache=cache, return_dataframe=False)
     
+    @batch_query
     def get_terms_by_xref(self, xrefs, db, summary=True, return_dataframe=True):
         """Get terms by cross-reference.
 
@@ -556,6 +553,7 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db)
     
+    @batch_query
     def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
         """Map a list of short_form IDs in VFB to external DB IDs
 

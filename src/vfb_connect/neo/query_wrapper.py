@@ -50,9 +50,10 @@ def batch_query(func):
                 kwargdict = dict(kwargs)
                 kwargdict[arg_names[1]] = c
                 out.extend(func(*args, **kwargdict))
-        
+        # Check if return_dataframe is requested and summary is requested
+        if out and len(out) > 0 and dict(kwargs).get('return_dataframe', 'return_dataframe' in arg_names) and dict(kwargs).get('summary', True):
+            return pd.DataFrame.from_records(out)
         return out
-    
     return wrapper_batch
 
 
@@ -67,7 +68,7 @@ def batch_query(func):
 
 def _populate_minimal_summary_tab(TermInfo):
     d = dict()
-    d['label'] = TermInfo['term']['core'].get('symbol') or TermInfo['term']['core']['label']
+    d['label'] = TermInfo['term']['core']['label']
     d['symbol'] = TermInfo['term']['core'].get('symbol', '')
     d['id'] = TermInfo['term']['core']['short_form']
     d['tags'] = '|'.join(TermInfo['term']['core']['types'])
@@ -116,7 +117,11 @@ def _populate_instance_summary_tab(TermInfo):
 #    is_data_source_expr = "$.xrefs.[*].is_data_source"
 #   sites = pop_from_jpath(site_expr, TermInfo, join=False)
     i = 0
-    d['xrefs'] = '|'.join([f"{p['site'].get('symbol', p['site']['short_form'])}:{p['accession']}" for p in TermInfo['xrefs']])
+    if 'xrefs' in TermInfo.keys():
+        d['xrefs'] = '|'.join([
+            f"{p['site']['symbol'] if p['site'].get('symbol') else p['site']['short_form']}:{p['accession']}"
+            for p in TermInfo['xrefs']
+        ])
     d['templates'] = '|'.join([str(x['image']['template_anatomy']['label']) for x in TermInfo['channel_image']])
     d['dataset'] = '|'.join([str(x['dataset']['core']['short_form']) for x in TermInfo['dataset_license']])
     d['license'] = '|'.join([str(x['license']['link']) for x in TermInfo['dataset_license']
@@ -153,7 +158,7 @@ def _populate_summary(TermInfo):
     d = dict()
     
     # Populate minimal summary tab
-    d['label'] = get_value('term', {}).get('core', {}).get('symbol') or get_value('term', {}).get('core', {}).get('label', '')
+    d['label'] = get_value('term', {}).get('core', {}).get('label', '')
     d['symbol'] = get_value('term', {}).get('core', {}).get('symbol', '')
     d['id'] = get_value('term', {}).get('core', {}).get('short_form', '')
     d['tags'] = '|'.join(get_value('term', {}).get('core', {}).get('types', []))
@@ -167,7 +172,10 @@ def _populate_summary(TermInfo):
 
     # Populate instance summary tab if available
     if 'xrefs' in TermInfo.keys():
-        d['xrefs'] = '|'.join([f"{p['site'].get('symbol', p['site']['short_form'])}:{p['accession']}" for p in TermInfo['xrefs']])
+        d['xrefs'] = '|'.join([
+            f"{p['site']['symbol'] if p['site'].get('symbol') else p['site']['short_form']}:{p['accession']}"
+            for p in TermInfo['xrefs']
+        ])
 
     if 'channel_image' in TermInfo.keys():
         d['templates'] = '|'.join([str(x['image']['template_anatomy']['label']) for x in TermInfo['channel_image']])
@@ -466,16 +474,22 @@ class QueryWrapper(Neo4jConnect):
 
     @batch_query
     def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True):
-        """Generate JSON report for terms specified by a list of IDs
+        """
+        Generate a JSON report or summary for terms specified by a list of VFB IDs.
 
-        :param short_forms: An iterable (e.g. a list) of VFB IDs (short_forms)
-        :param db: optionally specify the VFB id (short_form) of external DB.
-        :param id_type: optionally specify an external id_type
-        :return: list of term metadata as VFB_json
+        This method retrieves term information for a list of specified VFB IDs (short_forms). It can return either 
+        full metadata or a summary of the terms. The results can be returned as a pandas DataFrame if `return_dataframe` 
+        is set to `True`.
 
+        :param short_forms: An iterable (e.g., a list) of VFB IDs (short_forms).
+        :param summary: Optional. If `True`, returns a summary report instead of full metadata. Default is `True`.
+        :param cache: Optional. If `True`, attempts to retrieve cached results before querying. Default is `True`.
+        :param return_dataframe: Optional. If `True`, returns the results as a pandas DataFrame. Default is `True`.
+        :return: A list of term metadata as VFB_json or summary_report_json, or a pandas DataFrame if `return_dataframe` is `True`.
+        :rtype: list of dicts or pandas.DataFrame
         """
         if cache:
-            result = self._get_Cached_TermInfo(short_forms)
+            result = self._get_Cached_TermInfo(short_forms, summary=summary, return_dataframe=False)
             if len(result) == len(short_forms):
                 if summary:
                     results = []
@@ -485,7 +499,7 @@ class QueryWrapper(Neo4jConnect):
                 else:
                     return result
             else:
-                return self.get_TermInfo(short_forms, summary=summary, cache=False)
+                return self.get_TermInfo(short_forms, summary=summary, cache=False, return_dataframe=return_dataframe)
         pre_query = "MATCH (e:Entity) " \
                     "WHERE e.short_form in %s " \
                     "RETURN e.short_form as short_form, labels(e) as labs " % str(short_forms)
@@ -508,8 +522,6 @@ class QueryWrapper(Neo4jConnect):
                 out.extend(self.get_pub_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
                 out.extend(self.get_anatomical_individual_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
-        if return_dataframe and summary:
-            return pd.DataFrame.from_records(out)
         return out
 
     @batch_query
@@ -535,8 +547,6 @@ class QueryWrapper(Neo4jConnect):
         if show_query:
             print(qs)
         if summary:
-            if return_dataframe:
-                return pd.DataFrame.from_records(self._termInfo_2_summary(self._query(qs), typ=typ))
             return self._termInfo_2_summary(self._query(qs), typ=typ)
         else:
             return self._query(qs)
