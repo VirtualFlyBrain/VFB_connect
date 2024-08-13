@@ -218,7 +218,7 @@ class VfbConnect:
                         "downstream.short_form as target_neuron_id, downstream.label as target_neuron_name"
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
-        if return_dataframe and summary:
+        if return_dataframe:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
@@ -242,7 +242,7 @@ class VfbConnect:
                 "COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source " \
                 "ORDER BY %s DESC" % (neuron, similarity_score)
         dc = self.neo_query_wrapper._query(query)
-        if return_dataframe and summary:
+        if return_dataframe:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
@@ -451,7 +451,7 @@ class VfbConnect:
                  "ORDER BY cell_type, g.label" % (gene_label, cell_type_short_form))
         r = self.nc.commit_list([query])
         dc = dict_cursor(r)
-        if return_dataframe and summary:
+        if return_dataframe:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
