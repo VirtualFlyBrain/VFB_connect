@@ -173,6 +173,9 @@ def _populate_summary(TermInfo):
     d['symbol'] = get_value('term', {}).get('core', {}).get('symbol', '')
     d['id'] = get_value('term', {}).get('core', {}).get('short_form', '')
     d['tags'] = '|'.join(get_value('term', {}).get('core', {}).get('types', []))
+
+    if TermInfo['term'].get('description', '') or TermInfo['term'].get('comment', ''):
+        d['description'] = TermInfo['term'].get('description', '').join(' ') + ' ' + TermInfo['term'].get('comment', '').join(' ')
     
     # Populate anatomical entity summary if available
     if 'parents' in TermInfo.keys():
