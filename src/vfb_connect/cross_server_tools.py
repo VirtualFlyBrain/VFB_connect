@@ -488,16 +488,24 @@ class VfbConnect:
         return self.neo_query_wrapper.get_templates(summary=summary, return_dataframe=return_dataframe)
     
     @batch_query
-    def get_terms_by_xref(self, xrefs: iter, db, summary=True, return_dataframe=True):
-        """Get terms by cross-reference.
+    def get_terms_by_xref(self, xrefs: iter, db='', summary=True, return_dataframe=True):
+        """
+        Retrieve terms by cross-reference (xref) identifiers.
 
-        :param xrefs: List of cross-references.
-        :param db: Database name.
-        :return: List of terms.
-        :rtype: list
+        This method takes a list of external cross-reference identifiers and returns the corresponding terms from the database.
+        The terms can be returned either as full metadata or as summaries. Additionally, the results can be returned as a pandas
+        DataFrame if `return_dataframe` is set to `True`.
+
+        :param xrefs: An iterable (e.g., a list) of cross-reference identifiers (xrefs).
+        :param db: Optional. The name of the external database to filter the results by. Default is an empty string, which means no filtering.
+        :param summary: Optional. If `True`, returns summary reports instead of full metadata. Default is `True`.
+        :param return_dataframe: Optional. If `True` and `summary` is also `True`, returns the results as a pandas DataFrame. Default is `True`.
+        :return: A list of term metadata as nested Python data structures (VFB_json or summary_report_json), or a pandas DataFrame if
+                `return_dataframe` is `True` and `summary` is `True`.
+        :rtype: list of dicts or pandas.DataFrame
         """
         return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db, summary=summary, return_dataframe=False)
-    
+
     def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
         """Map a list external DB IDs to VFB IDs
 
