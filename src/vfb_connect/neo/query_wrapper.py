@@ -14,9 +14,12 @@ import pysolr
 from itertools import chain
 
 
+
 # from jsonpath_rw import parse as parse_jpath
 from vfb_connect.neo.neo4j_tools import chunks, Neo4jConnect, dict_cursor, escape_string
 
+# Connect to the VFB SOLR server
+vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
 
 
 def batch_query(func):
@@ -553,8 +556,6 @@ class QueryWrapper(Neo4jConnect):
         if isinstance(short_forms, list):
             short_forms = list(chain.from_iterable(short_forms)) if any(isinstance(i, list) for i in short_forms) else short_forms
 
-        # Connect to the VFB SOLR server
-        vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
         results = self._serialize_solr_output(vfb_solr.search('*', **{'fl': 'term_info','df': 'id', 'defType': 'edismax', 'q.op': 'OR','rows': len(short_forms)+10,'fq':'{!terms f=id}'+ ','.join(short_forms)}))
         return results
 
