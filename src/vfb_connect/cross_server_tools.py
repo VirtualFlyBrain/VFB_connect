@@ -504,7 +504,7 @@ class VfbConnect:
                 `return_dataframe` is `True` and `summary` is `True`.
         :rtype: list of dicts or pandas.DataFrame
         """
-        return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db, summary=summary, return_dataframe=False)
+        return self.neo_query_wrapper.get_terms_by_xref(xrefs=xrefs, db=db, summary=summary, return_dataframe=False)
 
     def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
         """Map a list external DB IDs to VFB IDs

@@ -51,7 +51,7 @@ def batch_query(func):
                 kwargdict[arg_names[1]] = c
                 out.extend(func(*args, **kwargdict))
         # Check if return_dataframe is requested and summary is requested
-        if out and len(out) > 0 and dict(kwargs).get('return_dataframe', 'return_dataframe' in arg_names) and dict(kwargs).get('summary', True):
+        if out and len(out) > 0 and isinstance(out, list) and dict(kwargs).get('return_dataframe', 'return_dataframe' in arg_names) and dict(kwargs).get('summary', True):
             try:
                 return pd.DataFrame.from_records(out)
             except TypeError as e:
