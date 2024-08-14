@@ -52,7 +52,18 @@ def batch_query(func):
                 out.extend(func(*args, **kwargdict))
         # Check if return_dataframe is requested and summary is requested
         if out and len(out) > 0 and dict(kwargs).get('return_dataframe', 'return_dataframe' in arg_names) and dict(kwargs).get('summary', True):
-            return pd.DataFrame.from_records(out)
+            try:
+                return pd.DataFrame.from_records(out)
+            except TypeError as e:
+                # Debugging information
+                print("TypeError encountered during DataFrame conversion.")
+                print(f"Error message: {e}")
+                print("Data attempted to convert to DataFrame:")
+                print(f"Data (first 5 records): {out[:5] if out else 'No data available'}")
+                print("Arguments provided:")
+                print(f"kwargs: {kwargs}")
+                print(f"arg_names: {arg_names}")
+                raise e
         return out
     return wrapper_batch
 
@@ -464,7 +475,7 @@ class QueryWrapper(Neo4jConnect):
                 ids_to_query.append(vfb_ids[key][0]['vfb_id'])
 
         # Retrieve term information for all IDs
-        return self.get_TermInfo(ids_to_query, summary=summary, return_dataframe=return_dataframe)
+        return self.get_TermInfo(ids_to_query, summary=summary, return_dataframe=False)
 
     def get_images_by_filename(self, filenames, dataset=None):
         """Takes a list of filenames as input and returns a list of image terminfo.
