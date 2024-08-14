@@ -10,3 +10,5 @@ pysolr
 bottleneck<=1.3.6
 backports.tarfile
 python-catmaid
+nbformat>=4.2.0
+ipywidgets

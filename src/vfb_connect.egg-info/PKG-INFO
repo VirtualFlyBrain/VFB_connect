@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: vfb_connect
-Version: 1.4.3+dirty
+Version: 1.4.3.dev1+e80e5e8.dirty
 Summary: Wrapper for querying VirtualFlyBrain servers.
 Home-page: https://github.com/VirtualFlyBrain/VFB_connect
 Author: David Osumi-Sutherland
@@ -32,23 +32,21 @@ Available on PyPi:
   
  ```python
 
-from vfb_connect.cross_server_tools import VfbConnect
-
 # VFB connect object wraps connections and queries to public VFB servers.
 
-vc=VfbConnect()
+from vfb_connect import vfb
 
 # Get TermInfo for Types/Classes, DataSets and anatomical individuals.
 
-vc.get_TermInfo(['FBbt_00003686'])
+vfb.get_TermInfo(['FBbt_00003686'])
 
-vc.get_TermInfo(['Ito02013'])
+vfb.get_TermInfo(['Ito02013'])
 
-vc.get_TermInfo(['VFB_00010001'])
+vfb.get_TermInfo(['VFB_00010001'])
 
 # Get all terms relevant to a brain region (all parts and all overlapping cells.  Query by label supported by default.
 
-vc.get_terms_by_region('fan-shaped body')
+vfb.get_terms_by_region('fan-shaped body')
 
 ```
 
