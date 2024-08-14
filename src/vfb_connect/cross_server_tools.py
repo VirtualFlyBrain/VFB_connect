@@ -551,17 +551,6 @@ class VfbConnect:
         return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, cache=cache, return_dataframe=False)
     
     @batch_query
-    def get_terms_by_xref(self, xrefs, db, summary=True, return_dataframe=True):
-        """Get terms by cross-reference.
-
-        :param xrefs: List of cross-references.
-        :param db: Database name.
-        :return: List of terms.
-        :rtype: list
-        """
-        return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db)
-    
-    @batch_query
     def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
         """Map a list of short_form IDs in VFB to external DB IDs
 
