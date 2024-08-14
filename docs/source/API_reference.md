@@ -4,16 +4,15 @@ It is sufficient to initialise a single `VfbConnect` object to get access to all
 the functions in VFB_connect acting on our default API endpoints.
 
 ```Python
-from vfb_connect.cross_server_tools import VfbConnect
-vc = VfbConnect()
+from vfb_connect import vfb
 ```
 A range canned queries are available via methods directly accessible from this
-object, or via vc.
+object, or via vfb.
 
 Core, cross server methods are directly accessible from this object
 
-Direct queries of our `Neo4J` database are available via methods under `vc.nc`
-OWL queries are available under `vc.oc`.
+Direct queries of our `Neo4J` database are available via methods under `vfb.nc`
+OWL queries are available under `vfb.oc`.
 
 (Other direct query endpoint will be added in future)
 
@@ -42,7 +41,7 @@ get_similar_neurons
 ### Queries for images
 
 get_images_by_type()
-neo_query_wrapper.get_images()
+get_images()
 
 ### VFB link generation methods
 
@@ -50,13 +49,13 @@ neo_query_wrapper.get_vfb_link
 
 ### ID conversion methods
 
-neo_query_wrapper.vfb_id_2_xrefs
-neo_query_wrapper.xref_2_vfb_id
+vfb_id_2_xrefs
+xref_2_vfb_id
 
 ### Methods for retrieving Term Information from arbitrary lists of IDs
 
-neo_query_wrapper.get_TermInfo
-neo_query_wrapper.get_terms_by_xref
+get_TermInfo
+get_terms_by_xref
 
 neo_query_wrapper.get_template_TermInfo
 neo_query_wrapper.get_type_TermInfo
@@ -65,6 +64,6 @@ neo_query_wrapper.get_DataSet_TermInfo
 
 ## Methods for retrieving lists of available get_connected_neurons_by_type
 
-neo_query_wrapper.get_datasets
-neo_query_wrapper.get_dbs
-neo_query_wrapper.get_templates
+get_datasets
+get_dbs
+get_templates
