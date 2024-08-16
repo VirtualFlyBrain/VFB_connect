@@ -85,20 +85,32 @@ class VfbConnect:
         :rtype: str
         :raises ValueError: If the key is not recognized.
         """
-        # Check if the key is already a valid ID
+        # Direct lookup: Check if the key is already a valid ID
         if key in self.lookup.values():
             out = key
-        # Otherwise, perform the lookup
+        # Direct lookup in the dictionary
         elif key in self.lookup:
             out = self.lookup[key]
         else:
-            raise ValueError("Unrecognised value: %s" % str(key))
-        
+            # Case-insensitive and character-insensitive lookup
+            normalized_key = key.lower().replace('_', '').replace('-', '').replace(' ', '')
+            matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == normalized_key}
+
+            if matches:
+                # Handle ambiguous matches by taking the first one, but warn about all matches
+                matched_key = list(matches.keys())[0]
+                out = matches[matched_key]
+                all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
+                print(f"Warning: Ambiguous match for '{key}'. Using '{matched_key}' -> '{out}'. Other possible matches: {all_matches}")
+            else:
+                raise ValueError(f"Unrecognised value: {key}")
+
         # Return in the requested format
         if return_curie:
             return out.replace('_', ':')
         else:
             return out
+
 
 
     def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True, return_dataframe=True):
