@@ -104,20 +104,21 @@ class VfbConnect:
         matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == normalized_key}
 
         if matches:
-            # If only one match is found, return it without a warning
-            if len(matches) == 1:
-                matched_key = list(matches.keys())[0]
-                out = matches[matched_key]
-                return out if not return_curie else out.replace('_', ':')
-
-            # If multiple matches are found, take the first one but warn about all matches
             matched_key = list(matches.keys())[0]
             out = matches[matched_key]
-            all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
-            print(f"Warning: Ambiguous match for '{key}'. Using '{matched_key}' -> '{out}'. Other possible matches: {all_matches}")
+            
+            # Warn if a case substitution or normalization was performed
+            if matched_key != key:
+                if len(matches) == 1:
+                    print(f"Warning: Case substitution made. '{key}' was matched to '{matched_key}'.")
+                else:
+                    all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
+                    print(f"Warning: Ambiguous match for '{key}'. Using '{matched_key}' -> '{out}'. Other possible matches: {all_matches}")
+
             return out if not return_curie else out.replace('_', ':')
         
         raise ValueError(f"Unrecognized value: {key}")
+
 
 
 
