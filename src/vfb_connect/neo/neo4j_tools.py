@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import pickle
 import requests
 import json
 import warnings
@@ -8,6 +9,7 @@ from datetime import timedelta
 import math
 import argparse
 from ..default_servers import get_default_servers
+import os
 
 
 def cli_credentials():
@@ -169,7 +171,7 @@ class Neo4jConnect:
         Returns True STATUS OK and no errors, otherwise returns False.
         """
         if not (response.status_code == 200):
-            warnings.warn("Connection error: %s (%s)" % (response.status_code, response.reason))
+            warnings.warn("\033[31mConnection Error:\033[0m %s (%s)" % (response.status_code, response.reason))
             return False
         else:
             j = response.json()
@@ -198,10 +200,11 @@ class Neo4jConnect:
         d = dict_cursor(r)
         return [x['k'] for x in d]
 
-    def get_lookup(self, limit_by_prefix=None, include_individuals=False,
+    def get_lookup(self, cache=None, limit_type_by_prefix=('FBbt', 'VFBexp', 'VFBext'), include_individuals=True,
                limit_properties_by_prefix=('RO', 'BFO', 'VFBext'), curies=False, include_synonyms=True):
         """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a list of prefixes.
 
+        :param use_cache: If `True`, uses a cached lookup. If `False`, generates a new lookup.
         :param limit_by_prefix:  Optional list of id prefixes for limiting lookup of classes & individuals
         :param include_individuals: If `True`, individuals included in lookup.
         :param limit_properties_by_prefix:  Optional list of id prefixes for limiting lookup of properties.
@@ -209,33 +212,65 @@ class Neo4jConnect:
         :param include_synonyms: If `True`, includes synonyms in the lookup.
         :return: A dictionary with names (or synonyms) as keys and their corresponding IDs as values.
         """
+        try:
+            three_months_in_seconds = 3 * 30 * 24 * 60 * 60
+            if cache and os.path.exists(cache) and os.path.getctime(cache) > time.time() - three_months_in_seconds:
+                with open(cache, 'rb') as f:
+                    return pickle.load(f)
+        except Exception as e:
+            print(f"Failed to load cache lookup from disk: {e}")
+
         # Print the loading message
         print("Caching all terms for faster lookup...")
 
-        if limit_by_prefix:
-            regex_string = '.+|'.join(limit_by_prefix) + '.+'
-            where = " WHERE a.short_form =~ '%s' " % regex_string
-        else:
-            where = ''
-        
-        neo_labels = ['Class']
-        if include_individuals:
-            neo_labels.append('Individual')
+        where = ''
+        if limit_type_by_prefix:
+            regex_string = '.+|'.join(limit_type_by_prefix) + '.+'
+            where += "AND a.short_form =~ '%s' " % regex_string
+        where += "AND NOT a:Deprecated "
         
         out = []
+        # All Classes wanted, where id starts with prefix in limit_type_by_prefix
+        l = 'Class'
+        print(f"Caching {l} names...")
+        lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) AND EXISTS(a.label) %s RETURN a.short_form as id, a.label as name" % (l, where)
+        q = self.commit_list([lookup_query])
+        out.extend(dict_cursor(q))
+        print(f"Caching {l} symbols...")
+        lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) %s AND exists(a.symbol) " \
+                    "RETURN a.short_form as id, a.symbol[0] as name" % (l, where)
+        q = self.commit_list([lookup_query])
+        out.extend(dict_cursor(q))
         
-        for l in neo_labels:
-            lookup_query = "MATCH (a:%s) %s RETURN a.short_form as id, a.label as name" % (l, where)
+        if include_synonyms:
+            print(f"Caching {l} synonyms...")
+            lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) %s AND EXISTS(a.synonyms) OR (a)-[:has_reference {typ:'syn'}]->(:pub:Individual) " \
+                        "UNWIND a.synonyms AS synonym2 " \
+                        "RETURN DISTINCT a.short_form AS id, synonym2 AS name " \
+                        "UNION ALL MATCH (a)-[r:has_reference {typ:'syn'}]->(:pub:Individual) " \
+                        "UNWIND r.value AS synonym1 " \
+                        "WITH a.short_form AS id, synonym1 AS synonym " \
+                        "RETURN DISTINCT id, synonym AS name" % (l, where)
             q = self.commit_list([lookup_query])
             out.extend(dict_cursor(q))
-            
-            lookup_query = "MATCH (a:%s) %s AND exists(a.symbol) " \
+        
+        if include_individuals:
+            where = "AND NOT a:Deprecated AND NOT a.short_form STARTS WITH 'VFBc_' AND NOT a:Person "
+            # If individuals are wanted, get them
+            l = 'Individual'
+            print(f"Caching {l} names...")
+            lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) AND EXISTS(a.label) %s RETURN a.short_form as id, a.label as name" % (l, where)
+            q = self.commit_list([lookup_query])
+            out.extend(dict_cursor(q))
+            print(f"Caching {l} symbols...")
+            lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) %s AND exists(a.symbol) " \
                         "RETURN a.short_form as id, a.symbol[0] as name" % (l, where)
             q = self.commit_list([lookup_query])
             out.extend(dict_cursor(q))
             
             if include_synonyms:
-                lookup_query = "MATCH (a:%s) %s AND EXISTS(a.synonyms) OR (a)-[:has_reference {typ:'syn'}]->(:pub:Individual) " \
+                print(f"Caching {l} synonyms...")
+                lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) %s AND EXISTS(a.synonyms) OR (a)-[:has_reference {typ:'syn'}]->(:pub:Individual) " \
                             "UNWIND a.synonyms AS synonym2 " \
                             "RETURN DISTINCT a.short_form AS id, synonym2 AS name " \
                             "UNION ALL MATCH (a)-[r:has_reference {typ:'syn'}]->(:pub:Individual) " \
@@ -244,16 +279,16 @@ class Neo4jConnect:
                             "RETURN DISTINCT id, synonym AS name" % (l, where)
                 q = self.commit_list([lookup_query])
                 out.extend(dict_cursor(q))
-        
+
         # All ObjectProperties wanted, irrespective of ID
         if limit_properties_by_prefix:
-            regex_string = '.+|'.join(limit_properties_by_prefix) + '.+'
-            where = " WHERE a.short_form =~ '%s' " % regex_string
+            match_string = "' OR a.short_form STARTS WITH '".join(limit_properties_by_prefix)
+            where = " WHERE a.short_form STARTS WITH '%s' " % match_string
         else:
             where = ''
-        
+        print(f"Caching ObjectProperties...")
         property_lookup_query = "MATCH (a:ObjectProperty) " \
-                                " " + where + " " \
+                                + where + \
                                 "RETURN a.short_form as id, a.label as name"
         q = self.commit_list([property_lookup_query])
         out.extend(dict_cursor(q))
@@ -271,11 +306,17 @@ class Neo4jConnect:
         # Construct the final lookup dictionary
         if curies:
             lookup = {x['name']: x['id'].replace('_', ':') for x in unique_out}
-            lookup.update({x['id']: x['id'].replace('_', ':') for x in unique_out})
+            lookup.update({x['id'].replace(':', '_'): x['id'] for x in set(lookup.values())})
         else:
             lookup = {x['name']: x['id'] for x in unique_out}
-            lookup.update({x['id']: x['id'] for x in unique_out})
-        
+
+        # Save the lookup to a cache file
+        try:
+            if cache:
+                with open(cache, 'wb') as f:
+                    pickle.dump(lookup, f)
+        except Exception as e:
+            print(f"Failed to save cache lookup on disk: {e}")
         return lookup
 
 

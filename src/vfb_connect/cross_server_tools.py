@@ -1,3 +1,4 @@
+import os
 import warnings
 from .owl.owlery_query_tools import OWLeryConnect
 from .neo.neo4j_tools import Neo4jConnect, re, dict_cursor
@@ -51,8 +52,7 @@ class VfbConnect:
 
     def __init__(self, neo_endpoint=get_default_servers()['neo_endpoint'],
                  neo_credentials=get_default_servers()['neo_credentials'],
-                 owlery_endpoint=get_default_servers()['owlery_endpoint'],
-                 lookup_prefixes=('FBbt', 'VFBexp', 'VFBext')):
+                 owlery_endpoint=get_default_servers()['owlery_endpoint']):
         """
         VFB connect constructor. All args optional.
         With no args wraps connectsions to default public servers.
@@ -62,10 +62,10 @@ class VfbConnect:
         :owlery_endpoint: specify owlery server REST endpoint.
         :lookup_prefixes: A list of id prefixes to use for rolling name:ID lookups."""
         # Print the connection message
-        print("Welcome to the Virtual Fly Brain API")
+        print("Welcome to the \033[36mVirtual Fly Brain\033[0m API")
         print("See the documentation at: https://virtualflybrain.org/docs/tutorials/apis/")
         print("")
-        print("Establishing connections to https://VirtualFlyBrain.org services...")
+        print("\033[32mEstablishing connections to https://VirtualFlyBrain.org services...\033[0m")
 
         connections = {
             'neo': {
@@ -76,19 +76,39 @@ class VfbConnect:
         }
         self.nc = Neo4jConnect(**connections['neo'])
         self.neo_query_wrapper = QueryWrapper(**connections['neo'])
-        self.lookup = self.nc.get_lookup(limit_by_prefix=lookup_prefixes)
+        self.cache_file = self.get_cache_file_path()
+        self.lookup = self.nc.get_lookup(cache=self.cache_file)
         self.oc = OWLeryConnect(endpoint=owlery_endpoint,
                                 lookup=self.lookup)
         self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
+        print("\033[32mSession Established!\033[0m")
+        print("")
+        print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.get_TermInfo)\033[0m")
+
+    def get_cache_file_path(self):
+        """Determine a safe place to save the pickle file in the same directory as the module."""
+        # Get the directory where this script/module is located
+        module_dir = os.path.dirname(__file__)
+        # Define the cache file name
+        cache_file = os.path.join(module_dir, 'lookup_cache.pkl')
+        return cache_file
+    
+    def reload_lookup_cache(self):
+        """Clear the lookup cache file."""
+        if os.path.exists(self.cache_file):
+            os.remove(self.cache_file)
+            print("Cache file removed.")
+        else:
+            print("No cache file found.")
+        self.lookup = self.nc.get_lookup(cache=self.cache_file)
 
     def lookup_id(self, key, return_curie=False):
         """Lookup the ID for a given key (label or symbol) using the internal lookup table.
 
         :param key: The label symbol, synonym, or potential ID to look up.
         :param return_curie: Optional. If `True`, return the ID in CURIE (Compact URI) format. Default `False`.
-        :return: The ID associated with the key, or the key itself if it is already a valid ID.
+        :return: The ID associated with the key, or the key itself if it is already a valid ID. None is returned if the key is not found.
         :rtype: str
-        :raises ValueError: If the key is not recognized.
         """
         # Direct lookup: Check if the key is already a valid ID
         if key in self.lookup.values():
@@ -103,6 +123,14 @@ class VfbConnect:
         normalized_key = key.lower().replace('_', '').replace('-', '').replace(' ', '')
         matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == normalized_key}
 
+        stages = ['adult', 'larval', 'pupal']
+        if not matches:
+            for stage in stages:
+                    stage_normalized_key = stage + normalized_key
+                    matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == stage_normalized_key}
+                    if matches:
+                        break
+
         if matches:
             matched_key = list(matches.keys())[0]
             out = matches[matched_key]
@@ -110,18 +138,29 @@ class VfbConnect:
             # Warn if a case substitution or normalization was performed
             if matched_key != key:
                 if len(matches) == 1:
-                    print(f"Warning: Substitution made. '{key}' was matched to '{matched_key}'.")
+                    print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
                 else:
                     all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
-                    print(f"Warning: Ambiguous match for '{key}'. Using '{matched_key}' -> '{out}'. Other possible matches: {all_matches}")
+                    print(f"\033[33mWarning:\033[0m Ambiguous match for '\033[33m{key}\033[0m'. Using '{matched_key}' -> '\033[32m{out}\033[0m'. Other possible matches: {all_matches}")
 
             return out if not return_curie else out.replace('_', ':')
         
-        raise ValueError(f"Unrecognized value: {key}")
+        # Check for partial matches: starts with
+        starts_with_matches = {k: v for k, v in self.lookup.items() if k.lower().startswith(key.lower())}
+        if starts_with_matches:
+            all_matches = ", ".join([f"'\033[36m{k}\033[0m': '{v}'" for k, v in starts_with_matches.items()])
+            print(f"Notice: No exact match found, but potential matches starting with '\033[31m{key}\033[0m': {all_matches}")
+            return ''
 
+        # Check for partial matches: contains
+        contains_matches = {k: v for k, v in self.lookup.items() if key.lower() in k.lower()}
+        if contains_matches:
+            all_matches = ", ".join([f"'\033[36m{k}\033[0m': '{v}'" for k, v in contains_matches.items()])
+            print(f"Notice: No exact match found, but potential matches containing '\033[31m{key}\033[0m': {all_matches}")
+            return ''
 
-
-
+        print(f"\033[31mError:\033[0m Unrecognized value: \033[31m{key}\033[0m")
+        return ''
 
     def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True, return_dataframe=True):
         """Generate TermInfo reports for all terms relevant to annotating a specific region, optionally limited to cells.
@@ -252,15 +291,17 @@ class VfbConnect:
         else:
             return dc
 
-    def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', return_dataframe=True):
+    def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', query_by_label=True, return_dataframe=True):
         """Get JSON report of individual neurons similar to the input neuron.
 
         :param neuron: The neuron to find similar neurons to.
         :param similarity_score: Optional. Specify the similarity score to use (e.g., 'NBLAST_score'). Default 'NBLAST_score'.
+        :param query_by_label: Optional. Query neuron by label if `True`, or by ID if `False`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
         :return: A DataFrame or list of similar neurons (id, label, tags, source (db) id, accession_in_source) + similarity score.
         :rtype: pandas.DataFrame or list of dicts
         """
+        id = neuron if query_by_label else self.lookup_id(neuron)
         query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) " \
                 "WHERE n1.short_form = '%s' " \
                 "WITH c1, n1, r, n2, c2 " \
@@ -269,7 +310,7 @@ class VfbConnect:
                 "WHERE s1.is_data_source and s2.is_data_source " \
                 "RETURN DISTINCT n2.short_form AS id, r.NBLAST_score[0] AS NBLAST_score, n2.label AS label, " \
                 "COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source " \
-                "ORDER BY %s DESC" % (neuron, similarity_score)
+                "ORDER BY %s DESC" % (id, similarity_score)
         dc = self.neo_query_wrapper._query(query)
         if return_dataframe:
             return pd.DataFrame.from_records(dc)
@@ -352,7 +393,7 @@ class VfbConnect:
         else:
             return dc
 
-    def get_instances_by_dataset(self, dataset, summary=True, return_dataframe=True):
+    def get_instances_by_dataset(self, dataset, query_by_label=True, summary=True, return_dataframe=True):
         """Get JSON report of all individuals in a specified dataset.
 
         :param dataset: The dataset ID.
@@ -361,15 +402,13 @@ class VfbConnect:
         :return: A DataFrame or list of terms as nested Python data structures following VFB_json or summary_report_json.
         :rtype: pandas.DataFrame or list of dicts
         """
+        
         if dataset:
             query = "MATCH (ds:DataSet)<-[:has_source]-(i:Individual) " \
                     "WHERE ds.short_form = '%s' " \
                     "RETURN collect(i.short_form) as inds" % dataset
             dc = self.neo_query_wrapper._query(query) # TODO - Would better to use the original column oriented return!
-            results = self.neo_query_wrapper.get_anatomical_individual_TermInfo(dc[0]['inds'], summary=summary, return_dataframe=False)
-            if return_dataframe and summary:
-                return pd.DataFrame.from_records(results)
-            return results
+            return self.get_TermInfo(dc[0]['inds'], summary=summary, return_dataframe=return_dataframe)
 
     def get_vfb_link(self, short_forms: iter, template):
         """Generate a link to Virtual Fly Brain (VFB) that loads all available images of neurons on the specified template.
@@ -429,7 +468,7 @@ class VfbConnect:
         labels = sorted(list(set(labels)))
         return labels
 
-    def get_transcriptomic_profile(self, cell_type, gene_type=False, return_dataframe=True):
+    def get_transcriptomic_profile(self, cell_type, gene_type=False, query_by_label=True, return_dataframe=True):
         """Get gene expression data for a given cell type.
 
         Returns a DataFrame of gene expression data for clusters of cells annotated as the specified cell type (or subtypes).
@@ -438,18 +477,19 @@ class VfbConnect:
 
         :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
         :param gene_type: Optional. A gene function label retrieved using `get_gene_function_filters`.
+        :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
         :return: A DataFrame with gene expression data for clusters of cells annotated as the specified cell type.
         :rtype: pandas.DataFrame or list of dicts
         :raises KeyError: If the cell_type or gene_type is invalid.
         """
-        try:
-            cell_type_short_form = self.lookup[cell_type]
-        except KeyError:
+        if query_by_label:
+            cell_type_short_form = self.lookup_id(cell_type)
+        else:
             if cell_type in self.lookup.values():
                 cell_type_short_form = cell_type
             else:
-                raise KeyError("cell_type must be a valid ID, label or symbol from the Drosophila Anatomy Ontology")
+                raise KeyError("cell_type must be a valid ID from the Drosophila Anatomy Ontology")
 
         if not cell_type_short_form.startswith('FBbt'):
             raise KeyError("cell_type must be a valid ID, label or symbol from the Drosophila Anatomy Ontology")
@@ -562,7 +602,7 @@ class VfbConnect:
                                                              return_dataframe=False)
     
     @batch_query
-    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True, use_labels=True):
+    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True, query_by_label=True):
         """
         Generate a JSON report or summary for terms specified by a list of VFB IDs.
 
@@ -574,7 +614,7 @@ class VfbConnect:
         :param summary: Optional. If `True`, returns a summary report instead of full metadata. Default is `True`.
         :param cache: Optional. If `True`, attempts to retrieve cached results before querying. Default is `True`.
         :param return_dataframe: Optional. If `True`, returns the results as a pandas DataFrame. Default is `True`.
-        :param use_labels: Optional. If `True`, it allows labels, symbols or synonyms as well as short_forms. Default is `True`.
+        :param query_by_label: Optional. If `True`, it allows labels, symbols or synonyms as well as short_forms. Default is `True`.
         :return: A list of term metadata as VFB_json or summary_report_json, or a pandas DataFrame if `return_dataframe` is `True`.
         :rtype: list of dicts or pandas.DataFrame
         """
@@ -582,7 +622,7 @@ class VfbConnect:
         if isinstance(short_forms, str):
             short_forms = [short_forms]
         # Convert labels to IDs if use_labels is True
-        if use_labels:
+        if query_by_label:
             short_forms = [self.lookup_id(sf) for sf in short_forms]
         return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, cache=cache, return_dataframe=False)
     
