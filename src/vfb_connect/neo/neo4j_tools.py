@@ -209,6 +209,8 @@ class Neo4jConnect:
         :param include_synonyms: If `True`, includes synonyms in the lookup.
         :return: A dictionary with names (or synonyms) as keys and their corresponding IDs as values.
         """
+        # Print the loading message
+        print("Caching all terms for faster lookup...")
 
         if limit_by_prefix:
             regex_string = '.+|'.join(limit_by_prefix) + '.+'

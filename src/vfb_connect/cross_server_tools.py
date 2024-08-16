@@ -62,6 +62,9 @@ class VfbConnect:
         :owlery_endpoint: specify owlery server REST endpoint.
         :lookup_prefixes: A list of id prefixes to use for rolling name:ID lookups."""
         # Print the connection message
+        print("Welcome to the Virtual Fly Brain API")
+        print("See the documentation at: https://virtualflybrain.org/docs/tutorials/apis/")
+        print("")
         print("Establishing connections to https://VirtualFlyBrain.org services...")
 
         connections = {
