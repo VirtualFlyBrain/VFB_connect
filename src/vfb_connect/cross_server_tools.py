@@ -79,20 +79,27 @@ class VfbConnect:
     def lookup_id(self, key, return_curie=False):
         """Lookup the ID for a given key (label or symbol) using the internal lookup table.
 
-        :param key: The label symbol or synonym to look up.
+        :param key: The label symbol, synonym, or potential ID to look up.
         :param return_curie: Optional. If `True`, return the ID in CURIE (Compact URI) format. Default `False`.
-        :return: The ID associated with the key.
+        :return: The ID associated with the key, or the key itself if it is already a valid ID.
         :rtype: str
         :raises ValueError: If the key is not recognized.
         """
-        if key in self.lookup.keys():
+        # Check if the key is already a valid ID
+        if key in self.lookup.values():
+            out = key
+        # Otherwise, perform the lookup
+        elif key in self.lookup:
             out = self.lookup[key]
-            if return_curie:
-                return out.replace('_', ':')
-            else:
-                return out
         else:
             raise ValueError("Unrecognised value: %s" % str(key))
+        
+        # Return in the requested format
+        if return_curie:
+            return out.replace('_', ':')
+        else:
+            return out
+
 
     def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True, return_dataframe=True):
         """Generate TermInfo reports for all terms relevant to annotating a specific region, optionally limited to cells.
