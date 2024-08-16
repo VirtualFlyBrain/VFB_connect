@@ -199,61 +199,83 @@ class Neo4jConnect:
         return [x['k'] for x in d]
 
     def get_lookup(self, limit_by_prefix=None, include_individuals=False,
-                   limit_properties_by_prefix=('RO', 'BFO', 'VFBext'), curies=False, include_synonyms=True):
-
+               limit_properties_by_prefix=('RO', 'BFO', 'VFBext'), curies=False, include_synonyms=True):
         """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a list of prefixes.
 
         :param limit_by_prefix:  Optional list of id prefixes for limiting lookup of classes & individuals
         :param include_individuals: If `True`, individuals included in lookup.
         :param limit_properties_by_prefix:  Optional list of id prefixes for limiting lookup of properties.
         :param curies: If `True`, returns CURIEs instead of IDs.
-
+        :param include_synonyms: If `True`, includes synonyms in the lookup.
+        :return: A dictionary with names (or synonyms) as keys and their corresponding IDs as values.
         """
+
         if limit_by_prefix:
             regex_string = '.+|'.join(limit_by_prefix) + '.+'
             where = " WHERE a.short_form =~ '%s' " % regex_string
         else:
             where = ''
+        
         neo_labels = ['Class']
         if include_individuals:
             neo_labels.append('Individual')
+        
         out = []
+        
         for l in neo_labels:
             lookup_query = "MATCH (a:%s) %s RETURN a.short_form as id, a.label as name" % (l, where)
             q = self.commit_list([lookup_query])
             out.extend(dict_cursor(q))
+            
             lookup_query = "MATCH (a:%s) %s AND exists(a.symbol) " \
-                           "RETURN a.short_form as id, a.symbol[0] as name" % (l, where)
+                        "RETURN a.short_form as id, a.symbol[0] as name" % (l, where)
             q = self.commit_list([lookup_query])
             out.extend(dict_cursor(q))
+            
             if include_synonyms:
                 lookup_query = "MATCH (a:%s) %s AND EXISTS(a.synonyms) OR (a)-[:has_reference {typ:'syn'}]->(:pub:Individual) " \
-                               "UNWIND a.synonyms AS synonym2 " \
-                               "RETURN DISTINCT a.short_form AS id, synonym2 AS name " \
-                               "UNION ALL MATCH (a)-[r:has_reference {typ:'syn'}]->(:pub:Individual) " \
-                               "UNWIND r.value AS synonym1 " \
-                               "WITH a.short_form AS id, synonym1 AS synonym " \
-                               "RETURN DISTINCT id, synonym AS name" % (l, where)
+                            "UNWIND a.synonyms AS synonym2 " \
+                            "RETURN DISTINCT a.short_form AS id, synonym2 AS name " \
+                            "UNION ALL MATCH (a)-[r:has_reference {typ:'syn'}]->(:pub:Individual) " \
+                            "UNWIND r.value AS synonym1 " \
+                            "WITH a.short_form AS id, synonym1 AS synonym " \
+                            "RETURN DISTINCT id, synonym AS name" % (l, where)
                 q = self.commit_list([lookup_query])
                 out.extend(dict_cursor(q))
+        
         # All ObjectProperties wanted, irrespective of ID
         if limit_properties_by_prefix:
             regex_string = '.+|'.join(limit_properties_by_prefix) + '.+'
             where = " WHERE a.short_form =~ '%s' " % regex_string
         else:
             where = ''
+        
         property_lookup_query = "MATCH (a:ObjectProperty) " \
                                 " " + where + " " \
                                 "RETURN a.short_form as id, a.label as name"
         q = self.commit_list([property_lookup_query])
         out.extend(dict_cursor(q))
+        
+        # Removing duplicates while maintaining order
+        seen = set()
+        unique_out = []
+        
+        for item in out:
+            pair = (item['name'], item['id'])
+            if pair not in seen:
+                seen.add(pair)
+                unique_out.append(item)
+        
+        # Construct the final lookup dictionary
         if curies:
-            out = {x['name']: x['id'].replace('_', ':') for x in out}
-            lookup.update({x['id']: x['id'].replace('_', ':') for x in out})
+            lookup = {x['name']: x['id'].replace('_', ':') for x in unique_out}
+            lookup.update({x['id']: x['id'].replace('_', ':') for x in unique_out})
         else:
-            lookup = {x['name']: x['id'] for x in out}
-            lookup.update({x['id']: x['id'] for x in out})
+            lookup = {x['name']: x['id'] for x in unique_out}
+            lookup.update({x['id']: x['id'] for x in unique_out})
+        
         return lookup
+
 
 
 def dict_cursor(results):
