@@ -110,7 +110,7 @@ class VfbConnect:
             # Warn if a case substitution or normalization was performed
             if matched_key != key:
                 if len(matches) == 1:
-                    print(f"Warning: Case substitution made. '{key}' was matched to '{matched_key}'.")
+                    print(f"Warning: Substitution made. '{key}' was matched to '{matched_key}'.")
                 else:
                     all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
                     print(f"Warning: Ambiguous match for '{key}'. Using '{matched_key}' -> '{out}'. Other possible matches: {all_matches}")
