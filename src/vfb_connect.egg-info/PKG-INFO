@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: vfb-connect
-Version: 1.5.1.dev3+dd3d6dc
+Version: 1.5.1.dev4+909bbb7
 Summary: Wrapper for querying VirtualFlyBrain servers.
 Home-page: https://github.com/VirtualFlyBrain/VFB_connect
 Author: David Osumi-Sutherland

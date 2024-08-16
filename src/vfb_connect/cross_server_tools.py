@@ -566,10 +566,14 @@ class VfbConnect:
         :param summary: Optional. If `True`, returns a summary report instead of full metadata. Default is `True`.
         :param cache: Optional. If `True`, attempts to retrieve cached results before querying. Default is `True`.
         :param return_dataframe: Optional. If `True`, returns the results as a pandas DataFrame. Default is `True`.
-        :param use_labels: Optional. If `True`, uses labels instead of short_forms. Default is `True`.
+        :param use_labels: Optional. If `True`, it allows labels, symbols or synonyms as well as short_forms. Default is `True`.
         :return: A list of term metadata as VFB_json or summary_report_json, or a pandas DataFrame if `return_dataframe` is `True`.
         :rtype: list of dicts or pandas.DataFrame
         """
+        # Convert single string to list
+        if isinstance(short_forms, str):
+            short_forms = [short_forms]
+        # Convert labels to IDs if use_labels is True
         if use_labels:
             short_forms = [self.lookup_id(sf) for sf in short_forms]
         return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, cache=cache, return_dataframe=False)
