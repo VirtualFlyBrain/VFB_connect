@@ -92,29 +92,33 @@ class VfbConnect:
         """
         # Direct lookup: Check if the key is already a valid ID
         if key in self.lookup.values():
-            out = key
+            return key if not return_curie else key.replace('_', ':')
+        
         # Direct lookup in the dictionary
-        elif key in self.lookup:
+        if key in self.lookup:
             out = self.lookup[key]
-        else:
-            # Case-insensitive and character-insensitive lookup
-            normalized_key = key.lower().replace('_', '').replace('-', '').replace(' ', '')
-            matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == normalized_key}
+            return out if not return_curie else out.replace('_', ':')
 
-            if matches:
-                # Handle ambiguous matches by taking the first one, but warn about all matches
+        # Case-insensitive and character-insensitive lookup
+        normalized_key = key.lower().replace('_', '').replace('-', '').replace(' ', '')
+        matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == normalized_key}
+
+        if matches:
+            # If only one match is found, return it without a warning
+            if len(matches) == 1:
                 matched_key = list(matches.keys())[0]
                 out = matches[matched_key]
-                all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
-                print(f"Warning: Ambiguous match for '{key}'. Using '{matched_key}' -> '{out}'. Other possible matches: {all_matches}")
-            else:
-                raise ValueError(f"Unrecognised value: {key}")
+                return out if not return_curie else out.replace('_', ':')
 
-        # Return in the requested format
-        if return_curie:
-            return out.replace('_', ':')
-        else:
-            return out
+            # If multiple matches are found, take the first one but warn about all matches
+            matched_key = list(matches.keys())[0]
+            out = matches[matched_key]
+            all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
+            print(f"Warning: Ambiguous match for '{key}'. Using '{matched_key}' -> '{out}'. Other possible matches: {all_matches}")
+            return out if not return_curie else out.replace('_', ':')
+        
+        raise ValueError(f"Unrecognized value: {key}")
+
 
 
 
