@@ -79,7 +79,7 @@ class VfbConnect:
     def lookup_id(self, key, return_curie=False):
         """Lookup the ID for a given key (label or symbol) using the internal lookup table.
 
-        :param key: The label or symbol to look up.
+        :param key: The label symbol or synonym to look up.
         :param return_curie: Optional. If `True`, return the ID in CURIE (Compact URI) format. Default `False`.
         :return: The ID associated with the key.
         :rtype: str
@@ -533,7 +533,7 @@ class VfbConnect:
                                                              return_dataframe=False)
     
     @batch_query
-    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True):
+    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True, use_labels=True):
         """
         Generate a JSON report or summary for terms specified by a list of VFB IDs.
 
@@ -545,9 +545,12 @@ class VfbConnect:
         :param summary: Optional. If `True`, returns a summary report instead of full metadata. Default is `True`.
         :param cache: Optional. If `True`, attempts to retrieve cached results before querying. Default is `True`.
         :param return_dataframe: Optional. If `True`, returns the results as a pandas DataFrame. Default is `True`.
+        :param use_labels: Optional. If `True`, uses labels instead of short_forms. Default is `True`.
         :return: A list of term metadata as VFB_json or summary_report_json, or a pandas DataFrame if `return_dataframe` is `True`.
         :rtype: list of dicts or pandas.DataFrame
         """
+        if use_labels:
+            short_forms = [self.lookup_id(sf) for sf in short_forms]
         return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, cache=cache, return_dataframe=False)
     
     @batch_query
