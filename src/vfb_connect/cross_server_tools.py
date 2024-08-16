@@ -61,7 +61,9 @@ class VfbConnect:
         :neo_credentials: Specify credential for Neo4j Rest endpoint.
         :owlery_endpoint: specify owlery server REST endpoint.
         :lookup_prefixes: A list of id prefixes to use for rolling name:ID lookups."""
-        
+        # Print the connection message
+        print("Establishing connections to https://VirtualFlyBrain.org services...")
+
         connections = {
             'neo': {
                 "endpoint": neo_endpoint,
