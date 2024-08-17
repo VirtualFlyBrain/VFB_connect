@@ -1,5 +1,4 @@
 import requests
-import warnings
 import re
 import json
 from ..default_servers import get_default_servers
@@ -70,17 +69,20 @@ class OWLeryConnect:
         owl_endpoint = self.owlery_endpoint + query_type +"?"
         if query_by_label:
             query = self.labels_2_ids(query)
-        print("Running query: " + query)
+        if verbose:
+            print("Running query: " + query) 
         payload = {'object': query, 'prefixes': json.dumps(self.curies),
                    'direct': direct}
         # print(payload)
         r = requests.get(url=owl_endpoint, params=payload)
-        print("Query URL: " + r.url)
+        if verbose:
+            print("Query URL: " + r.url)
         if r.status_code == 200:
-            print("Query results: " + str(len(r.json()[return_type])))
+            if verbose:
+                print("\033[32mQuery results:\033[0m " + str(len(r.json()[return_type])))
             return r.json()[return_type]
         else:
-            warnings.warn(str(r.content))
+            print("\033[31mConnection Error:\033[0m " + str(r.content))
             return False
 
     def get_subclasses(self, query, query_by_label=True, direct=False, return_short_forms=True):

@@ -2,7 +2,6 @@ import json
 import os
 import re
 import shutil
-import warnings
 from inspect import getfullargspec
 from string import Template
 from xml.sax import saxutils
@@ -288,7 +287,7 @@ class QueryWrapper(Neo4jConnect):
         else:
             r = dict_cursor(qr)
             if not r:
-                warnings.warn('No results returned for query: %s -> %s -> %s' % (q, qr, r))
+                print(f'\033[33mWarning:\033[0m No results returned for query: {q} -> {qr} -> {r}')
                 return []
             else:
                 return r
@@ -313,8 +312,8 @@ class QueryWrapper(Neo4jConnect):
             if shutil.rmtree.avoids_symlink_attacks:
                 shutil.rmtree(image_folder)
             else:
-                warnings.warn("Not deleting %s, stomp option not supported on this system for security reasons,"
-                              "please delete manually." % image_folder)
+                print(f"\033[33mWarning:\033[0m Not deleting {image_folder}, stomp option not supported on this system for security reasons,"
+                              "please delete manually.")
         os.makedirs(image_folder, exist_ok=True)
         inds = self.get_anatomical_individual_TermInfo(short_forms=short_forms)
         for i in inds:
@@ -329,7 +328,7 @@ class QueryWrapper(Neo4jConnect):
                     r = requests.get(imv['image_folder'] + '/volume.' + image_type)
                     ### Slightly dodgy warning - could mask network errors
                     if not r.ok:
-                        warnings.warn("No '%s' file found for '%s'." % (image_type, label))
+                        print("33mWarning:\033[0m No '%s' file found for '%s'." % (image_type, label))
                         continue
                     filename = re.sub('\W', '_', label) + '.' + image_type
                     with open(image_folder + '/' + filename, 'w') as image_file:
@@ -414,7 +413,7 @@ class QueryWrapper(Neo4jConnect):
         mapping = {d['key']: d['mapping'] for d in dc}
         unmapped = set(vfb_id)-set(mapping.keys())
         if unmapped:
-            warnings.warn("The following IDs do not match DB &/or id_type constraints: %s" % str(unmapped))
+            print("33mWarning:\033[0m The following IDs do not match DB &/or id_type constraints: %s" % str(unmapped))
         return mapping
 
     def vfb_id_2_neuprint_bodyID(self, vfb_id, db=''):
@@ -476,7 +475,7 @@ class QueryWrapper(Neo4jConnect):
         ids_to_query = []
         for key in acc:
             if key not in vfb_ids.keys():
-                warnings.warn("No VFB ID found for %s" % key)
+                print("33mWarning:\033[0m No VFB ID found for %s" % key)
             else:
                 ids_to_query.append(vfb_ids[key][0]['vfb_id'])
 

@@ -1,5 +1,4 @@
 import os
-import warnings
 from .owl.owlery_query_tools import OWLeryConnect
 from .neo.neo4j_tools import Neo4jConnect, re, dict_cursor
 from .neo.query_wrapper import QueryWrapper, batch_query
@@ -102,7 +101,7 @@ class VfbConnect:
             print("No cache file found.")
         self.lookup = self.nc.get_lookup(cache=self.cache_file)
 
-    def lookup_id(self, key, return_curie=False):
+    def lookup_id(self, key, return_curie=False, allow_subsitutions=True):
         """Lookup the ID for a given key (label or symbol) using the internal lookup table.
 
         :param key: The label symbol, synonym, or potential ID to look up.
@@ -119,45 +118,46 @@ class VfbConnect:
             out = self.lookup[key]
             return out if not return_curie else out.replace('_', ':')
 
-        # Case-insensitive and character-insensitive lookup
-        normalized_key = key.lower().replace('_', '').replace('-', '').replace(' ', '')
-        matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == normalized_key}
+        if allow_subsitutions:
+            # Case-insensitive and character-insensitive lookup
+            normalized_key = key.lower().replace('_', '').replace('-', '').replace(' ', '')
+            matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == normalized_key}
 
-        stages = ['adult', 'larval', 'pupal']
-        if not matches:
-            for stage in stages:
-                    stage_normalized_key = stage + normalized_key
-                    matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == stage_normalized_key}
-                    if matches:
-                        break
+            stages = ['adult', 'larval', 'pupal']
+            if not matches:
+                for stage in stages:
+                        stage_normalized_key = stage + normalized_key
+                        matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == stage_normalized_key}
+                        if matches:
+                            break
 
-        if matches:
-            matched_key = list(matches.keys())[0]
-            out = matches[matched_key]
+            if matches:
+                matched_key = list(matches.keys())[0]
+                out = matches[matched_key]
+                
+                # Warn if a case substitution or normalization was performed
+                if matched_key != key:
+                    if len(matches) == 1:
+                        print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
+                    else:
+                        all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
+                        print(f"\033[33mWarning:\033[0m Ambiguous match for '\033[33m{key}\033[0m'. Using '{matched_key}' -> '\033[32m{out}\033[0m'. Other possible matches: {all_matches}")
+
+                return out if not return_curie else out.replace('_', ':')
             
-            # Warn if a case substitution or normalization was performed
-            if matched_key != key:
-                if len(matches) == 1:
-                    print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
-                else:
-                    all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
-                    print(f"\033[33mWarning:\033[0m Ambiguous match for '\033[33m{key}\033[0m'. Using '{matched_key}' -> '\033[32m{out}\033[0m'. Other possible matches: {all_matches}")
+            # Check for partial matches: starts with
+            starts_with_matches = {k: v for k, v in self.lookup.items() if k.lower().startswith(key.lower())}
+            if starts_with_matches:
+                all_matches = ", ".join([f"'\033[36m{k}\033[0m': '{v}'" for k, v in starts_with_matches.items()])
+                print(f"Notice: No exact match found, but potential matches starting with '\033[31m{key}\033[0m': {all_matches}")
+                return ''
 
-            return out if not return_curie else out.replace('_', ':')
-        
-        # Check for partial matches: starts with
-        starts_with_matches = {k: v for k, v in self.lookup.items() if k.lower().startswith(key.lower())}
-        if starts_with_matches:
-            all_matches = ", ".join([f"'\033[36m{k}\033[0m': '{v}'" for k, v in starts_with_matches.items()])
-            print(f"Notice: No exact match found, but potential matches starting with '\033[31m{key}\033[0m': {all_matches}")
-            return ''
-
-        # Check for partial matches: contains
-        contains_matches = {k: v for k, v in self.lookup.items() if key.lower() in k.lower()}
-        if contains_matches:
-            all_matches = ", ".join([f"'\033[36m{k}\033[0m': '{v}'" for k, v in contains_matches.items()])
-            print(f"Notice: No exact match found, but potential matches containing '\033[31m{key}\033[0m': {all_matches}")
-            return ''
+            # Check for partial matches: contains
+            contains_matches = {k: v for k, v in self.lookup.items() if key.lower() in k.lower()}
+            if contains_matches:
+                all_matches = ", ".join([f"'\033[36m{k}\033[0m': '{v}'" for k, v in contains_matches.items()])
+                print(f"Notice: No exact match found, but potential matches containing '\033[31m{key}\033[0m': {all_matches}")
+                return ''
 
         print(f"\033[31mError:\033[0m Unrecognized value: \033[31m{key}\033[0m")
         return ''

@@ -2,7 +2,6 @@
 import pickle
 import requests
 import json
-import warnings
 import re
 import time
 from datetime import timedelta
@@ -166,18 +165,18 @@ class Neo4jConnect:
         self.commit_list([cypher])
 
     def rest_return_check(self, response):
-        """Checks status response to post. Prints warnings to STDERR if not OK.
-        If OK, checks for errors in response. Prints any present as warnings to STDERR.
+        """Checks status response to post. Prints warnings if not OK.
+        If OK, checks for errors in response. Prints any present as warnings.
         Returns True STATUS OK and no errors, otherwise returns False.
         """
         if not (response.status_code == 200):
-            warnings.warn("\033[31mConnection Error:\033[0m %s (%s)" % (response.status_code, response.reason))
+            print("\033[31mConnection Error:\033[0m %s (%s)" % (response.status_code, response.reason))
             return False
         else:
             j = response.json()
             if j['errors']:
                 for e in j['errors']:
-                    warnings.warn(str(e))
+                    print("\033[31mQuery Error:\033[0m " + str(e))
                 return False
             else:
                 return True
