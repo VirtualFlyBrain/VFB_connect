@@ -81,7 +81,7 @@ class Neo4jConnectTest(unittest.TestCase):
         self.nc = Neo4jConnect()
 
     def test_lookup_gen(self):
-        lookup = self.nc.get_lookup(limit_by_prefix=['FBbt'])
+        lookup = self.nc.get_lookup(limit_type_by_prefix=['FBbt'], include_individuals=False, include_synonyms=False)
         self.assertIsNotNone(lookup)  # Added an assertion to validate the lookup
 
 if __name__ == "__main__":

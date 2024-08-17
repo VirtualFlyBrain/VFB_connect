@@ -19,3 +19,5 @@ src/vfb_connect/owl/owlery_query_tools.py
 src/vfb_connect/resources/VFB_TermInfo_queries.json
 src/vfb_connect/schema/__init__.py
 src/vfb_connect/schema/vfb_term.py
+src/vfb_connect/schema/test/__init__.py
+src/vfb_connect/schema/test/vfb_term_tests.py
