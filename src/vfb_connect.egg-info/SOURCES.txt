@@ -17,3 +17,5 @@ src/vfb_connect/neo/test/neo_tools_tests.py
 src/vfb_connect/owl/__init__.py
 src/vfb_connect/owl/owlery_query_tools.py
 src/vfb_connect/resources/VFB_TermInfo_queries.json
+src/vfb_connect/schema/__init__.py
+src/vfb_connect/schema/vfb_term.py
