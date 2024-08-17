@@ -101,10 +101,12 @@ class VfbConnect:
             print("No cache file found.")
         self.lookup = self.nc.get_lookup(cache=self.cache_file)
 
-    def lookup_id(self, key, return_curie=False, allow_subsitutions=True):
+    def lookup_id(self, key, return_curie=False, allow_subsitutions=True, subsitution_stages=['adult', 'larval', 'pupal']):
         """Lookup the ID for a given key (label or symbol) using the internal lookup table.
 
         :param key: The label symbol, synonym, or potential ID to look up.
+        :param allow_subsitutions: Optional. If `True`, allow for case-insensitive and character-insensitive lookups. Default `True`.
+        :param subsitution_stages: Optional. A list of prefixes to try for substitutions. Default ['adult', 'larval', 'pupal'].
         :param return_curie: Optional. If `True`, return the ID in CURIE (Compact URI) format. Default `False`.
         :return: The ID associated with the key, or the key itself if it is already a valid ID. None is returned if the key is not found.
         :rtype: str
@@ -123,9 +125,10 @@ class VfbConnect:
             normalized_key = key.lower().replace('_', '').replace('-', '').replace(' ', '')
             matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == normalized_key}
 
-            stages = ['adult', 'larval', 'pupal']
+            if isinstance(subsitution_stages, str):
+                subsitution_stages = [subsitution_stages]
             if not matches:
-                for stage in stages:
+                for stage in subsitution_stages:
                         stage_normalized_key = stage + normalized_key
                         matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == stage_normalized_key}
                         if matches:
