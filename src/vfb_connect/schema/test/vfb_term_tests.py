@@ -1,7 +1,7 @@
 import unittest
 
 from vfb_connect import vfb
-from vfb_connect.schema.vfb_term import create_vfbterm_from_json
+from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms
 
 class VfbConnectTest(unittest.TestCase):
 
@@ -24,7 +24,7 @@ class VfbConnectTest(unittest.TestCase):
         json_data = self.vfb.get_TermInfo("VFB_jrcv0jvf", summary=False)
         term = create_vfbterm_from_json(json_data)
         print("got VFBTerm ", term[0])
-        term[0].load_mesh()
+        term[0].load_mesh(verbose=True)
         print("got mesh ", term[0].mesh)
         self.assertTrue(term[0].mesh and term[0].mesh.id == "VFB_jrcv0jvf")
 
@@ -33,7 +33,7 @@ class VfbConnectTest(unittest.TestCase):
         term = create_vfbterm_from_json(json_data)
         print("got VFBTerm ", term[0])
         print("nrrd ", term[0].channel_images[0].image.image_nrrd)
-        term[0].load_volume()
+        term[0].load_volume(verbose=True)
         print("got volume ", term[0].volume)
         self.assertTrue(term[0].volume and term[0].volume.id == "VFB_jrcv0jvf")
 
@@ -49,7 +49,30 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(len(names) == len(terms))
 
     def test_VFBterms_plot3d(self):
-        terms = create_vfbterm_from_json(self.vfb.get_terms_by_region("nodulus", summary=False))
-        terms.plot3d()
-        print("Images with skeletons: ", [term.name for term in terms if hasattr(term, 'skeleton')])
-        self.assertTrue([True for term in terms if hasattr(term, 'skeleton')])
+        terms = create_vfbterm_from_json(self.vfb.get_instances("'neuron' that 'overlaps' some 'nodulus'", summary=False)[0:100], verbose=True)
+        terms = terms[1:10:]+terms[0:10:]
+        self.assertTrue(isinstance(terms, VFBTerms))
+        self.assertTrue(len(terms) > 0)
+        self.assertTrue(isinstance(terms[0:10], VFBTerms))
+        terms.plot3d(template='JRC2018Unisex', verbose=True)
+        self.assertTrue([True for term in terms if hasattr(term, 'skeleton') or hasattr(term, 'mesh') or hasattr(term, 'volume')])
+
+    def test_VFBterms_addition(self):
+        terms = create_vfbterm_from_json(self.vfb.get_instances("'neuron' that 'overlaps' some 'nodulus'", summary=False)[0:100], verbose=True)
+        # test addition of slices
+        terms = terms[1:10:]+terms[0:10:]
+        self.assertTrue(isinstance(terms, VFBTerms))
+        self.assertTrue(len(terms) > 0)
+        # check simple slicing
+        self.assertTrue(isinstance(terms[0:2], VFBTerms))
+        # test addition uniqueness contraint
+        terms=terms[0:2]+terms[0:2]
+        self.assertTrue(len(terms)==len(terms[0:2]))
+
+    def test_VFBterms_subtraction(self):
+        terms = create_vfbterm_from_json(self.vfb.get_instances("'neuron' that 'overlaps' some 'nodulus'", summary=False)[0:100], verbose=True)
+        self.assertTrue(isinstance(terms, VFBTerms))
+        self.assertTrue(len(terms) > 0)
+        # test subtraction
+        terms=terms[0:2]-terms[0:1]
+        self.assertTrue(len(terms)==(len(terms[0:2])-len(terms[0:1])))

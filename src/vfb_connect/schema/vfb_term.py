@@ -3,7 +3,7 @@ import os
 from typing import List, Optional
 import navis
 import requests
-from vfb_connect import VfbConnect
+from vfb_connect import vfb
 import tempfile
 
 
@@ -76,40 +76,59 @@ class Image:
     def __repr__(self):
         return f"Image(image_folder={self.image_folder})"
 
-    def get_skeleton(self):
+    def get_skeleton(self, verbose=False):
         if self.image_swc:
             return navis.read_swc(self.image_swc)
-        if self.image_obj and 'volume_man.obj' in self.image_swc:
-            return navis.read_mesh(self.image_obj, output='neuron', errors='ignore')
-            return navis.TreeNeuron.from_mesh(mesh)
-        if self.image_nrrd:
-            return navis.read_nrrd(self.image_nrrd, output='dotprops', errors='ignore')
-        return None
-
-    def get_mesh(self):
-        if self.image_obj and 'volume_man.obj' in self.image_swc:
-            return navis.read_mesh(self.image_obj, output='neuron', errors='ignore')
-        if self.image_swc:
-            return navis.read_swc(self.image_swc, read_meta=False)
-        return None
-
-    def get_volume(self):
-        if self.image_nrrd:
-            local_file = self.create_temp_file(suffix=".nrrd")
-            self.download_file(self.image_nrrd, local_file.name)
-            mesh = navis.read_nrrd(local_file.name, output='voxels', errors='log')
+        if self.image_obj and 'volume_man.obj' in self.image_obj:
+            local_file = self.create_temp_file(suffix=".obj", verbose=verbose)
+            self.download_file(self.image_obj, local_file.name, verbose=verbose)
+            mesh = navis.read_mesh(local_file.name, output='neuron', errors='ignore' if not verbose else 'log')
+            self.delete_temp_file(local_file.name, verbose=verbose)
             if mesh:
-                self.delete_temp_file(local_file.name)
-                return mesh 
+                return mesh
+        if self.image_nrrd:
+            local_file = self.create_temp_file(suffix=".nrrd", verbose=verbose)
+            self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
+            dotprops = navis.read_nrrd(local_file.name, output='dotprops', errors='ignore' if not verbose else 'log')
+            self.delete_temp_file(local_file.name, verbose=verbose)
+            if dotprops:
+                return dotprops
         return None
 
-    def create_temp_file(self, suffix=".nrrd", delete=False):
+    def get_mesh(self, verbose=False, output='neuron'):
+        if self.image_obj and 'volume_man.obj' in self.image_obj:
+            print("Reading mesh from ", self.image_obj) if verbose else None
+            local_file = self.create_temp_file(suffix=".obj", verbose=verbose)
+            self.download_file(self.image_obj, local_file.name, verbose=verbose)
+            mesh = navis.read_mesh(local_file.name, output=output, errors='ignore' if not verbose else 'log')
+            self.delete_temp_file(local_file.name, verbose=verbose)
+            if mesh:
+                return mesh
+        if self.image_swc:
+            print("Falling back to skeleton version from ", self.image_swc) if verbose else None
+            return navis.read_swc(self.image_swc, read_meta=False, errors='ignore' if not verbose else 'log')
+        return None
+
+    def get_volume(self, verbose=False):
+        if self.image_nrrd:
+            print("Reading volume from ", self.image_nrrd) if verbose else None
+            local_file = self.create_temp_file(suffix=".nrrd", verbose=verbose)
+            self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
+            mesh = navis.read_nrrd(local_file.name, output='voxels', errors='ignore' if not verbose else 'log')
+            self.delete_temp_file(local_file.name, verbose=verbose)
+            if mesh:
+                return mesh 
+        else:
+            print("No nrrd file associated") if verbose else None
+        return None
+
+    def create_temp_file(self, suffix=".nrrd", delete=False, verbose=False):
         # Create a temporary file with a specific extension
         temp_file = tempfile.NamedTemporaryFile(suffix=suffix, delete=delete)
-        print(f"Temporary file created: {temp_file.name}")
+        print(f"Temporary file created: {temp_file.name}") if verbose else None
         return temp_file
 
-    def download_file(self, url, local_filename):
+    def download_file(self, url, local_filename, verbose=False):
         response = requests.get(url, stream=True)
         if response.status_code == 200:
             with open(local_filename, 'wb') as f:
@@ -117,10 +136,10 @@ class Image:
                     f.write(chunk)
             return local_filename
         else:
-            print(f"Failed to download file from {url}")
+            print(f"Failed to download file from {url}") if verbose else None
             return None
 
-    def delete_temp_file(self, file_path):
+    def delete_temp_file(self, file_path, verbose=False):
         """
         Deletes the temporary file at the specified path.
 
@@ -130,11 +149,11 @@ class Image:
         try:
             if os.path.exists(file_path):
                 os.remove(file_path)
-                print(f"Temporary file deleted: {file_path}")
+                print(f"Temporary file deleted: {file_path}") if verbose else None
             else:
-                print(f"File not found: {file_path}")
+                print(f"File not found: {file_path}") if verbose else None
         except Exception as e:
-            print(f"Error deleting file {file_path}: {e}")
+            print(f"Error deleting file {file_path}: {e}") if verbose else None
 
 class ChannelImage:
     def __init__(self, image: Image, channel: MinimalEntityInfo, imaging_technique: MinimalEntityInfo):
@@ -203,49 +222,71 @@ class VFBTerm:
     def has_tag(self, tag):
         return tag in self.term.core.types
     
-    def load_skeleton(self, template=None):
+    def load_skeleton(self, template=None, verbose=False, query_by_label=True):
         """
         Load the navis skeleton from each available image in the term.
         """
-        if template:
-            print("Loading skeleton for ", self.name, " aligned to ", template)
-            selected_template = VfbConnect.lookup_id(template)
-            self.skeleton = [ci.image.get_skeleton() for ci in self.channel_images if ci.image.template_channel.short_form == selected_template][0] if self.channel_images else None
-        else:
-            print("Loading skeletons for ", self.name)
-            print("Processinng channel images: ", self.channel_images)
-            self.skeleton = [ci.image.get_skeleton() for ci in self.channel_images] if self.channel_images else None
-        if self.skeleton:
-            if isinstance(self.skeleton, list):
-                for skeleton in self.skeleton:
-                    skeleton.name = self.name
-                    skeleton.label = self.name
-                    skeleton.id = self.id
-
-                if len(self.skeleton) > 1:
-                    print("Multiple skeletons found for ", self.name, ". Please specify a template.")
-                    print("Available templates: ", [ci.image.template_channel.name for ci in self.channel_images])
-                elif len(self.skeleton) == 1:
-                    print("Skeleton found for ", self.name)
-                    self.skeleton = self.skeleton[0]
+        if self.has_tag('Neuron'):
+            if template:
+                if query_by_label:
+                    selected_template = vfb.lookup_id(template)
+                    print("Template (", template, ") resolved to id ", selected_template) if verbose else None
+                    selected_template = selected_template
+                else:
+                    selected_template = template
+                print("Loading skeleton for ", self.name, " aligned to ", template) if verbose else None
+                skeletons = [ci.image.get_skeleton() for ci in self.channel_images if ci.image.template_anatomy.short_form == selected_template] if self.channel_images else None
+                if skeletons:
+                    self.skeleton = skeletons[0] if skeletons else None
             else:
-                print("Skeleton found for ", self.name)
-                self.skeleton.name = self.name
-                self.skeleton.label = self.name
-                self.skeleton.id = self.id
- 
+                print("Loading skeletons for ", self.name) if verbose else None
+                print("Processinng channel images: ", self.channel_images) if verbose else None
+                self.skeleton = [ci.image.get_skeleton() for ci in self.channel_images] if self.channel_images else None
+            if hasattr(self, 'skeleton') and self.skeleton:
+                if isinstance(self.skeleton, list):
+                    self.skeleton = [item for item in self.skeleton if item is not None]
+                    for skeleton in self.skeleton:
+                        skeleton.name = self.name
+                        skeleton.label = self.name
+                        skeleton.id = self.id
 
-    def load_mesh(self, template=None):
+                    if len(self.skeleton) > 1:
+                        print("Multiple skeletons found for ", self.name, ". Please specify a template.")
+                        print("Available templates: ", [ci.image.template_anatomy.name for ci in self.channel_images])
+                    elif len(self.skeleton) == 1:
+                        print("Skeleton found for ", self.name) if verbose else None
+                        self.skeleton = self.skeleton[0]
+                else:
+                    print("Skeleton found for ", self.name) if verbose else None
+                    self.skeleton.name = self.name
+                    self.skeleton.label = self.name
+                    self.skeleton.id = self.id
+        else:
+            print(f"{self.name} is not a neuron") if verbose else None
+
+    def load_mesh(self, template=None, verbose=False, query_by_label=True):
         """
         Load the navis mesh from each available image in the term.
         """
         if template:
-            selected_template = VfbConnect.lookup_id(template)
-            self.mesh = [ci.image.get_mesh() for ci in self.channel_images if ci.image.template_channel.short_form == selected_template][0] if self.channel_images else None
+            if query_by_label:
+                selected_template = vfb.lookup_id(template)
+                print("Template (", template, ") resolved to id ", selected_template) if verbose else None
+                selected_template = selected_template
+            else:
+                selected_template = template
+            print("Loading mesh for ", self.name, " aligned to ", template) if verbose else None
+            mesh = [ci.image.get_mesh(verbose=verbose, output='neuron' if self.has_tag('Neuron') else 'volume') for ci in self.channel_images if ci.image.template_anatomy.short_form == selected_template] if self.channel_images else None
+            if mesh:
+                self.mesh = mesh[0]
         else:
-            self.mesh = [ci.image.get_mesh() for ci in self.channel_images] if self.channel_images else None
-        if self.mesh:
+            print("Loading meshes for ", self.name) if verbose else None
+            self.mesh = [ci.image.get_mesh(verbose=verbose, output='neuron' if self.has_tag('Neuron') else 'volume') for ci in self.channel_images] if self.channel_images else None
+        if hasattr(self, 'mesh') and self.mesh:
             if isinstance(self.mesh, list):
+                print("Processing meshes: ", self.mesh) if verbose else None
+                self.mesh = [item for item in self.mesh if item is not None]
+                print(len(self.mesh), " Meshes found: ", self.mesh) if verbose else None
                 for mesh in self.mesh:
                     mesh.name = self.name
                     mesh.label = self.name
@@ -253,8 +294,9 @@ class VFBTerm:
                     mesh.meta=self.summary
                 if len(self.mesh) > 1:
                     print("Multiple meshes found for ", self.name, ". Please specify a template.")
-                    print("Available templates: ", [ci.image.template_channel.name for ci in self.channel_images])
+                    print("Available templates: ", [ci.image.template_anatomy.name.replace('_c','') for ci in self.channel_images])
                 elif len(self.mesh) == 1:
+                    print("Single mesh loaded for ", self.name) if verbose else None
                     self.mesh = self.mesh[0]
             else:
                 self.mesh.name = self.name
@@ -262,17 +304,28 @@ class VFBTerm:
                 self.mesh.id = self.id
 
 
-    def load_volume(self, template=None):
+    def load_volume(self, template=None, verbose=False, query_by_label=True):
         """
         Load the navis volume from each available image in the term.
         """
         if template:
-            selected_template = VfbConnect.lookup_id(template)
-            self.volume = [ci.image.get_volume() for ci in self.channel_images if ci.image.template_channel.short_form == selected_template][0] if self.channel_images else None
+            if query_by_label:
+                selected_template = vfb.lookup_id(template)
+                print("Template (", template, ") resolved to id ", selected_template) if verbose else None
+                selected_template = selected_template
+            else:
+                selected_template = template
+            volume = [ci.image.get_volume() for ci in self.channel_images if ci.image.template_anatomy.short_form == selected_template] if self.channel_images else None
+            if volume:
+                self.volume = volume[0] if volume else None
         else:
+            print("Loading volumes for ", self.name) if verbose else None
             self.volume = [ci.image.get_volume() for ci in self.channel_images] if self.channel_images else None
-        if self.volume:
+        if hasattr(self, 'volume') and self.volume:
             if isinstance(self.volume, list):
+                print("Processing volumes: ", self.volume) if verbose else None
+                self.volume = [item for item in self.volume if item is not None]
+                print(len(self.volume), " Volumes found: ", self.volume) if verbose else None
                 for volume in self.volume:
                         volume.name = self.name
                         volume.label = self.name
@@ -280,7 +333,7 @@ class VFBTerm:
 
                 if len(self.volume) > 1:
                     print("Multiple volumes found for ", self.name, ". Please specify a template.")
-                    print("Available templates: ", [ci.image.template_channel.name for ci in self.channel_images])
+                    print("Available templates: ", [ci.image.template_anatomy.name for ci in self.channel_images])
                 elif len(self.volume) == 1:
                     self.volume = self.volume[0]
             else:
@@ -296,45 +349,97 @@ class VFBTerms:
         return f"VFBTerms(terms={self.terms})"
 
     def __getitem__(self, index):
-        return self.terms[index]
+        if isinstance(index, slice):
+            # If the index is a slice, return a new VFBTerms object with the sliced terms
+            return VFBTerms(self.terms[index])
+        else:
+            # Otherwise, return the specific item from the list
+            return self.terms[index]
     
     def __len__(self):
         return len(self.terms)
+    
+    def __add__(self, other):
+        if isinstance(other, VFBTerms):
+            combined_terms = self.terms + other.terms
+            unique_terms = {term.id: term for term in combined_terms}.values()
+            return VFBTerms(list(unique_terms))
+        raise TypeError("Unsupported operand type(s) for +: 'VFBTerms' and '{}'".format(type(other).__name__))
 
-    def load_skeletons(self, template=None):
+    def __sub__(self, other):
+        if isinstance(other, VFBTerms):
+            other_ids = {term.id for term in other.terms}
+            remaining_terms = [term for term in self.terms if term.id not in other_ids]
+            return VFBTerms(remaining_terms)
+        raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
+
+
+    def load_skeletons(self, template=None, verbose=False, query_by_label=True):
         """
         Load the navis skeleton from each available image in the term.
         """
         for term in self.terms:
-            term.load_skeleton(template=template)
+            term.load_skeleton(template=template, verbose=verbose, query_by_label=query_by_label) 
 
-    def load_meshes(self, template=None):
+    def load_meshes(self, template=None, verbose=False, query_by_label=True):
         """
         Load the navis mesh from each available image in the term.
         """
         for term in self.terms:
-            term.load_mesh(template=template)
+            term.load_mesh(template=template, verbose=verbose, query_by_label=query_by_label)
 
-    def load_volumes(self, template=None):
+    def load_volumes(self, template=None, verbose=False, query_by_label=True):
         """
         Load the navis volume from each available image in the term.
         """
         for term in self.terms:
-            term.load_volume(template=template)
+            term.load_volume(template=template, verbose=verbose, query_by_label=query_by_label)
 
-    def plot3d(self, template=None):
+    def plot3d(self, template=None, verbose=False, query_by_label=True):
         """
-        Plot the 3D representation of the term's skeleton.
+        Plot the 3D representation of any neuron or expression.
         """
+        if template:
+            if query_by_label:
+                selected_template = vfb.lookup_id(template)
+                print("Template (", template, ") resolved to id ", selected_template) if verbose else None
+                query_by_label = False
+            else:
+                selected_template = template
+        else:
+                selected_template = template
         skeletons=[]
         for term in self.terms:
+            if term.has_tag('Individual'):
+                print(f"{term.name} is an instance") if verbose else None
+            else:
+                print(f"{term.name} is not an instance soo won't have a skeleton, mesh or volume") if verbose else None
+                continue
             if not hasattr(term, 'skeleton'):
-                term.load_skeleton(template=template)
-            if term.skeleton:
+                term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label)
+            if hasattr(term, 'skeleton') and term.skeleton:
+                print(f"Skeleton found for {term.name}") if verbose else None
                 skeletons.append(term.skeleton)
+            else:
+                print(f"No skeleton found for {term.name} check for a mesh") if verbose else None
+                if not hasattr(term, 'mesh'):
+                    term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label)
+                if hasattr(term, 'mesh') and term.mesh:
+                    skeletons.append(term.mesh)
+                else:
+                    print(f"No mesh found for {term.name} check for a volume") if verbose else None
+                    if not hasattr(term, 'volume'):
+                        term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label)
+                    if hasattr(term, 'volume') and term.volume:
+                        skeletons.append(term.volume)
+                    else:
+                        print(f"No volume found for {term.name}") if verbose else None
+
         if skeletons:
-            print(f"Plotting 3D representation of {len(skeletons)} skeletons")
+            print(f"Plotting 3D representation of {len(skeletons)} items")
             navis.plot3d(skeletons, backend='auto')
+        else:
+            print("Nothing found to plot")
 
     def get_ids(self):
         return [term.id for term in self.terms]
@@ -365,7 +470,7 @@ def create_vfbterm_list_from_json(json_data):
     return VFBTerms([create_vfbterm_from_json(term) for term in data])
 
 # Helper function to create a VFBTerm object from JSON
-def create_vfbterm_from_json(json_data):
+def create_vfbterm_from_json(json_data, verbose=False):
     """
     Create a VFBTerm object from JSON data.
 
@@ -415,13 +520,13 @@ def create_vfbterm_from_json(json_data):
                     imaging_technique=MinimalEntityInfo(**ci['imaging_technique'])
                 )
                 channel_images.append(channel_image)
-            print(f"Loaded {len(channel_images)} channel images")
+            print(f"Loaded {len(channel_images)} channel images") if verbose else None
 
         return VFBTerm(term=term, related_terms=related_terms, channel_images=channel_images)
     else:
         return None
 
-def load_skeletons(vfb_term, template=None):
+def load_skeletons(vfb_term, template=None, verbose=False, query_by_label=True):
     """
     Load the navis skeleton from each available image in the term.
 
@@ -430,12 +535,16 @@ def load_skeletons(vfb_term, template=None):
     :return: None
     """
     if template:
-        selected_template = lookup_id(template)
+        if query_by_label:
+            selected_template = vfb.lookup_id(template)
+            print("Template (", template, ") resolved to id ", selected_template) if verbose else None
+        else:
+            selected_template = template
     if isinstance(vfb_term, VFBTerm):
         print("Loading skeletons for ", vfb_term.name) if template == None else print("Loading skeleton for ", vfb_term.name, " aligned to ", template)
-        vfb_term.load_skeleton(template=template)
+        vfb_term.load_skeleton(template=selected_template)
     if isinstance(vfb_term, list):
         for term in vfb_term:
             print("Loading skeletons for ", vfb_term.name) if template == None else print("Loading skeleton for ", vfb_term.name, " aligned to ", template)
-            term.load_skeleton(template=template)
+            term.load_skeleton(template=selected_template)
 
