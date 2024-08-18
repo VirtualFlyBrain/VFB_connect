@@ -3,9 +3,7 @@ import os
 from typing import List, Optional
 import navis
 import requests
-from vfb_connect import vfb
 import tempfile
-
 
 class MinimalEntityInfo:
     def __init__(self, short_form: str, iri: str, label: str, types: List[str], unique_facets: Optional[List[str]] = None, symbol: Optional[str] = None):
@@ -175,32 +173,75 @@ class AnatomyChannelImage:
 
 
 class VFBTerm:
-    def __init__(self, term: Term, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None):
-        self.term = term
-        self.related_terms = related_terms
-        self.channel_images = channel_images
-        self.summary = self.get_summary()
-        self.name = self.term.core.name
-        self.id = self.term.core.short_form
-        self.description = self.term.description
-        self.url = self.term.link
+    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None):
+        from vfb_connect import vfb
+        self.vfb = vfb
+        if id is not None:
+            if isinstance(id, list):
+                id = id[0]
+            json_data = self.vfb.get_TermInfo([id], summary=False)
+            term_object = create_vfbterm_from_json(json_data[0])
+            self.__dict__.update(term_object.__dict__)  # Copy attributes from the fetched term object
+        elif term is not None:
+            self.term = term
+            self.related_terms = related_terms
+            self.channel_images = channel_images
+            self.summary = self.get_summary()
+            self.name = self.term.core.name
+            self.id = self.term.core.short_form
+            self.description = self.term.description
+            self.url = self.term.link
 
-        if self.term.icon:
-            self.thumbnail = self.term.icon
-        elif channel_images and len(channel_images) > 0 and channel_images[0].image.image_thumbnail:
-            self.thumbnail = channel_images[0].image.image_thumbnail
+            if self.term.icon:
+                self.thumbnail = self.term.icon
+            elif channel_images and len(channel_images) > 0 and channel_images[0].image.image_thumbnail:
+                self.thumbnail = channel_images[0].image.image_thumbnail
 
-        # Set flags for different types of terms
-        self.is_type = self.has_tag('Class')
-        self.is_instance = self.has_tag('Individual')
-        self.is_neuron = self.has_tag('Neuron')
-        self.has_image = self.has_tag('has_image')
-        self.has_scRNAseq = self.has_tag('hasScRNAseq')
-        self.has_neuron_connectivity = self.has_tag('has_neuron_connectivity')
-        self.has_region_connectivity = self.has_tag('has_region_connectivity')
+            # Set flags for different types of terms
+            self.is_type = self.has_tag('Class')
+            self.is_instance = self.has_tag('Individual')
+            self.is_neuron = self.has_tag('Neuron')
+            self.has_image = self.has_tag('has_image')
+            self.has_scRNAseq = self.has_tag('hasScRNAseq')
+            self.has_neuron_connectivity = self.has_tag('has_neuron_connectivity')
+            self.has_region_connectivity = self.has_tag('has_region_connectivity')
 
     def __repr__(self):
         return f"VFBTerm(term={self.term})"
+    
+    def __getitem__(self, index):
+        if index != 0:
+            raise IndexError("VFBTerm only has one item")
+        return self
+    
+    def __len__(self):
+        return 1
+    
+    def __add__(self, other):
+        if isinstance(other, VFBTerms):
+            combined_terms = [self.term] + other.terms
+            unique_terms = {term.id: term for term in combined_terms}.values()
+            return VFBTerms(list(unique_terms))
+        if isinstance(other, VFBTerm):
+            combined_terms = [self.term] + [other]
+            unique_terms = {term.id: term for term in combined_terms}.values()
+            return VFBTerms(list(unique_terms))
+        raise TypeError("Unsupported operand type(s) for +: 'VFBTerms' and '{}'".format(type(other).__name__))
+
+    def __sub__(self, other, verbose=False):
+        print("Starting with ", self.get_ids()) if verbose else None
+        if isinstance(other, VFBTerms):
+            other_ids = other.get_ids()
+            print("Removing ", other_ids) if verbose else None
+            remaining_terms = VFBTerms([term for term in [self.term] if term.id not in other_ids])
+            print ("Remaining ", remaining_terms.get_ids()) if verbose else None
+            return remaining_terms
+        if isinstance(other, VFBTerm):
+            other_ids = [other.id]
+            print("Removing ", other.id) if verbose else None
+            remaining_terms = VFBTerms([term for term in [self.term] if term.id != other.id])
+            return remaining_terms
+        raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
 
     def get_summary(self):
         """
@@ -229,7 +270,7 @@ class VFBTerm:
         if self.has_tag('Neuron'):
             if template:
                 if query_by_label:
-                    selected_template = vfb.lookup_id(template)
+                    selected_template = self.vfb.lookup_id(template)
                     print("Template (", template, ") resolved to id ", selected_template) if verbose else None
                     selected_template = selected_template
                 else:
@@ -270,7 +311,7 @@ class VFBTerm:
         """
         if template:
             if query_by_label:
-                selected_template = vfb.lookup_id(template)
+                selected_template = self.vfb.lookup_id(template)
                 print("Template (", template, ") resolved to id ", selected_template) if verbose else None
                 selected_template = selected_template
             else:
@@ -310,7 +351,7 @@ class VFBTerm:
         """
         if template:
             if query_by_label:
-                selected_template = vfb.lookup_id(template)
+                selected_template = self.vfb.lookup_id(template)
                 print("Template (", template, ") resolved to id ", selected_template) if verbose else None
                 selected_template = selected_template
             else:
@@ -343,7 +384,12 @@ class VFBTerm:
 
 class VFBTerms:
     def __init__(self, terms: List[VFBTerm]):
+        from vfb_connect import vfb
+        self.vfb = vfb
         self.terms = terms
+
+    def __init__(self, terms: List[str]):
+        self.terms = [VFBTerm(id=term) for term in terms]
 
     def __repr__(self):
         return f"VFBTerms(terms={self.terms})"
@@ -364,6 +410,10 @@ class VFBTerms:
             combined_terms = self.terms + other.terms
             unique_terms = {term.id: term for term in combined_terms}.values()
             return VFBTerms(list(unique_terms))
+        if isinstance(other, VFBTerm):
+            combined_terms = self.terms + [other]
+            unique_terms = {term.id: term for term in combined_terms}.values()
+            return VFBTerms(list(unique_terms))
         raise TypeError("Unsupported operand type(s) for +: 'VFBTerms' and '{}'".format(type(other).__name__))
 
     def __sub__(self, other, verbose=False):
@@ -373,6 +423,11 @@ class VFBTerms:
             print("Removing ", other_ids) if verbose else None
             remaining_terms = VFBTerms([term for term in self.terms if term.id not in other_ids])
             print ("Remaining ", remaining_terms.get_ids()) if verbose else None
+            return remaining_terms
+        if isinstance(other, VFBTerm):
+            other_ids = [other.id]
+            print("Removing ", other.id) if verbose else None
+            remaining_terms = VFBTerms([term for term in self.terms if term.id != other.id])
             return remaining_terms
         raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
 
@@ -404,7 +459,7 @@ class VFBTerms:
         """
         if template:
             if query_by_label:
-                selected_template = vfb.lookup_id(template)
+                selected_template = self.vfb.lookup_id(template)
                 print("Template (", template, ") resolved to id ", selected_template) if verbose else None
                 query_by_label = False
             else:
@@ -481,12 +536,23 @@ def create_vfbterm_from_json(json_data, verbose=False):
     :return: A VFBTerm object.
     """
     data = None
+    if not json_data:
+        print("No JSON data provided") if verbose else None
+        return None
     if isinstance(json_data, str):
+        print("Loading JSON data from string") if verbose else None
         data = json.loads(json_data)
     if isinstance(json_data, dict):
+        print("Loading JSON data from dictionary") if verbose else None
         data = json_data
     if isinstance(json_data, list):
-        return create_vfbterm_list_from_json(json_data)
+        print("Loading JSON data from list") if verbose else None
+        if len(json_data) > 1:
+            return create_vfbterm_list_from_json(json_data)
+        elif len(json_data) == 1:
+            data = json_data[0]
+            return create_vfbterm_from_json(data)
+        return None
 
     if data:
         # Create the core Term object
@@ -537,6 +603,7 @@ def load_skeletons(vfb_term, template=None, verbose=False, query_by_label=True):
     :param template: The short form of the template to load skeletons for.
     :return: None
     """
+    from vfb_connect import vfb
     if template:
         if query_by_label:
             selected_template = vfb.lookup_id(template)

@@ -1,11 +1,10 @@
 import unittest
-
-from vfb_connect import vfb
-from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms
+from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm
 
 class VfbConnectTest(unittest.TestCase):
 
     def setUp(self):
+        from vfb_connect import vfb
         self.vfb = vfb
 
     def test_create_vfbterm_from_json(self):
@@ -14,11 +13,12 @@ class VfbConnectTest(unittest.TestCase):
 
     def test_load_skeleton(self):
         json_data = self.vfb.get_TermInfo("VFB_jrcv0jvf", summary=False)
+        print("got json_data ", json_data)
         term = create_vfbterm_from_json(json_data)
-        print("got VFBTerm ", term[0])
-        term[0].load_skeleton()
-        print("got skeleton ", term[0].skeleton)
-        self.assertTrue(term[0].skeleton and term[0].skeleton.id == "VFB_jrcv0jvf")
+        print("got VFBTerm ", term)
+        term.load_skeleton()
+        print("got skeleton ", term.skeleton)
+        self.assertTrue(term.skeleton and term.skeleton.id == "VFB_jrcv0jvf")
 
     def test_load_mesh(self):
         json_data = self.vfb.get_TermInfo("VFB_jrcv0jvf", summary=False)
@@ -84,6 +84,25 @@ class VfbConnectTest(unittest.TestCase):
         print(f"looking for {len(terms[0:5])} - {len(terms[0:2])} = {len(terms[2:5])} terms")
         print(f"got {len(minus_terms)} terms: {minus_terms}")
         self.assertTrue(len(minus_terms)==len(terms[2:5]))
+
+    def test_create_vfbterm_from_id(self):
+        term=VFBTerm("VFB_jrcv0jvf")
+        print("got term ", term)
+        self.assertTrue(term)
+        self.assertTrue(isinstance(term, VFBTerm))
+
+    def test_create_vfbterm_from_name(self):
+        term=VFBTerm("nodulus")
+        print("got term ", term)
+        self.assertTrue(term)
+        self.assertTrue(isinstance(term, VFBTerm))
+
+    def test_create_vfbterms_from_list(self):
+        terms=VFBTerms(["nodulus", "VFB_jrcv0jvf"])
+        print("got terms ", terms)
+        self.assertTrue(terms)
+        self.assertTrue(isinstance(terms, VFBTerms))
+        self.assertTrue(len(terms)==2)
 
 if __name__ == "__main__":
     unittest.main()

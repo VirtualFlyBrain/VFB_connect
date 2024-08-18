@@ -3,6 +3,7 @@ from .owl.owlery_query_tools import OWLeryConnect
 from .neo.neo4j_tools import Neo4jConnect, re, dict_cursor
 from .neo.query_wrapper import QueryWrapper, batch_query
 from .default_servers import get_default_servers
+from .schema.vfb_term import VFBTerm, VFBTerms
 import pandas as pd
 
 
@@ -643,3 +644,21 @@ class VfbConnect:
                 dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
         """
         return self.neo_query_wrapper.vfb_id_2_xrefs(vfb_id=vfb_id, db=db, id_type=id_type, reverse_return=reverse_return)
+    
+    def term(self, term):
+        """Get a VFBTerm object for a given term id, name, symbol or synonym.
+
+        :param term: The term to look up.
+        :return: a VFBTerm object
+        :rtype: dict
+        """
+        return VFBTerm(term)
+    
+    def terms(self, terms):
+        """Get a list of VFBTerm objects for a given list of term id, name, symbol or synonym.
+
+        :param terms: A list of terms to look up.
+        :return: a VFBTerms list of VFBTerm objects
+        :rtype: VFBTerms
+        """
+        return VFBTerms(terms)

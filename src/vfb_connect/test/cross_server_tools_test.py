@@ -2,7 +2,7 @@ import unittest
 from ..cross_server_tools import VfbConnect
 import os
 import shutil
-
+from ..schema.vfb_term import VFBTerm, VFBTerms
 
 class VfbConnectTest(unittest.TestCase):
 
@@ -83,3 +83,16 @@ class VfbConnectTest(unittest.TestCase):
     def tearDown(self):
         if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
             shutil.rmtree('image_folder_tmp')
+
+    def test_term(self):
+        fu = self.vc.term('VFB_00010001')
+        self.assertTrue(fu)
+        self.assertTrue(fu.id == 'VFB_00010001')
+        self.assertTrue(fu.name == 'fru-F-500075')
+        self.assertTrue(isinstance(fu, VFBTerm))
+
+    def test_terms(self):
+        fu = self.vc.terms(['VFB_00010001', 'VFB_00010002'])
+        self.assertTrue(fu)
+        self.assertTrue(len(fu) == 2)
+        self.assertTrue(isinstance(fu, VFBTerms))
