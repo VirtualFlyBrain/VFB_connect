@@ -201,7 +201,7 @@ class VfbConnect:
         terms = self.oc.get_subclasses(owl_query, query_by_label=query_by_label)
         if verbose:
             print("Found: %d terms" % len(terms))
-        results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)),
+        results = self.neo_query_wrapper.get_type_TermInfo(terms,
                                                            summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
@@ -221,7 +221,7 @@ class VfbConnect:
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_subclasses("%s" % class_expression, direct=direct, query_by_label=query_by_label)
-        results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)), summary=summary, return_dataframe=False)
+        results = self.neo_query_wrapper.get_type_TermInfo(terms, summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
@@ -240,7 +240,7 @@ class VfbConnect:
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label, direct=direct)
-        results = self.neo_query_wrapper.get_type_TermInfo(list(map(gen_short_form, terms)), summary=summary, return_dataframe=False)
+        results = self.neo_query_wrapper.get_type_TermInfo(terms, summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
@@ -264,14 +264,13 @@ class VfbConnect:
                                                                                      summary=summary)
         else:
             terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
-            out = self.neo_query_wrapper.get_anatomical_individual_TermInfo(list(map(gen_short_form, terms)),
-                                                                            summary=summary, return_dataframe=False)
+            out = self.neo_query_wrapper.get_anatomical_individual_TermInfo(terms, summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(out)
         return out
 
     def _get_neurons_connected_to(self, neuron, weight, direction, classification=None, query_by_label=True,
-                                  return_dataframe=True):
+                                  return_dataframe=True, verbose=False):
         """Private method to get all neurons connected to a specified neuron.
 
         :param neuron: The name or ID of a particular neuron (dependent on query_by_label setting).
@@ -297,18 +296,20 @@ class VfbConnect:
             cypher_query += 'AND %s.short_form = "%s" ' % (direction, neuron)
         if classification and instances:
             directions.remove(direction)
-            cypher_query += "AND %s.iri IN %s " % (directions[0], str(instances))
+            cypher_query += "AND %s.short_form IN %s " % (directions[0], str(instances))
         cypher_query += "RETURN upstream.short_form as query_neuron_id, upstream.label as query_neuron_name, " \
                         "r.weight[0] as weight, " \
                         "downstream.short_form as target_neuron_id, downstream.label as target_neuron_name"
+        print(cypher_query) if verbose else None
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
+        print(dc) if verbose else None
         if return_dataframe:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
 
-    def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', query_by_label=True, return_dataframe=True):
+    def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', query_by_label=True, return_dataframe=True, verbose=False):
         """Get JSON report of individual neurons similar to the input neuron.
 
         :param neuron: The neuron to find similar neurons to.
@@ -328,14 +329,16 @@ class VfbConnect:
                 "RETURN DISTINCT n2.short_form AS id, r.NBLAST_score[0] AS NBLAST_score, n2.label AS label, " \
                 "COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source " \
                 "ORDER BY %s DESC" % (id, similarity_score)
+        print(query) if verbose else None
         dc = self.neo_query_wrapper._query(query)
+        print(dc) if verbose else None
         if return_dataframe:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
 
     def get_neurons_downstream_of(self, neuron, weight, classification=None, query_by_label=True,
-                                  return_dataframe=True):
+                                  return_dataframe=True,verbose=False):
         """Get all neurons downstream of a specified neuron.
 
         :param neuron: The name or ID of a particular neuron (dependent on query_by_label setting).
@@ -348,9 +351,9 @@ class VfbConnect:
         """
         return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='upstream',
                                               classification=classification, query_by_label=query_by_label,
-                                              return_dataframe=return_dataframe)
+                                              return_dataframe=return_dataframe, verbose=verbose)
 
-    def get_neurons_upstream_of(self, neuron, weight, classification=None, query_by_label=True, return_dataframe=True):
+    def get_neurons_upstream_of(self, neuron, weight, classification=None, query_by_label=True, return_dataframe=True, verbose=False):
         """Get all neurons upstream of a specified neuron.
 
         :param neuron: The name or ID of a particular neuron (dependent on query_by_label setting).
@@ -363,10 +366,10 @@ class VfbConnect:
         """
         return self._get_neurons_connected_to(neuron=neuron, weight=weight, direction='downstream',
                                               classification=classification, query_by_label=query_by_label,
-                                              return_dataframe=return_dataframe)
+                                              return_dataframe=return_dataframe, verbose=verbose)
 
     def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True,
-                                      return_dataframe=True):
+                                      return_dataframe=True, verbose=False):
         """Get all synaptic connections between individual neurons of `upstream_type` and `downstream_type` where
         synapse count >= `weight`.
 
@@ -403,8 +406,10 @@ class VfbConnect:
                         "apoc.text.join(collect(distinct c2.label),'|') as downstream_class, " \
                         "s1.short_form AS up_data_source, r1.accession[0] as up_accession," \
                         "s2.short_form AS down_source, r2.accession[0] AS down_accession"
+        print(cypher_query) if verbose else None
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
+        print(dc) if verbose else None
         if return_dataframe:
             return pd.DataFrame.from_records(dc)
         else:
@@ -464,7 +469,7 @@ class VfbConnect:
         instances = self.oc.get_instances(class_expression,
                                           query_by_label=query_by_label,
                                           direct=direct)
-        return self.neo_query_wrapper.get_images([gen_short_form(i) for i in instances],
+        return self.neo_query_wrapper.get_images(instances,
                                                  template=template,
                                                  image_folder=image_folder,
                                                  image_type=image_type,

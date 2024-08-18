@@ -10,12 +10,16 @@ class VfbConnectTest(unittest.TestCase):
         self.vc = VfbConnect()
 
     def test_get_term_by_region(self):
+        terms = self.vc.get_terms_by_region("fan-shaped body")
+        print(terms)
         self.assertTrue(
-            self.vc.get_terms_by_region("fan-shaped body"))
+            len(terms) > 200)
 
     def test_get_subclasses(self):
+        terms = self.vc.get_subclasses("fan-shaped body layer")
+        print(terms)
         self.assertTrue(
-            self.vc.get_subclasses("fan-shaped body layer"))
+            len(terms) > 7)
 
     def test_get_instances(self):
 #        fbi = self.vc.get_instances("fan-shaped body")
@@ -52,11 +56,13 @@ class VfbConnectTest(unittest.TestCase):
 
 
     def test_get_downstream_neurons(self):
-        fu = self.vc.get_neurons_downstream_of('D_adPN_R (FlyEM-HB:5813055184)', classification="'Kenyon cell'", weight=20)
+        fu = self.vc.get_neurons_downstream_of('D_adPN_R (FlyEM-HB:5813055184)', classification="'Kenyon cell'", weight=20, verbose=True)
+        print(fu)
         self.assertTrue(len(fu) > 0)
 
     def test_get_upstream_neurons(self):
-        fu = self.vc.get_neurons_upstream_of('D_adPN_R (FlyEM-HB:5813055184)', classification="'GABAergic neuron'", weight=20)
+        fu = self.vc.get_neurons_upstream_of('D_adPN_R (FlyEM-HB:5813055184)', classification="'GABAergic neuron'", weight=20, verbose=True)
+        print(fu)
         self.assertTrue(len(fu) > 0)
 
     def test_get_connected_neurons_by_type(self):
@@ -85,6 +91,9 @@ class VfbConnectTest(unittest.TestCase):
             shutil.rmtree('image_folder_tmp')
 
 class VfbTermTests(unittest.TestCase):
+
+    def setUp(self):
+        self.vc = VfbConnect()
 
     def test_term(self):
         fu = self.vc.term('VFB_00010001')

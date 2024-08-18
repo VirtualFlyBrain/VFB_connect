@@ -315,25 +315,29 @@ class QueryWrapper(Neo4jConnect):
                 print(f"\033[33mWarning:\033[0m Not deleting {image_folder}, stomp option not supported on this system for security reasons,"
                               "please delete manually.")
         os.makedirs(image_folder, exist_ok=True)
-        inds = self.get_anatomical_individual_TermInfo(short_forms=short_forms)
-        for i in inds:
-            if not ('has_image' in i['term']['core']['types']):
-                continue
-            label = i['term']['core']['label']
-            image_matches = [x['image'] for x in i['channel_image']]
-            if not image_matches:
-                continue
-            for imv in image_matches:
-                if imv['template_anatomy']['label'] == template:
-                    r = requests.get(imv['image_folder'] + '/volume.' + image_type)
-                    ### Slightly dodgy warning - could mask network errors
-                    if not r.ok:
-                        print("33mWarning:\033[0m No '%s' file found for '%s'." % (image_type, label))
-                        continue
-                    filename = re.sub('\W', '_', label) + '.' + image_type
-                    with open(image_folder + '/' + filename, 'w') as image_file:
-                        image_file.write(r.text)
-                    manifest.append(_populate_manifest(instance=i, filename=filename))
+        inds = self.get_anatomical_individual_TermInfo(short_forms=short_forms, summary=False)
+        if not inds:
+            print(f"\033[33mWarning:\033[0m No results returned for short_forms: {short_forms}")
+        else:
+            print(f"Got {len(inds)} results.")
+            for i in inds:
+                if not ('has_image' in i['term']['core']['types']):
+                    continue
+                label = i['term']['core']['label']
+                image_matches = [x['image'] for x in i['channel_image']]
+                if not image_matches:
+                    continue
+                for imv in image_matches:
+                    if imv['template_anatomy']['label'] == template:
+                        r = requests.get(imv['image_folder'] + '/volume.' + image_type)
+                        ### Slightly dodgy warning - could mask network errors
+                        if not r.ok:
+                            print("33mWarning:\033[0m No '%s' file found for '%s'." % (image_type, label))
+                            continue
+                        filename = re.sub('\W', '_', label) + '.' + image_type
+                        with open(image_folder + '/' + filename, 'w') as image_file:
+                            image_file.write(r.text)
+                        manifest.append(_populate_manifest(instance=i, filename=filename))
         manifest_df = pd.DataFrame.from_records(manifest)
         manifest_df.to_csv(image_folder + '/manifest.tsv', sep='\t')
         return manifest_df
@@ -482,7 +486,7 @@ class QueryWrapper(Neo4jConnect):
         # Retrieve term information for all IDs
         return self.get_TermInfo(ids_to_query, summary=summary, return_dataframe=False)
 
-    def get_images_by_filename(self, filenames, dataset=None):
+    def get_images_by_filename(self, filenames, dataset=None, summary=True, return_dataframe=True):
         """Takes a list of filenames as input and returns a list of image terminfo.
         Optionally restrict by dataset (improves speed)"""
         m = "MATCH (ds:DataSet)<-[has_source]-(ai:Individual)<-[:depicts]" \
@@ -493,7 +497,7 @@ class QueryWrapper(Neo4jConnect):
         r = "RETURN ai.short_form"
         dc = self._query(' '.join([m, w, r]))
         return self.get_anatomical_individual_TermInfo([d['ai.short_form']
-                                                        for d in dc])
+                                                        for d in dc], summary=summary, return_dataframe=return_dataframe)
 
     @batch_query
     def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True):
