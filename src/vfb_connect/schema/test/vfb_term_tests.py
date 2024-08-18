@@ -70,9 +70,20 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(len(terms)==len(terms[0:2]))
 
     def test_VFBterms_subtraction(self):
-        terms = create_vfbterm_from_json(self.vfb.get_instances("'neuron' that 'overlaps' some 'nodulus'", summary=False)[0:100], verbose=True)
+        terms = create_vfbterm_from_json(self.vfb.get_instances("'neuron' that 'has presynaptic terminals in' some 'nodulus'", summary=False)[0:100], verbose=True)
+        print('starting subtraction test with ', len(terms), ' terms')
         self.assertTrue(isinstance(terms, VFBTerms))
         self.assertTrue(len(terms) > 0)
         # test subtraction
-        terms=terms[0:2]-terms[0:1]
-        self.assertTrue(len(terms)==(len(terms[0:2])-len(terms[0:1])))
+        minus_terms=terms[0:5]-terms[0:2]
+        print(f"looking for {terms[0:5]}")
+        print(f"minus {terms[0:2]}")
+        print(f"equals {terms[2:5]}")
+        self.assertTrue(isinstance(terms, VFBTerms))
+        self.assertTrue(len(terms) > 0)
+        print(f"looking for {len(terms[0:5])} - {len(terms[0:2])} = {len(terms[2:5])} terms")
+        print(f"got {len(minus_terms)} terms: {minus_terms}")
+        self.assertTrue(len(minus_terms)==len(terms[2:5]))
+
+if __name__ == "__main__":
+    unittest.main()

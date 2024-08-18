@@ -366,11 +366,14 @@ class VFBTerms:
             return VFBTerms(list(unique_terms))
         raise TypeError("Unsupported operand type(s) for +: 'VFBTerms' and '{}'".format(type(other).__name__))
 
-    def __sub__(self, other):
+    def __sub__(self, other, verbose=False):
+        print("Starting with ", self.get_ids()) if verbose else None
         if isinstance(other, VFBTerms):
-            other_ids = {term.id for term in other.terms}
-            remaining_terms = [term for term in self.terms if term.id not in other_ids]
-            return VFBTerms(remaining_terms)
+            other_ids = other.get_ids()
+            print("Removing ", other_ids) if verbose else None
+            remaining_terms = VFBTerms([term for term in self.terms if term.id not in other_ids])
+            print ("Remaining ", remaining_terms.get_ids()) if verbose else None
+            return remaining_terms
         raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
 
 
