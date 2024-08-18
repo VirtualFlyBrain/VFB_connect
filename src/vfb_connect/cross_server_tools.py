@@ -112,6 +112,19 @@ class VfbConnect:
         :return: The ID associated with the key, or the key itself if it is already a valid ID. None is returned if the key is not found.
         :rtype: str
         """
+        if not key:
+            print("\033[31mError:\033[0m No key provided.")
+            return ''
+        # Check if the key is a VFBTerm object
+        if isinstance(key, VFBTerm):
+            return key.id
+        
+        if isinstance(key, VFBTerms):
+            return key.get_ids()
+        
+        if isinstance(key, list):
+            return [self.lookup_id(k, return_curie=return_curie, allow_subsitutions=allow_subsitutions, subsitution_stages=subsitution_stages) for k in key]
+        
         # Direct lookup: Check if the key is already a valid ID
         if key in self.lookup.values():
             return key if not return_curie else key.replace('_', ':')

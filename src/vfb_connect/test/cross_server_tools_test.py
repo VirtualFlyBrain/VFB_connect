@@ -84,6 +84,8 @@ class VfbConnectTest(unittest.TestCase):
         if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
             shutil.rmtree('image_folder_tmp')
 
+class VfbTermTests(unittest.TestCase):
+
     def test_term(self):
         fu = self.vc.term('VFB_00010001')
         self.assertTrue(fu)
@@ -96,3 +98,6 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(fu)
         self.assertTrue(len(fu) == 2)
         self.assertTrue(isinstance(fu, VFBTerms))
+
+if __name__ == "__main__":
+    unittest.main()
