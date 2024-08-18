@@ -665,6 +665,11 @@ class VfbConnect:
         :return: a VFBTerm object
         :rtype: dict
         """
+        if isinstance(term, VFBTerm):
+            return term
+        if isinstance(term, VFBTerms):
+            print("Warning: VFBTerms object passed to term method. Returning first term.")
+            term = term[0]
         return VFBTerm(term)
     
     def terms(self, terms):
@@ -674,4 +679,8 @@ class VfbConnect:
         :return: a VFBTerms list of VFBTerm objects
         :rtype: VFBTerms
         """
+        if isinstance(terms, VFBTerm):
+            return VFBTerms([terms])
+        if isinstance(terms, VFBTerms):
+            return terms
         return VFBTerms(terms)

@@ -1,7 +1,7 @@
 import unittest
 from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm
 
-class VfbConnectTest(unittest.TestCase):
+class VfbTermTest(unittest.TestCase):
 
     def setUp(self):
         from vfb_connect import vfb

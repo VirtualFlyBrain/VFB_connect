@@ -389,6 +389,8 @@ class VFBTerms:
         self.terms = terms
 
     def __init__(self, terms: List[str]):
+        from vfb_connect import vfb
+        self.vfb = vfb
         self.terms = [VFBTerm(id=term) for term in terms]
 
     def __repr__(self):
