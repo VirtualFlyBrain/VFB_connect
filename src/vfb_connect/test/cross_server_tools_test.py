@@ -108,5 +108,16 @@ class VfbTermTests(unittest.TestCase):
         self.assertTrue(len(fu) == 2)
         self.assertTrue(isinstance(fu, VFBTerms))
 
+    def test_type_term_parents(self):
+        fu = self.vc.term('Kenyon cell', verbose=False)
+        self.assertTrue(fu)
+        print(fu)
+        print(fu.parents)
+        self.assertTrue(fu.parents)
+        self.assertTrue(isinstance(fu.parents, VFBTerms))
+        self.assertTrue(len(fu.parents) > 0)
+        self.assertTrue(isinstance(fu.parents[0], VFBTerm))
+        self.assertTrue(len(fu) > 0)
+
 if __name__ == "__main__":
     unittest.main()

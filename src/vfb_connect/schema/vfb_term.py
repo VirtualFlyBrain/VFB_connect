@@ -173,15 +173,21 @@ class AnatomyChannelImage:
 
 
 class VFBTerm:
-    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None):
+    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, verbose=False):
         from vfb_connect import vfb
         self.vfb = vfb
         if id is not None:
             if isinstance(id, list):
                 id = id[0]
+            self.id = id
+            self.name = "unresolved"
             json_data = self.vfb.get_TermInfo([id], summary=False)
-            term_object = create_vfbterm_from_json(json_data[0])
-            self.__dict__.update(term_object.__dict__)  # Copy attributes from the fetched term object
+            print("Got JSON data: ", json_data) if verbose else None
+            if json_data is None:
+                print("No JSON data found for ", id) if verbose else None
+            else:
+                term_object = create_vfbterm_from_json(json_data[0], verbose=verbose)
+                self.__dict__.update(term_object.__dict__)  # Copy attributes from the fetched term object
         elif term is not None:
             self.term = term
             self.related_terms = related_terms
@@ -192,6 +198,9 @@ class VFBTerm:
             self.description = self.term.description
             self.url = self.term.link
 
+            self._parents_ids = parents
+            self._parents = None  # Initialize as None, will be loaded on first access
+        
             if self.term.icon:
                 self.thumbnail = self.term.icon
             elif channel_images and len(channel_images) > 0 and channel_images[0].image.image_thumbnail:
@@ -205,6 +214,13 @@ class VFBTerm:
             self.has_scRNAseq = self.has_tag('hasScRNAseq')
             self.has_neuron_connectivity = self.has_tag('has_neuron_connectivity')
             self.has_region_connectivity = self.has_tag('has_region_connectivity')
+
+    @property
+    def parents(self):
+        if self._parents is None:
+            print("Loading parents for the first time...")
+            self._parents = VFBTerms(self._parents_ids) if self._parents_ids else None
+        return self._parents
 
     def __repr__(self):
         return f"VFBTerm(term={self.term})"
@@ -383,15 +399,15 @@ class VFBTerm:
                 self.volume.id = self.id
 
 class VFBTerms:
-    def __init__(self, terms: List[VFBTerm]):
+    def __init__(self, terms: List[VFBTerm], verbose=False):
         from vfb_connect import vfb
         self.vfb = vfb
         self.terms = terms
 
-    def __init__(self, terms: List[str]):
+    def __init__(self, terms: List[str], verbose=False):
         from vfb_connect import vfb
         self.vfb = vfb
-        self.terms = [VFBTerm(id=term) for term in terms]
+        self.terms = [VFBTerm(id=term, verbose=verbose) for term in terms]
 
     def __repr__(self):
         return f"VFBTerms(terms={self.terms})"
@@ -510,7 +526,7 @@ class VFBTerms:
     def get_summaries(self):
         return [term.summary for term in self.terms]
 
-def create_vfbterm_list_from_json(json_data):
+def create_vfbterm_list_from_json(json_data, verbose=False):
     """
     Create a list of VFBTerm objects from JSON data.
 
@@ -527,7 +543,7 @@ def create_vfbterm_list_from_json(json_data):
     if isinstance(json_data, list):
         data = json_data
 
-    return VFBTerms([create_vfbterm_from_json(term) for term in data])
+    return VFBTerms([create_vfbterm_from_json(term, verbose=verbose) for term in data])
 
 # Helper function to create a VFBTerm object from JSON
 def create_vfbterm_from_json(json_data, verbose=False):
@@ -550,10 +566,10 @@ def create_vfbterm_from_json(json_data, verbose=False):
     if isinstance(json_data, list):
         print("Loading JSON data from list") if verbose else None
         if len(json_data) > 1:
-            return create_vfbterm_list_from_json(json_data)
+            return create_vfbterm_list_from_json(json_data, verbose=verbose)
         elif len(json_data) == 1:
             data = json_data[0]
-            return create_vfbterm_from_json(data)
+            return create_vfbterm_from_json(data, verbose=verbose)
         return None
 
     if data:
@@ -593,7 +609,19 @@ def create_vfbterm_from_json(json_data, verbose=False):
                 channel_images.append(channel_image)
             print(f"Loaded {len(channel_images)} channel images") if verbose else None
 
-        return VFBTerm(term=term, related_terms=related_terms, channel_images=channel_images)
+        parents = None
+        if 'parents' in data:
+            parents_json = data['parents']
+            print(f"Parents: {parents}") if verbose else None
+            if isinstance(parents_json, list):
+                parents = [parent['short_form'] for parent in parents_json]
+                print(f"Parents: {parents}") if verbose else None
+            elif isinstance(parents_json, VFBTerms):
+                parents = parents_json.get_ids()
+            else:
+                print("Parents type not recognised", type(parents)) if verbose else None
+
+        return VFBTerm(term=term, related_terms=related_terms, channel_images=channel_images, parents=parents, verbose=verbose)
     else:
         return None
 

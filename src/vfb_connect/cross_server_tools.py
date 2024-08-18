@@ -129,6 +129,11 @@ class VfbConnect:
         if key in self.lookup.values():
             return key if not return_curie else key.replace('_', ':')
         
+        # CARO lookup: Check if the key is a CARO/BFO/UBERON/FBbt(obsolete) term; though not in the lookup they need to be handled if explicitly called
+        prefixes = ('CARO_', 'BFO_', 'UBERON_', 'GENO_', 'CL_', 'FBbt_', 'VFB_')
+        if key.startswith(prefixes):
+            return key if not return_curie else key.replace('_', ':')
+        
         # Direct lookup in the dictionary
         if key in self.lookup:
             out = self.lookup[key]
@@ -663,7 +668,7 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.vfb_id_2_xrefs(vfb_id=vfb_id, db=db, id_type=id_type, reverse_return=reverse_return)
     
-    def term(self, term):
+    def term(self, term, verbose=False):
         """Get a VFBTerm object for a given term id, name, symbol or synonym.
 
         :param term: The term to look up.
@@ -675,9 +680,10 @@ class VfbConnect:
         if isinstance(term, VFBTerms):
             print("Warning: VFBTerms object passed to term method. Returning first term.")
             term = term[0]
-        return VFBTerm(term)
+        print(term) if verbose else None
+        return VFBTerm(term, verbose=verbose)
     
-    def terms(self, terms):
+    def terms(self, terms, verbose=False):
         """Get a list of VFBTerm objects for a given list of term id, name, symbol or synonym.
 
         :param terms: A list of terms to look up.
@@ -685,7 +691,8 @@ class VfbConnect:
         :rtype: VFBTerms
         """
         if isinstance(terms, VFBTerm):
-            return VFBTerms([terms])
+            return VFBTerms([terms], verbose=verbose)
         if isinstance(terms, VFBTerms):
             return terms
-        return VFBTerms(terms)
+        print(terms) if verbose else None
+        return VFBTerms(terms, verbose=verbose)
