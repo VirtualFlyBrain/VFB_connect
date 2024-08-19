@@ -147,9 +147,9 @@ class OWLeryConnect:
         single quotes should be escaped with a backslash.
         :return: query string in which labels have been converted to unquoted CURIEs.
         """
-
+        from ..cross_server_tools import VfbConnect
         def subgp1_or_fail(m):
-            out = self.lookup.get(m.group(1)).replace('_', ':')
+            out = VfbConnect.lookup_id(self, m.group(1), return_curie=True)
             if not out:
                 raise ValueError("Query includes unknown term label: " + query_string)
             else:

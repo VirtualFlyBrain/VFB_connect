@@ -5,6 +5,9 @@ from .neo.query_wrapper import QueryWrapper, batch_query
 from .default_servers import get_default_servers
 from .schema.vfb_term import VFBTerm, VFBTerms
 import pandas as pd
+import numpy as np
+from colormath.color_objects import LabColor, sRGBColor
+from colormath.color_conversions import convert_color
 
 
 def gen_short_form(iri):
@@ -250,7 +253,7 @@ class VfbConnect:
             return pd.DataFrame.from_records(results)
         return results
 
-    def get_instances(self, class_expression, query_by_label=True, summary=True, return_dataframe=True):
+    def get_instances(self, class_expression, query_by_label=True, summary=True, return_dataframe=True, limit=None):
         """Generate JSON report of all instances of a given class expression.
 
         Instances are specific examples of a type/class, e.g., a neuron of type DA1 adPN from the FAFB_catmaid database.
@@ -266,10 +269,10 @@ class VfbConnect:
             if query_by_label:
                 class_expression = self.lookup[class_expression]
             out = self.neo_query_wrapper._get_anatomical_individual_TermInfo_by_type(class_expression,
-                                                                                     summary=summary)
+                                                                                     summary=summary, return_dataframe=False, limit=limit)
         else:
             terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
-            out = self.neo_query_wrapper.get_anatomical_individual_TermInfo(terms, summary=summary, return_dataframe=False)
+            out = self.get_TermInfo(terms, summary=summary, return_dataframe=False, limit=limit)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(out)
         return out
@@ -629,7 +632,7 @@ class VfbConnect:
                                                              return_dataframe=False)
     
     @batch_query
-    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True, query_by_label=True):
+    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True, query_by_label=True, limit=None):
         """
         Generate a JSON report or summary for terms specified by a list of VFB IDs.
 
@@ -651,7 +654,7 @@ class VfbConnect:
         # Convert labels to IDs if use_labels is True
         if query_by_label:
             short_forms = [self.lookup_id(sf) for sf in short_forms]
-        return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, cache=cache, return_dataframe=False)
+        return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, cache=cache, return_dataframe=False, limit=limit)
     
     @batch_query
     def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
@@ -696,3 +699,31 @@ class VfbConnect:
             return terms
         print(terms) if verbose else None
         return VFBTerms(terms, verbose=verbose)
+    
+    def generate_lab_colors(self, num_colors):
+        """
+        Generate a list of Lab colors and convert them to RGB tuples.
+        
+        :param num_colors: The number of colors to generate.
+        :return: A list of RGB tuples.
+        """
+        # Generate evenly spaced values in Lab space
+        l_values = np.linspace(0, 100, int(np.cbrt(num_colors)))
+        a_values = np.linspace(-100, 100, int(np.cbrt(num_colors)))
+        b_values = np.linspace(-100, 100, int(np.cbrt(num_colors)))
+        
+        lab_colors = np.array(np.meshgrid(l_values, a_values, b_values)).T.reshape(-1, 3)
+        
+        # Limit the number of colors to num_colors
+        lab_colors = lab_colors[:num_colors]
+        
+        rgb_colors = []
+        for lab in lab_colors:
+            lab_color = LabColor(lab[0], lab[1], lab[2])
+            rgb_color = convert_color(lab_color, sRGBColor)
+            rgb_tuple = (int(rgb_color.clamped_rgb_r * 255), 
+                        int(rgb_color.clamped_rgb_g * 255), 
+                        int(rgb_color.clamped_rgb_b * 255))
+            rgb_colors.append(rgb_tuple)
+        
+        return rgb_colors

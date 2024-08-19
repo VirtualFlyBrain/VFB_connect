@@ -1,3 +1,10 @@
 requests
 pandas
 jsonpath_rw
+pysolr
+navis
+numpy
+neuprint-python
+python-catmaid
+matplotlib
+colormath

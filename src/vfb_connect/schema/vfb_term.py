@@ -1,7 +1,9 @@
 import json
 import os
-from typing import List, Optional
+from typing import List, Optional, Union
 import navis
+import numpy as np
+import pandas
 import requests
 import tempfile
 
@@ -154,13 +156,13 @@ class Image:
             print(f"Error deleting file {file_path}: {e}") if verbose else None
 
 class ChannelImage:
-    def __init__(self, image: Image, channel: MinimalEntityInfo, imaging_technique: MinimalEntityInfo):
+    def __init__(self, image: Image, channel: MinimalEntityInfo, imaging_technique: Optional[MinimalEntityInfo] = None):
         self.image = image
         self.channel = channel
         self.imaging_technique = imaging_technique
 
     def __repr__(self):
-        return f"ChannelImage(channel={self.channel}, imaging_technique={self.imaging_technique})"
+        return f"ChannelImage(channel={self.channel}, imaging_technique={self.imaging_technique}, aligned_to={self.image.template_anatomy})"
 
 
 class AnatomyChannelImage:
@@ -173,7 +175,7 @@ class AnatomyChannelImage:
 
 
 class VFBTerm:
-    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, verbose=False):
+    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, verbose=False):
         from vfb_connect import vfb
         self.vfb = vfb
         if id is not None:
@@ -186,8 +188,27 @@ class VFBTerm:
             if json_data is None:
                 print("No JSON data found for ", id) if verbose else None
             else:
-                term_object = create_vfbterm_from_json(json_data[0], verbose=verbose)
-                self.__dict__.update(term_object.__dict__)  # Copy attributes from the fetched term object
+                if isinstance(json_data, list): # If multiple terms are returned
+                    print("Multiple terms found for ", id) if verbose else None
+                    term_object = create_vfbterm_from_json(json_data[0], verbose=verbose)
+                    self.__dict__.update(term_object.__dict__)  # Copy attributes from the fetched term object
+                elif isinstance(json_data, dict):
+                    term_object = create_vfbterm_from_json(json_data, verbose=verbose)
+                    self.__dict__.update(term_object.__dict__)
+                elif isinstance(json_data, str):
+                    print("String found for ", id) if verbose else None
+                    term_object = create_vfbterm_from_json(json_data, verbose=verbose)
+                    self.__dict__.update(term_object.__dict__)
+                elif isinstance(json_data, VFBTerm):
+                    print("Term found for ", id) if verbose else None
+                    self.term = json_data
+                    self.__dict__.update(term_object.__dict__)
+                elif isinstance(json_data, pandas.core.frame.DataFrame):
+                    print("Dataframe found for ", id) if verbose else None
+                    term_object = VFBTerm(id=json_data['id'].values[0], verbose=verbose)
+                    self.__dict__.update(term_object.__dict__)
+                else:
+                    print("Unable to resolve term for ", id) if verbose else None
         elif term is not None:
             self.term = term
             self.related_terms = related_terms
@@ -200,11 +221,16 @@ class VFBTerm:
 
             self._parents_ids = parents
             self._parents = None  # Initialize as None, will be loaded on first access
-        
+
+            self._regions_ids = regions
+            self._regions = None  # Initialize as None, will be loaded on first access
+
             if self.term.icon:
                 self.thumbnail = self.term.icon
             elif channel_images and len(channel_images) > 0 and channel_images[0].image.image_thumbnail:
                 self.thumbnail = channel_images[0].image.image_thumbnail
+
+            self._instances = None
 
             # Set flags for different types of terms
             self.is_type = self.has_tag('Class')
@@ -222,17 +248,33 @@ class VFBTerm:
             self._parents = VFBTerms(self._parents_ids) if self._parents_ids else None
         return self._parents
 
+    @property
+    def regions(self):
+        if self._regions is None:
+            print("Loading regions for the first time...")
+            self._regions = VFBTerms(self._regions_ids) if self._regions_ids else None
+        return self._regions
+
+    @property
+    def instances(self):
+        if self._instances is None:
+            print("Loading instances for the first time...")
+            self._instances = VFBTerms(self.vfb.get_instances(class_expression=f"'{self.id}'")['id'].values)
+            if len(self._instances) > 0:
+                self.has_image = True
+        return self._instances
+
     def __repr__(self):
         return f"VFBTerm(term={self.term})"
-    
+
     def __getitem__(self, index):
         if index != 0:
-            raise IndexError("VFBTerm only has one item")
+            print("VFBTerm only has one item")
         return self
-    
+
     def __len__(self):
         return 1
-    
+
     def __add__(self, other):
         if isinstance(other, VFBTerms):
             combined_terms = [self.term] + other.terms
@@ -275,11 +317,11 @@ class VFBTerm:
             summary["Channel Images"] = [str(ci) for ci in self.channel_images]
 
         return summary
-    
+
     def has_tag(self, tag):
         return tag in self.term.core.types
-    
-    def load_skeleton(self, template=None, verbose=False, query_by_label=True):
+
+    def load_skeleton(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """
         Load the navis skeleton from each available image in the term.
         """
@@ -321,7 +363,7 @@ class VFBTerm:
         else:
             print(f"{self.name} is not a neuron") if verbose else None
 
-    def load_mesh(self, template=None, verbose=False, query_by_label=True):
+    def load_mesh(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """
         Load the navis mesh from each available image in the term.
         """
@@ -361,7 +403,7 @@ class VFBTerm:
                 self.mesh.id = self.id
 
 
-    def load_volume(self, template=None, verbose=False, query_by_label=True):
+    def load_volume(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """
         Load the navis volume from each available image in the term.
         """
@@ -398,16 +440,71 @@ class VFBTerm:
                 self.volume.label = self.name
                 self.volume.id = self.id
 
-class VFBTerms:
-    def __init__(self, terms: List[VFBTerm], verbose=False):
-        from vfb_connect import vfb
-        self.vfb = vfb
-        self.terms = terms
+    def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
+        """
+        Plot the 3D representation of any neuron, expression or regions.
+        """
+        if template:
+            if query_by_label:
+                selected_template = self.vfb.lookup_id(template)
+                print("Template (", template, ") resolved to id ", selected_template) if verbose else None
+                query_by_label = False
+            else:
+                selected_template = template
+        else:
+                selected_template = template
+        if self.has_tag('Individual'):
+            if not hasattr(self, 'skeleton') or force_reload:
+                self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
+            if hasattr(self, 'skeleton') and self.skeleton:
+                print(f"Skeleton found for {self.name}") if verbose else None
+                self.skeleton.plot3d(**kwargs)
+            else:
+                print(f"No skeleton found for {self.name} check for a mesh") if verbose else None
+                if not hasattr(self, 'mesh') or force_reload:
+                    self.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label)
+                if hasattr(self, 'mesh') and self.mesh:
+                    print(f"Mesh found for {self.name}") if verbose else None
+                    self.mesh.plot3d(**kwargs)
+                else:
+                    print(f"No mesh found for {self.name} check for a volume") if verbose else None
+                    if not hasattr(self, 'volume') or force_reload:
+                        self.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label)
+                    if hasattr(self, 'volume') and self.volume:
+                        print(f"Volume found for {self.name}") if verbose else None
+                        self.volume.plot3d(**kwargs)
+                    else:
+                        print(f"No volume found for {self.name}") if verbose else None
+        else:
+            print(f"{self.name} is not a instance") if verbose else None
 
-    def __init__(self, terms: List[str], verbose=False):
+class VFBTerms:
+    def __init__(self, terms: Union[List[VFBTerm], List[str], pandas.core.frame.DataFrame, List[dict]], verbose=False):
         from vfb_connect import vfb
         self.vfb = vfb
-        self.terms = [VFBTerm(id=term, verbose=verbose) for term in terms]
+
+        # Check if terms is a list of VFBTerm objects
+        if isinstance(terms, list) and all(isinstance(term, VFBTerm) for term in terms):
+            self.terms = terms
+
+        # Check if terms is a list of strings (IDs)
+        elif isinstance(terms, list) and all(isinstance(term, str) for term in terms):
+            self.terms = [VFBTerm(id=term, verbose=verbose) for term in terms]
+
+        # Check if terms is a DataFrame
+        elif isinstance(terms, pandas.core.frame.DataFrame):
+            self.terms = [VFBTerm(id=id, verbose=verbose) for id in terms['id'].values] if 'id' in terms.columns else []
+
+        # Check if terms is a numpy array
+        elif isinstance(terms, np.ndarray):
+            self.terms = [VFBTerm(id=id, verbose=verbose) for id in terms] if len(terms) > 0 and isinstance(terms[0],str) else []
+
+        # Check if terms is a list of dictionaries
+        elif isinstance(terms, list) and all(isinstance(term, dict) for term in terms):
+            self.terms = [VFBTerm(id=term['id'], verbose=verbose) for term in terms]
+
+        else:
+            raise ValueError("Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame.")
 
     def __repr__(self):
         return f"VFBTerms(terms={self.terms})"
@@ -450,28 +547,28 @@ class VFBTerms:
         raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
 
 
-    def load_skeletons(self, template=None, verbose=False, query_by_label=True):
+    def load_skeletons(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """
         Load the navis skeleton from each available image in the term.
         """
         for term in self.terms:
-            term.load_skeleton(template=template, verbose=verbose, query_by_label=query_by_label) 
+            term.load_skeleton(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 
-    def load_meshes(self, template=None, verbose=False, query_by_label=True):
+    def load_meshes(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """
         Load the navis mesh from each available image in the term.
         """
         for term in self.terms:
-            term.load_mesh(template=template, verbose=verbose, query_by_label=query_by_label)
+            term.load_mesh(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 
-    def load_volumes(self, template=None, verbose=False, query_by_label=True):
+    def load_volumes(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """
         Load the navis volume from each available image in the term.
         """
         for term in self.terms:
-            term.load_volume(template=template, verbose=verbose, query_by_label=query_by_label)
+            term.load_volume(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 
-    def plot3d(self, template=None, verbose=False, query_by_label=True):
+    def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
         """
         Plot the 3D representation of any neuron or expression.
         """
@@ -491,29 +588,57 @@ class VFBTerms:
             else:
                 print(f"{term.name} is not an instance soo won't have a skeleton, mesh or volume") if verbose else None
                 continue
-            if not hasattr(term, 'skeleton'):
-                term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label)
+            if not hasattr(term, 'skeleton') or force_reload:
+                term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if hasattr(term, 'skeleton') and term.skeleton:
                 print(f"Skeleton found for {term.name}") if verbose else None
+                if not selected_template:
+                    if isinstance(term.skeleton, list):
+                        print("Multiple skeletons found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
+                        selected_template = term.channel_images[0].image.template_anatomy.short_form
+                        print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
+                        term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=True)
+                    else:
+                        selected_template = term.channel_images[0].image.template_anatomy.short_form
+                        print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first skeleton found. Specify a template to avoid this.")
                 skeletons.append(term.skeleton)
             else:
                 print(f"No skeleton found for {term.name} check for a mesh") if verbose else None
-                if not hasattr(term, 'mesh'):
-                    term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label)
+                if not hasattr(term, 'mesh') or force_reload:
+                    term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
                 if hasattr(term, 'mesh') and term.mesh:
+                    print(f"Mesh found for {term.name}") if verbose else None
+                    if not selected_template:
+                        if isinstance(term.mesh, list):
+                            print("Multiple meshes found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
+                            selected_template = term.channel_images[0].image.template_anatomy.short_form
+                            print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
+                            term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=True)
+                        else:
+                            selected_template = term.channel_images[0].image.template_anatomy.short_form
+                            print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first mesh found. Specify a template to avoid this.")
                     skeletons.append(term.mesh)
                 else:
                     print(f"No mesh found for {term.name} check for a volume") if verbose else None
-                    if not hasattr(term, 'volume'):
-                        term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label)
+                    if not hasattr(term, 'volume') or force_reload:
+                        term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
                     if hasattr(term, 'volume') and term.volume:
+                        if not selected_template:
+                            if isinstance(term.volume, list):
+                                print("Multiple volumes found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
+                                selected_template = term.channel_images[0].image.template_anatomy.short_form
+                                print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
+                                term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=True)
+                            elif isinstance(term.volume, navis.core.volumes.Volume):
+                                selected_template = term.channel_images[0].image.template_anatomy.short_form
+                                print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first volume found. Specify a template to avoid this.")
                         skeletons.append(term.volume)
                     else:
                         print(f"No volume found for {term.name}") if verbose else None
 
         if skeletons:
             print(f"Plotting 3D representation of {len(skeletons)} items")
-            navis.plot3d(skeletons, backend='auto')
+            navis.plot3d(skeletons, **kwargs)
         else:
             print("Nothing found to plot")
 
@@ -621,11 +746,34 @@ def create_vfbterm_from_json(json_data, verbose=False):
             else:
                 print("Parents type not recognised", type(parents)) if verbose else None
 
-        return VFBTerm(term=term, related_terms=related_terms, channel_images=channel_images, parents=parents, verbose=verbose)
+        domains = None
+        if not channel_images and 'template_channel' in data:
+            image_data = data['template_channel']
+            image = Image(
+                image_folder=image_data.get('image_folder', ''),
+                template_channel=MinimalEntityInfo(**data['template_channel']['channel']),
+                template_anatomy=MinimalEntityInfo(**data['term']['core']),
+                image_nrrd=image_data.get('image_nrrd'),
+                image_swc=image_data.get('image_swc'),
+                image_obj=image_data.get('image_obj'),
+                image_thumbnail=image_data.get('image_thumbnail')
+            )
+            channel_image = ChannelImage(
+                image=image,
+                channel=MinimalEntityInfo(**data['template_channel']['channel'])
+            )
+            channel_images = [channel_image]
+            if 'template_domains' in data:
+                domains = []
+                for domain in data['template_domains']:
+                    id = domain['anatomical_individual']['short_form']
+                    domains.append(id)
+
+        return VFBTerm(term=term, related_terms=related_terms, channel_images=channel_images, parents=parents, regions=domains, verbose=verbose)
     else:
         return None
 
-def load_skeletons(vfb_term, template=None, verbose=False, query_by_label=True):
+def load_skeletons(vfb_term, template=None, verbose=False, query_by_label=True, force_reload=False):
     """
     Load the navis skeleton from each available image in the term.
 
@@ -642,9 +790,13 @@ def load_skeletons(vfb_term, template=None, verbose=False, query_by_label=True):
             selected_template = template
     if isinstance(vfb_term, VFBTerm):
         print("Loading skeletons for ", vfb_term.name) if template == None else print("Loading skeleton for ", vfb_term.name, " aligned to ", template)
-        vfb_term.load_skeleton(template=selected_template)
+        vfb_term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
+    if isinstance(vfb_term, VFBTerms):
+        for term in vfb_term:
+            print("Loading skeletons for ", term.name) if template == None else print("Loading skeleton for ", term.name, " aligned to ", template)
+            term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
     if isinstance(vfb_term, list):
         for term in vfb_term:
             print("Loading skeletons for ", vfb_term.name) if template == None else print("Loading skeleton for ", vfb_term.name, " aligned to ", template)
-            term.load_skeleton(template=selected_template)
+            term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 

@@ -500,7 +500,7 @@ class QueryWrapper(Neo4jConnect):
                                                         for d in dc], summary=summary, return_dataframe=return_dataframe)
 
     @batch_query
-    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True):
+    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True, limit=None):
         """
         Generate a JSON report or summary for terms specified by a list of VFB IDs.
 
@@ -518,6 +518,7 @@ class QueryWrapper(Neo4jConnect):
         if cache:
             result = self._get_Cached_TermInfo(short_forms, summary=summary, return_dataframe=False)
             if len(result) == len(short_forms):
+                result = result[:limit] if limit else result
                 if summary:
                     results = []
                     for r in result:
@@ -526,7 +527,7 @@ class QueryWrapper(Neo4jConnect):
                 else:
                     return result
             else:
-                return self.get_TermInfo(short_forms, summary=summary, cache=False, return_dataframe=return_dataframe)
+                return self.get_TermInfo(short_forms, summary=summary, cache=False, return_dataframe=return_dataframe, limit=limit)
         pre_query = "MATCH (e:Entity) " \
                     "WHERE e.short_form in %s " \
                     "RETURN e.short_form as short_form, labels(e) as labs " % str(short_forms)
@@ -549,7 +550,7 @@ class QueryWrapper(Neo4jConnect):
                 out.extend(self.get_pub_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
                 out.extend(self.get_anatomical_individual_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
-        return out
+        return out[:limit] if limit else out
 
     @batch_query
     def _get_Cached_TermInfo(self, short_forms: iter, summary=True, return_dataframe=True):
