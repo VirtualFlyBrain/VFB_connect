@@ -8,3 +8,4 @@ neuprint-python
 python-catmaid
 matplotlib
 colormath
+tqdm

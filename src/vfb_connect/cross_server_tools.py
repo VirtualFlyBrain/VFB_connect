@@ -253,7 +253,7 @@ class VfbConnect:
             return pd.DataFrame.from_records(results)
         return results
 
-    def get_instances(self, class_expression, query_by_label=True, summary=True, return_dataframe=True, limit=None):
+    def get_instances(self, class_expression, query_by_label=True, summary=True, return_dataframe=True, limit=None, return_id_only=False):
         """Generate JSON report of all instances of a given class expression.
 
         Instances are specific examples of a type/class, e.g., a neuron of type DA1 adPN from the FAFB_catmaid database.
@@ -272,6 +272,8 @@ class VfbConnect:
                                                                                      summary=summary, return_dataframe=False, limit=limit)
         else:
             terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
+            if return_id_only:
+                return terms
             out = self.get_TermInfo(terms, summary=summary, return_dataframe=False, limit=limit)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(out)
@@ -423,7 +425,7 @@ class VfbConnect:
         else:
             return dc
 
-    def get_instances_by_dataset(self, dataset, query_by_label=True, summary=True, return_dataframe=True):
+    def get_instances_by_dataset(self, dataset, query_by_label=True, summary=True, return_dataframe=True, return_id_only=False):
         """Get JSON report of all individuals in a specified dataset.
 
         :param dataset: The dataset ID.
@@ -432,12 +434,15 @@ class VfbConnect:
         :return: A DataFrame or list of terms as nested Python data structures following VFB_json or summary_report_json.
         :rtype: pandas.DataFrame or list of dicts
         """
-        
+        if query_by_label:
+            dataset = self.lookup_id(dataset)
         if dataset:
             query = "MATCH (ds:DataSet)<-[:has_source]-(i:Individual) " \
                     "WHERE ds.short_form = '%s' " \
                     "RETURN collect(i.short_form) as inds" % dataset
             dc = self.neo_query_wrapper._query(query) # TODO - Would better to use the original column oriented return!
+            if return_id_only:
+                return dc[0]['inds']
             return self.get_TermInfo(dc[0]['inds'], summary=summary, return_dataframe=return_dataframe)
 
     def get_vfb_link(self, short_forms: iter, template):
@@ -651,6 +656,10 @@ class VfbConnect:
         # Convert single string to list
         if isinstance(short_forms, str):
             short_forms = [short_forms]
+        if isinstance(short_forms, VFBTerm):
+            short_forms = [short_forms.id]
+        if isinstance(short_forms, VFBTerms):
+            short_forms = short_forms.get_ids()
         # Convert labels to IDs if use_labels is True
         if query_by_label:
             short_forms = [self.lookup_id(sf) for sf in short_forms]

@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: vfb_connect
-Version: 2.0.0+dirty
+Version: 2.0.0.dev2+4bcad70.dirty
 Summary: Wrapper for querying VirtualFlyBrain servers.
 Home-page: https://github.com/VirtualFlyBrain/VFB_connect
 Author: David Osumi-Sutherland
@@ -24,6 +24,7 @@ Requires-Dist: neuprint-python
 Requires-Dist: python-catmaid
 Requires-Dist: matplotlib
 Requires-Dist: colormath
+Requires-Dist: tqdm
 
 # VFB_connect [![test_vfb-connect](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/test_vfb-connect.yml/badge.svg)](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/test_vfb-connect.yml) [![publish-to-pypi](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/publish-to-pypi.yml) [![PyPI version](https://badge.fury.io/py/vfb-connect.svg)](https://pypi.org/project/vfb-connect/)
 [![test_notebooks](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/test_notebooks.yml/badge.svg)](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/test_notebooks.yml) [![Documentation Status](https://readthedocs.org/projects/vfb-connect/badge/?version=stable)](https://vfb-connect.readthedocs.io/en/stable/?badge=latest)

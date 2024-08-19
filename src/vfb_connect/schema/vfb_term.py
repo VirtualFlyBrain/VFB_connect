@@ -1,11 +1,33 @@
 import json
 import os
+import sys
 from typing import List, Optional, Union
 import navis
 import numpy as np
 import pandas
 import requests
 import tempfile
+
+import webbrowser
+
+def is_notebook():
+    """Check if the environment is a Jupyter notebook."""
+    try:
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            return True  # Jupyter notebook or qtconsole
+        elif shell == 'TerminalInteractiveShell':
+            return False  # Terminal running IPython
+    except NameError:
+        return False  # Probably standard Python interpreter
+
+if is_notebook():
+    try:
+        from tqdm.notebook import tqdm  # Use notebook-specific tqdm if available
+    except ImportError:
+        from tqdm import tqdm
+else:
+    from tqdm import tqdm
 
 class MinimalEntityInfo:
     def __init__(self, short_form: str, iri: str, label: str, types: List[str], unique_facets: Optional[List[str]] = None, symbol: Optional[str] = None):
@@ -49,8 +71,47 @@ class Term:
         self.icon = icon if icon else ""
 
     def __repr__(self):
-        return f"Term({self.core})"
+        return f"Term(term={repr(self.core)}, link={self.link})"
+    
+    def open(self, verbose=False):
+        print(f"Opening {self.link}...") if verbose else None
+        webbrowser.open(self.link)
 
+class Publication:
+    def __init__(self, core: MinimalEntityInfo, description: Optional[List[str]] = None, comment: Optional[List[str]] = None, link: Optional[str] = None, icon: Optional[str] = None, FlyBase: Optional[str] = None, PubMed: Optional[str] = None, DOI: Optional[str] = None):
+        self.core = core
+        if description:
+            self.description = ", ".join(description) if description else ""
+        if comment:
+            self.comment = ", ".join(comment) if comment else ""
+        self.link = self.core.get('iri', "https://n2t.net/vfb:" + self.core['short_form'])
+        if FlyBase:
+            self.FlyBase = FlyBase
+        if PubMed:
+            self.PubMed = PubMed
+        if DOI:
+            self.DOI = DOI
+
+    def __repr__(self):
+        return f"Publication(pub={repr(self.core)}, link={self.link})"
+
+class Xref:
+    def __init__(self, core: MinimalEntityInfo, is_data_source: bool = False, link: Optional[str] = None, icon: Optional[str] = None, accession: Optional[str] = None, link_text: Optional[str] = None, homepage: Optional[str] = None):
+        self.core = core
+        self.is_data_source = is_data_source
+        if link:
+            self.link = link
+        if icon:
+            self.icon = icon
+        if accession:
+            self.accession = accession
+        if link_text:
+            self.link_text = link_text
+        if homepage:
+            self.homepage = homepage
+
+    def __repr__(self):
+        return f"Xref(link_text={self.link_text if hasattr(self, 'link_text') else self.core.name}, link={self.link if hasattr(self,'link') else self.homepage if hasattr(self,'homepage') else self.core.iri}, accession={self.accession if hasattr(self,'accession') else self.core.short_form})"
 
 class Rel:
     def __init__(self, relation: MinimalEdgeInfo, object: MinimalEntityInfo):
@@ -58,7 +119,7 @@ class Rel:
         self.object = object
 
     def __repr__(self):
-        return f"Rel(relation={self.relation}, object={self.object})"
+        return f"Rel(relation={repr(self.relation)}, object={repr(self.object)})"
 
 
 class Image:
@@ -74,7 +135,7 @@ class Image:
         self.image_wlz = image_wlz if image_wlz else None
 
     def __repr__(self):
-        return f"Image(image_folder={self.image_folder})"
+        return f"Image(image_thmbnail={self.image_thumbnail})"
 
     def get_skeleton(self, verbose=False):
         if self.image_swc:
@@ -117,7 +178,7 @@ class Image:
             mesh = navis.read_nrrd(local_file.name, output='voxels', errors='ignore' if not verbose else 'log')
             self.delete_temp_file(local_file.name, verbose=verbose)
             if mesh:
-                return mesh 
+                return mesh
         else:
             print("No nrrd file associated") if verbose else None
         return None
@@ -155,6 +216,35 @@ class Image:
         except Exception as e:
             print(f"Error deleting file {file_path}: {e}") if verbose else None
 
+    def show(self, transparent=False, verbose=False):
+        from PIL import Image
+        import requests
+        from io import BytesIO
+
+        try:
+            print("Fetching image: ", self.image_thumbnail if not transparent else self.image_thumbnail.replace('thumbnail.png', 'thumbnailT.png')) if verbose else None
+
+            # Fetch the image
+            response = requests.get(self.image_thumbnail if not transparent else self.image_thumbnail.replace('thumbnail.png', 'thumbnailT.png'))
+            print("Response: ", response) if verbose else None
+            print("Content: ", response.content) if verbose else None
+
+            img = Image.open(BytesIO(response.content))
+
+            # Try to display the image in a notebook environment
+            try:
+                from IPython.display import display
+                print("Displaying thumbnail in notebook...") if verbose else None
+                display(img)
+            except ImportError:
+                # If not in a notebook, fall back to PIL's image viewer
+                print("IPython not available, using PIL to show the image.") if verbose else None
+                img.show()
+
+        except Exception as e:
+            print("Error displaying thumbnail: ", e)
+
+
 class ChannelImage:
     def __init__(self, image: Image, channel: MinimalEntityInfo, imaging_technique: Optional[MinimalEntityInfo] = None):
         self.image = image
@@ -162,7 +252,7 @@ class ChannelImage:
         self.imaging_technique = imaging_technique
 
     def __repr__(self):
-        return f"ChannelImage(channel={self.channel}, imaging_technique={self.imaging_technique}, aligned_to={self.image.template_anatomy})"
+        return f"ChannelImage(image={repr(self.image)}, imaging_technique={self.imaging_technique.name}, aligned_to={self.image.template_anatomy.name})"
 
 
 class AnatomyChannelImage:
@@ -175,7 +265,7 @@ class AnatomyChannelImage:
 
 
 class VFBTerm:
-    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, verbose=False):
+    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, verbose=False):
         from vfb_connect import vfb
         self.vfb = vfb
         if id is not None:
@@ -213,7 +303,7 @@ class VFBTerm:
             self.term = term
             self.related_terms = related_terms
             self.channel_images = channel_images
-            self.summary = self.get_summary()
+            self._summary = None
             self.name = self.term.core.name
             self.id = self.term.core.short_form
             self.description = self.term.description
@@ -230,11 +320,24 @@ class VFBTerm:
             elif channel_images and len(channel_images) > 0 and channel_images[0].image.image_thumbnail:
                 self.thumbnail = channel_images[0].image.image_thumbnail
 
+            if counts:
+                self.counts = counts
+
+            if publications:
+                self.publications = publications
+
+            if license:
+                self.license = license
+
+            if xrefs:
+                self.xrefs = xrefs
+
             self._instances = None
 
             # Set flags for different types of terms
             self.is_type = self.has_tag('Class')
             self.is_instance = self.has_tag('Individual')
+            self.is_dataset = self.has_tag('DataSet')
             self.is_neuron = self.has_tag('Neuron')
             self.has_image = self.has_tag('has_image')
             self.has_scRNAseq = self.has_tag('hasScRNAseq')
@@ -242,16 +345,16 @@ class VFBTerm:
             self.has_region_connectivity = self.has_tag('has_region_connectivity')
 
     @property
-    def parents(self):
+    def parents(self, verbose=False):
         if self._parents is None:
-            print("Loading parents for the first time...")
+            print("Loading parents for the first time...") if verbose else None
             self._parents = VFBTerms(self._parents_ids) if self._parents_ids else None
         return self._parents
 
     @property
     def regions(self):
         if self._regions is None:
-            print("Loading regions for the first time...")
+            print("Loading regions for the first time...") if self.has_tag('DataSet') else None
             self._regions = VFBTerms(self._regions_ids) if self._regions_ids else None
         return self._regions
 
@@ -259,17 +362,28 @@ class VFBTerm:
     def instances(self):
         if self._instances is None:
             print("Loading instances for the first time...")
-            self._instances = VFBTerms(self.vfb.get_instances(class_expression=f"'{self.id}'")['id'].values)
-            if len(self._instances) > 0:
+            if self.has_tag('Class'):
+                self._instances = VFBTerms(self.vfb.get_instances(class_expression=f"'{self.id}'", return_id_only=True))
+            elif self.has_tag('DataSet'):
+                print(f"Loading {self.counts['images'] if self.counts and 'images' in self.counts.keys() else ''} instances for dataset: {self.name}...")
+                self._instances = VFBTerms(self.vfb.get_instances_by_dataset(dataset=self.id, return_id_only=True))
+            if self._instances and len(self._instances) > 0:
                 self.has_image = True
         return self._instances
 
+    @property
+    def summary(self):
+        if self._summary is None:
+            self._summary = self.get_summary()
+        return self._summary
+
     def __repr__(self):
-        return f"VFBTerm(term={self.term})"
+        return f"VFBTerm(term={repr(self.term)})"
 
     def __getitem__(self, index):
         if index != 0:
             print("VFBTerm only has one item")
+            return VFBTerms([self])
         return self
 
     def __len__(self):
@@ -301,20 +415,36 @@ class VFBTerm:
             return remaining_terms
         raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
 
-    def get_summary(self):
+    def get_summary(self, return_dataframe=True, verbose=False):
         """
         Returns a summary of the term's information.
         """
         summary = {
-            "ID": self.term.core.short_form,
-            "Name": self.term.core.name,
-            "Description": self.term.description + " " + self.term.comment if self.term.comment else self.term.description,
-            "URL": self.term.link,
+            "ID": getattr(self.term.core, "short_form", None),
+            "Name": getattr(self.term.core, "name", None),
+            "Description": f"{getattr(self.term, 'description', '')} {getattr(self.term, 'comment', '')}".strip(),
+            "URL": getattr(self, "url", None),
         }
-        if self.related_terms:
+
+        if hasattr(self, "related_terms") and self.related_terms:
             summary["Related Terms"] = [str(rel) for rel in self.related_terms]
-        if self.channel_images:
-            summary["Channel Images"] = [str(ci) for ci in self.channel_images]
+        if hasattr(self, "_instances") and self._instances:
+            summary["instances"] = self.instances.get_names()
+        if hasattr(self, "parents") and self.parents:
+            summary["Parents"] = self.parents.get_names()
+        if hasattr(self, "regions") and self.regions:
+            summary["Regions"] = self.regions.get_names()
+        if hasattr(self, "counts") and self.counts:
+            summary["Counts"] = self.counts
+        if hasattr(self, "publications") and self.publications:
+            summary["Publications"] = [str(pub.core.name) for pub in self.publications]
+        if hasattr(self, "license") and self.license:
+            summary["License"] = self.license.core.name
+        if hasattr(self, "xrefs") and self.xrefs:
+            summary["Cross References"] = [str(xref.link) for xref in self.xrefs]
+
+        if return_dataframe:
+            return pandas.DataFrame([summary])
 
         return summary
 
@@ -390,7 +520,6 @@ class VFBTerm:
                     mesh.name = self.name
                     mesh.label = self.name
                     mesh.id = self.id
-                    mesh.meta=self.summary
                 if len(self.mesh) > 1:
                     print("Multiple meshes found for ", self.name, ". Please specify a template.")
                     print("Available templates: ", [ci.image.template_anatomy.name.replace('_c','') for ci in self.channel_images])
@@ -459,6 +588,7 @@ class VFBTerm:
             if hasattr(self, 'skeleton') and self.skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
                 self.skeleton.plot3d(**kwargs)
+                return
             else:
                 print(f"No skeleton found for {self.name} check for a mesh") if verbose else None
                 if not hasattr(self, 'mesh') or force_reload:
@@ -466,6 +596,7 @@ class VFBTerm:
                 if hasattr(self, 'mesh') and self.mesh:
                     print(f"Mesh found for {self.name}") if verbose else None
                     self.mesh.plot3d(**kwargs)
+                    return
                 else:
                     print(f"No mesh found for {self.name} check for a volume") if verbose else None
                     if not hasattr(self, 'volume') or force_reload:
@@ -473,10 +604,45 @@ class VFBTerm:
                     if hasattr(self, 'volume') and self.volume:
                         print(f"Volume found for {self.name}") if verbose else None
                         self.volume.plot3d(**kwargs)
+                        return
                     else:
                         print(f"No volume found for {self.name}") if verbose else None
         else:
             print(f"{self.name} is not a instance") if verbose else None
+        if self.instances and len(self._instances) > 0:
+            print(f"Loading instances for {self.name}") if verbose else None
+            self.instances.plot3d(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, **kwargs)
+            return
+
+    def show(self, template=None, transparent=False, verbose=False):
+        # First, try to show the image of the current object
+        if self.channel_images:
+            if template:
+                selected_template = self.vfb.lookup_id(template)
+                print("Template (", template, ") resolved to id ", selected_template) if verbose else None
+            else:
+                selected_template = None
+
+            for ci in self.channel_images:
+                if selected_template is None or ci.image.template_anatomy.short_form == selected_template:
+                    print("Loading thumbnail for", self.name)
+                    print(repr(ci.image)) if verbose else None
+                    ci.image.show(transparent=transparent, verbose=verbose)
+                    return  # Successfully displayed, so exit the method
+
+        # If the current object has instances, try to show the image for one of them
+        if self.instances and len(self.instances) > 0:
+            for instance in self.instances:
+                if instance.channel_images and len(instance.channel_images) > 0:
+                    print("Calling instance thumbnail for", instance.name) if verbose else None
+                    instance.show(template=template, transparent=transparent, verbose=verbose)
+                    return  # Successfully displayed, so exit the method
+
+        print(f"No images found to display for {self.name}") if verbose else None
+
+    def open(self, verbose=False):
+        print("Opening ", self.url) if verbose else None
+        webbrowser.open(self.url)
 
 class VFBTerms:
     def __init__(self, terms: Union[List[VFBTerm], List[str], pandas.core.frame.DataFrame, List[dict]], verbose=False):
@@ -489,19 +655,19 @@ class VFBTerms:
 
         # Check if terms is a list of strings (IDs)
         elif isinstance(terms, list) and all(isinstance(term, str) for term in terms):
-            self.terms = [VFBTerm(id=term, verbose=verbose) for term in terms]
+            self.terms = [VFBTerm(id=term, verbose=verbose) for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")] if len(terms) > 0 else []
 
         # Check if terms is a DataFrame
         elif isinstance(terms, pandas.core.frame.DataFrame):
-            self.terms = [VFBTerm(id=id, verbose=verbose) for id in terms['id'].values] if 'id' in terms.columns else []
+            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(terms['id'].values, threshold=10, desc="Loading terms")] if 'id' in terms.columns else []
 
         # Check if terms is a numpy array
         elif isinstance(terms, np.ndarray):
-            self.terms = [VFBTerm(id=id, verbose=verbose) for id in terms] if len(terms) > 0 and isinstance(terms[0],str) else []
+            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")] if len(terms) > 0 and isinstance(terms[0],str) else []
 
         # Check if terms is a list of dictionaries
         elif isinstance(terms, list) and all(isinstance(term, dict) for term in terms):
-            self.terms = [VFBTerm(id=term['id'], verbose=verbose) for term in terms]
+            self.terms = [VFBTerm(id=term['id'], verbose=verbose) for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")]
 
         else:
             raise ValueError("Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame.")
@@ -516,10 +682,10 @@ class VFBTerms:
         else:
             # Otherwise, return the specific item from the list
             return self.terms[index]
-    
+
     def __len__(self):
         return len(self.terms)
-    
+
     def __add__(self, other):
         if isinstance(other, VFBTerms):
             combined_terms = self.terms + other.terms
@@ -582,12 +748,12 @@ class VFBTerms:
         else:
                 selected_template = template
         skeletons=[]
-        for term in self.terms:
+        for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Images"):
             if term.has_tag('Individual'):
                 print(f"{term.name} is an instance") if verbose else None
             else:
                 print(f"{term.name} is not an instance soo won't have a skeleton, mesh or volume") if verbose else None
-                continue
+                continue  
             if not hasattr(term, 'skeleton') or force_reload:
                 term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if hasattr(term, 'skeleton') and term.skeleton:
@@ -644,12 +810,41 @@ class VFBTerms:
 
     def get_ids(self):
         return [term.id for term in self.terms]
-    
+
     def get_names(self):
         return [term.name for term in self.terms]
-    
-    def get_summaries(self):
-        return [term.summary for term in self.terms]
+
+    def get_summaries(self, return_dataframe=True):
+        summaries = [term.get_summary(return_dataframe=return_dataframe) for term in self.terms]
+
+        if return_dataframe:
+            return pandas.concat(summaries, ignore_index=True)
+
+        return summaries
+
+    def open(self, template=None, verbose=False):
+        # URL for VFB browser
+        url = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto"
+        space = self.vfb.lookup_id(template) + "," if template else ""
+        images = "?i=" + space + ",".join(self.get_ids())
+        print("Opening VFB browser with URL: ", url + images) if verbose else None
+
+        # Open the URL in the default browser
+        webbrowser.open(url + images)
+
+    def tqdm_with_threshold(self, iterable, threshold=10, **tqdm_kwargs):
+        """
+        Custom tqdm that only shows the progress bar if the length of the iterable exceeds the threshold.
+
+        :param iterable: The iterable to process.
+        :param threshold: The minimum length of the iterable to display the progress bar.
+        :param tqdm_kwargs: Additional arguments to pass to tqdm.
+        :return: An iterable, with or without a progress bar.
+        """
+        if len(iterable) > threshold:
+            return tqdm(iterable, **tqdm_kwargs)
+        else:
+            return iterable
 
 def create_vfbterm_list_from_json(json_data, verbose=False):
     """
@@ -769,7 +964,38 @@ def create_vfbterm_from_json(json_data, verbose=False):
                     id = domain['anatomical_individual']['short_form']
                     domains.append(id)
 
-        return VFBTerm(term=term, related_terms=related_terms, channel_images=channel_images, parents=parents, regions=domains, verbose=verbose)
+        counts = None
+        if 'dataset_counts' in data:
+            counts = data['dataset_counts']
+
+        publications = None
+        if 'pubs' in data:
+            publications = []
+            for pub in data['pubs']:
+                publication = Publication(**pub)
+                publication.core = MinimalEntityInfo(**pub['core'])
+                publications.append(publication)
+
+        license = None
+        if 'license' in data and len(data['license']) > 0:
+            license = Term(**data['license'][0])
+            license.core = MinimalEntityInfo(**data['license'][0]['core'])  
+
+        xrefs = None
+        if 'xrefs' in data:
+            xrefs = []
+            for xref in data['xrefs']:
+                xrefs.append(Xref(
+                    core=MinimalEntityInfo(**xref['site']),
+                    is_data_source=xref['is_data_source'],
+                    icon=xref.get('icon', None),
+                    homepage=xref.get('homepage', None),
+                    accession=xref.get('accession', None),
+                    link_text=xref.get('link_text', None),
+                    link=xref.get('link_base', '') + xref.get('accession', '') + xref.get('link_postfix', ''),
+                ))
+
+        return VFBTerm(term=term, related_terms=related_terms, channel_images=channel_images, parents=parents, regions=domains, counts=counts, publications=publications, license=license, xrefs=xrefs, verbose=verbose)
     else:
         return None
 
