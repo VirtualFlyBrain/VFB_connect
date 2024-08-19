@@ -13,3 +13,6 @@ python-catmaid
 nbformat>=4.2.0
 ipywidgets
 vispy
+colormath
+matplotlib
+tqdm
