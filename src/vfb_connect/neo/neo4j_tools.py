@@ -301,7 +301,7 @@ class Neo4jConnect:
         print(f"Caching ObjectProperties...")
         property_lookup_query = "MATCH (a:ObjectProperty) " \
                                 + where + \
-                                "UNWIND n.alternative_term as label " + \
+                                "UNWIND a.alternative_term as label " + \
                                 "RETURN a.short_form as id, label as name"
         q = self.commit_list([property_lookup_query])
         out.extend(dict_cursor(q))
