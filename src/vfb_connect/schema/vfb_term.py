@@ -70,7 +70,12 @@ class MinimalEdgeInfo:
 
 class Term:
     def __init__(self, core: MinimalEntityInfo, description: Optional[List[str]] = None, comment: Optional[List[str]] = None, link: Optional[str] = None, icon: Optional[str] = None):
-        self.core = core
+        if isinstance(core, dict):
+            self.core = MinimalEntityInfo(**core)
+        elif isinstance(core, MinimalEntityInfo):
+            self.core = core
+        else:
+            raise ValueError("core must be a MinimalEntityInfo object")
         self.description = ", ".join(description) if description else ""
         self.comment = ", ".join(comment) if comment else ""
         self.link = link if link else "https://n2t.net/vfb:" + self.core.short_form
@@ -85,7 +90,12 @@ class Term:
 
 class Publication:
     def __init__(self, core: MinimalEntityInfo, description: Optional[List[str]] = None, comment: Optional[List[str]] = None, link: Optional[str] = None, icon: Optional[str] = None, FlyBase: Optional[str] = None, PubMed: Optional[str] = None, DOI: Optional[str] = None):
-        self.core = core
+        if isinstance(core, dict):
+            self.core = MinimalEntityInfo(**core)
+        elif isinstance(core, MinimalEntityInfo):
+            self.core = core
+        else:
+            raise ValueError("core must be a MinimalEntityInfo object")
         if description:
             self.description = ", ".join(description) if description else ""
         if comment:
@@ -127,7 +137,12 @@ class Synonym:
 
 class Xref:
     def __init__(self, core: MinimalEntityInfo, is_data_source: bool = False, link: Optional[str] = None, icon: Optional[str] = None, accession: Optional[str] = None, link_text: Optional[str] = None, homepage: Optional[str] = None):
-        self.core = core
+        if isinstance(core, dict):
+            self.core = MinimalEntityInfo(**core)
+        elif isinstance(core, MinimalEntityInfo):
+            self.core = core
+        else:
+            raise ValueError("core must be a MinimalEntityInfo object")
         self.is_data_source = is_data_source
         if link:
             self.link = link
@@ -1040,14 +1055,14 @@ def create_vfbterm_from_json(json_data, verbose=False):
             publications = []
             for pub in data['pubs']:
                 publication = Publication(**pub)
-                publication.core = MinimalEntityInfo(**pub['core'])
+                publication['core'] = MinimalEntityInfo(**pub['core'])
                 publications.append(publication)
             print(f"Loaded {len(publications)} publications") if verbose else None
 
         license = None
         if 'license' in data and len(data['license']) > 0:
             license = Term(**data['license'][0])
-            license.core = MinimalEntityInfo(**data['license'][0]['core'])
+            license['core'] = MinimalEntityInfo(**data['license'][0]['core'])
             print(f"Loaded license: {license.core.name}") if verbose else None
 
         datasets = None
@@ -1056,7 +1071,7 @@ def create_vfbterm_from_json(json_data, verbose=False):
             for dl in data['dataset_license']:
                 if 'license' in dl and not license: # assuming there is only one license per anatomical Individual
                     license = Term(**dl['license'])
-                    license.core = MinimalEntityInfo(**dl['license']['core'])
+                    license['core'] = MinimalEntityInfo(**dl['license']['core'])
                 if 'dataset' in dl:
                     datasets.append(dl['dataset']['core']['short_form'])
             print(f"Loaded {len(datasets)} datasets") if verbose else None
