@@ -59,6 +59,12 @@ class MinimalEdgeInfo:
         self.database_cross_reference = database_cross_reference
 
     def __repr__(self):
+        if self.confidence_value and self.database_cross_reference:
+            return f"MinimalEdgeInfo(label={self.label}, confidence={self.confidence_value}, reference={'; '.join(self.database_cross_reference)})"
+        if self.confidence_value:
+            return f"MinimalEdgeInfo(label={self.label}, confidence={self.confidence_value})"
+        if self.database_cross_reference:
+            return f"MinimalEdgeInfo(label={self.label}, reference={"; ".join(self.database_cross_reference)})"
         return f"MinimalEdgeInfo(label={self.label}, type={self.type})"
 
 
@@ -72,7 +78,7 @@ class Term:
 
     def __repr__(self):
         return f"Term(term={repr(self.core)}, link={self.link})"
-    
+
     def open(self, verbose=False):
         print(f"Opening {self.link}...") if verbose else None
         webbrowser.open(self.link)
@@ -94,7 +100,31 @@ class Publication:
 
     def __repr__(self):
         return f"Publication(pub={repr(self.core)}, link={self.link})"
+    
+class Synonym:
+    def __init__(self, synonym: Syn, pub: Optional[Publication] = None):
+        self.synonym = synonym
+        if pub and pub.core.short_form != 'Unattributed':
+            self.pub = pub
 
+    def __repr__(self):
+        if hasattr(self, 'pub'):
+            return f"Synonym(synonym={repr(self.synonym)}, pub={repr(self.pub)})"
+        return f"Synonym(synonym={repr(self.synonym)})"
+        
+class Syn:
+    def __init__(self, scope: str, label: str, type: Optional[str] = None):
+        self.scope = scope
+        self.label = label
+        if type:
+            self.type = type
+
+    def __repr__(self):
+        if hasattr(self, 'type'):
+            return f"Syn(scope={self.scope}, label={self.label}, type={self.type})"
+        if self.scope:
+            return f"Syn(scope={self.scope}, label={self.label})"
+        return f"Syn(label={self.label})"
 class Xref:
     def __init__(self, core: MinimalEntityInfo, is_data_source: bool = False, link: Optional[str] = None, icon: Optional[str] = None, accession: Optional[str] = None, link_text: Optional[str] = None, homepage: Optional[str] = None):
         self.core = core
@@ -114,9 +144,16 @@ class Xref:
         return f"Xref(link_text={self.link_text if hasattr(self, 'link_text') else self.core.name}, link={self.link if hasattr(self,'link') else self.homepage if hasattr(self,'homepage') else self.core.iri}, accession={self.accession if hasattr(self,'accession') else self.core.short_form})"
 
 class Rel:
-    def __init__(self, relation: MinimalEdgeInfo, object: MinimalEntityInfo):
+    def __init__(self, relation: MinimalEdgeInfo, object: str):
         self.relation = relation
-        self.object = object
+        self._object_id = object
+        self._object = None
+
+    @property
+    def object(self):
+        if self._object is None:
+            self._object = VFBTerm(id=self._object_id)
+        return self._object
 
     def __repr__(self):
         return f"Rel(relation={repr(self.relation)}, object={repr(self.object)})"
@@ -265,7 +302,7 @@ class AnatomyChannelImage:
 
 
 class VFBTerm:
-    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, verbose=False):
+    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, dataset: Optional[List[str]] = None, synonyms: Optional[Synonym] = None, verbose=False):
         from vfb_connect import vfb
         self.vfb = vfb
         if id is not None:
@@ -315,6 +352,9 @@ class VFBTerm:
             self._regions_ids = regions
             self._regions = None  # Initialize as None, will be loaded on first access
 
+            self._dataset_ids = dataset
+            self._datasets = None  # Initialize as None, will be loaded on first access
+
             if self.term.icon:
                 self.thumbnail = self.term.icon
             elif channel_images and len(channel_images) > 0 and channel_images[0].image.image_thumbnail:
@@ -331,6 +371,9 @@ class VFBTerm:
 
             if xrefs:
                 self.xrefs = xrefs
+
+            if synonyms:
+                self.synonyms = synonyms
 
             self._instances = None
 
@@ -376,6 +419,12 @@ class VFBTerm:
         if self._summary is None:
             self._summary = self.get_summary()
         return self._summary
+
+    @property
+    def datasets(self):
+        if self._datasets is None:
+            self._datasets = VFBTerms(self._dataset_ids) if self._dataset_ids else None
+        return self._datasets
 
     def __repr__(self):
         return f"VFBTerm(term={repr(self.term)})"
@@ -900,11 +949,26 @@ def create_vfbterm_from_json(json_data, verbose=False):
                     comment=data['term'].get('comment'),
                     link=data['term'].get('link'),
                     icon=data['term'].get('icon'))
+        print(f"Loaded term: {term.core.name}") if verbose else None
 
         # Handle related terms (relations)
         related_terms = None
-        if 'related_terms' in data:
-            related_terms = [Rel(relation=MinimalEdgeInfo(**rel['relation']), object=MinimalEntityInfo(**rel['object'])) for rel in data['related_terms']]
+        if 'relationships' in data:
+            related_terms = []
+            for relation in data['relationships']:
+                rel = MinimalEdgeInfo(**relation['relation'])
+                object = relation['object']['core']['short_form']
+                related_terms.append(Rel(relation=rel, object=object))
+            print(f"Loaded {len(related_terms)} related terms from relationships") if verbose else None
+
+        if 'related_individuals' in data:
+            related_terms = [] if not related_terms else related_terms
+            bc = len(related_terms)
+            for relation in data['related_individuals']:
+                rel = MinimalEdgeInfo(**relation['relation'])
+                object = relation['object']['core']['short_form']
+                related_terms.append(Rel(relation=rel, object=object))
+            print(f"Loaded {len(related_terms)-bc} related terms from related_individuals") if verbose else None
 
         # Handle channel images
         channel_images = None
@@ -940,6 +1004,7 @@ def create_vfbterm_from_json(json_data, verbose=False):
                 parents = parents_json.get_ids()
             else:
                 print("Parents type not recognised", type(parents)) if verbose else None
+            print(f"Parents: {parents}") if verbose else None
 
         domains = None
         if not channel_images and 'template_channel' in data:
@@ -963,10 +1028,12 @@ def create_vfbterm_from_json(json_data, verbose=False):
                 for domain in data['template_domains']:
                     id = domain['anatomical_individual']['short_form']
                     domains.append(id)
+            print(f"Loaded {len(channel_images)} channel images") if verbose else None
 
         counts = None
         if 'dataset_counts' in data:
             counts = data['dataset_counts']
+            print(f"Counts: {counts}") if verbose else None
 
         publications = None
         if 'pubs' in data:
@@ -975,11 +1042,24 @@ def create_vfbterm_from_json(json_data, verbose=False):
                 publication = Publication(**pub)
                 publication.core = MinimalEntityInfo(**pub['core'])
                 publications.append(publication)
+            print(f"Loaded {len(publications)} publications") if verbose else None
 
         license = None
         if 'license' in data and len(data['license']) > 0:
             license = Term(**data['license'][0])
-            license.core = MinimalEntityInfo(**data['license'][0]['core'])  
+            license.core = MinimalEntityInfo(**data['license'][0]['core'])
+            print(f"Loaded license: {license.core.name}") if verbose else None
+
+        datasets = None
+        if not license and 'dataset_license' in data:
+            datasets = []
+            for dl in data['dataset_license']:
+                if 'license' in dl and not license: # assuming there is only one license per anatomical Individual
+                    license = Term(**dl['license'])
+                    license.core = MinimalEntityInfo(**dl['license']['core'])
+                if 'dataset' in dl:
+                    datasets.append(dl['dataset']['core']['short_form'])
+            print(f"Loaded {len(datasets)} datasets") if verbose else None
 
         xrefs = None
         if 'xrefs' in data:
@@ -994,8 +1074,17 @@ def create_vfbterm_from_json(json_data, verbose=False):
                     link_text=xref.get('link_text', None),
                     link=xref.get('link_base', '') + xref.get('accession', '') + xref.get('link_postfix', ''),
                 ))
+            print(f"Loaded {len(xrefs)} cross references") if verbose else None
 
-        return VFBTerm(term=term, related_terms=related_terms, channel_images=channel_images, parents=parents, regions=domains, counts=counts, publications=publications, license=license, xrefs=xrefs, verbose=verbose)
+        synonyms = None
+        if 'pub_syn' in data:
+            synonyms = []
+            for syn in data['pub_syn']:
+                synonym = Synonym(synonym=Syn(**syn['synonym']), pub=Publication(**syn['pub']))
+                synonyms.append(synonym)
+            print(f"Loaded {len(synonyms)} synonyms") if verbose else None
+
+        return VFBTerm(term=term, related_terms=related_terms, channel_images=channel_images, parents=parents, regions=domains, counts=counts, publications=publications, license=license, xrefs=xrefs, dataset=datasets, synonyms=synonyms, verbose=verbose)
     else:
         return None
 
