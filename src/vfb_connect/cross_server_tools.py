@@ -133,7 +133,7 @@ class VfbConnect:
             return key if not return_curie else key.replace('_', ':')
         
         # CARO lookup: Check if the key is a CARO/BFO/UBERON/FBbt(obsolete) term; though not in the lookup they need to be handled if explicitly called
-        prefixes = ('CARO_', 'BFO_', 'UBERON_', 'GENO_', 'CL_', 'FBbt_', 'VFB_')
+        prefixes = ('CARO_', 'BFO_', 'UBERON_', 'GENO_', 'CL_', 'FBbt_', 'VFB_', 'GO_')
         if key.startswith(prefixes):
             return key if not return_curie else key.replace('_', ':')
         
