@@ -731,7 +731,7 @@ class VFBTerm:
                 results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
                 self._potential_drivers_neuronbridge = [Score(**dict) for dict in results_dict]
             return self._potential_drivers_neuronbridge
-        
+
         # Dynamically add the property to the instance
         setattr(self.__class__, 'similar_neurons_nblast', similar_neurons_nblast)
         # setattr(self.__class__, 'similar_neurons_neuronbridge', similar_neurons_neuronbridge)
