@@ -534,6 +534,12 @@ class VFBTerm:
             self._dataset_ids = dataset
             self._datasets = None  # Initialize as None, will be loaded on first access
 
+            self._subtypes = None # Initialize as None, will be loaded on first access
+
+            self._subparts = None # Initialize as None, will be loaded on first access
+
+            self._children = None # Initialize as None, will be loaded on first access
+
             if self.term.icon:
                 self.thumbnail = self.term.icon
             elif channel_images and len(channel_images) > 0 and channel_images[0].image.image_thumbnail:
@@ -604,6 +610,24 @@ class VFBTerm:
         if self._datasets is None:
             self._datasets = VFBTerms(self._dataset_ids) if self._dataset_ids else None
         return self._datasets
+
+    @property
+    def subtypes(self):
+        if self._subtypes is None:
+            self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"'{self.id}'"))
+        return self._subtypes
+
+    @property
+    def subparts(self):
+        if self._subparts is None:
+            self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'part of' some '{self.id}'"))
+        return self._subparts
+
+    @property
+    def children(self):
+        if self._children is None:
+            self._children = self.subtypes + self.subparts
+        return self._children
 
     def __repr__(self):
         return f"VFBTerm(term={repr(self.term)})"
