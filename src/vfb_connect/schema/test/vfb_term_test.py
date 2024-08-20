@@ -136,7 +136,7 @@ class VfbTermTest(unittest.TestCase):
 
     def test_vfbterm_similarity_neuron_nblast(self):
         term = self.vfb.term('VGlut-F-000118')
-        print("got term ", term)
+        print("got term types", term.term.core.types)
         similar = term.similar_neurons_nblast
         print("got similar ", similar)
         self.assertTrue(similar)

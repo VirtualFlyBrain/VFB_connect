@@ -630,7 +630,7 @@ class VFBTerm:
                 print("Loading regions for the first time...") if self.has_tag('DataSet') else None
                 self._regions = VFBTerms(self._regions_ids) if self._regions_ids else None
             return self._regions
-        
+
         # Dynamically add the property to the instance
         setattr(self.__class__, 'regions', regions)
 
@@ -659,7 +659,7 @@ class VFBTerm:
             if self._datasets is None:
                 self._datasets = VFBTerms(self._dataset_ids) if self._dataset_ids else None
             return self._datasets
-        
+
         # Dynamically add the property to the instance
         setattr(self.__class__, 'datasets', datasets)
 
@@ -681,7 +681,7 @@ class VFBTerm:
             if self._children is None:
                 self._children = self.subtypes + self.subparts
             return self._children
-        
+
         # Dynamically add the property to the instance
         setattr(self.__class__, 'subtypes', subtypes)
         setattr(self.__class__, 'subparts', subparts)
@@ -691,7 +691,7 @@ class VFBTerm:
         @property
         def similar_neurons_nblast(self):
             if self._similar_neurons_nblast is None:
-                if not hasattr(self, 'NBLAST'):
+                if not self.has_tag('NBLAST'):
                     return None
                 method = 'NBLAST_score'
                 results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
@@ -702,7 +702,7 @@ class VFBTerm:
         # @property
         # def similar_neurons_neuronbridge(self):
         #     if self._similar_neurons_neuronbridge is None:
-        #         if not hasattr(self, 'neuronbridge'):
+        #         if not self.has_tag('neuronbridge'):
         #             return None
         #         method = 'neuronbridge_score'
         #         results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
@@ -713,7 +713,7 @@ class VFBTerm:
         @property
         def potential_drivers_nblast(self):
             if self._potential_drivers_nblast is None:
-                if not hasattr(self, 'NBLASTexp'):
+                if not self.has_tag('NBLASTexp'):
                     return None
                 method = 'NBLAST_score'
                 results = self.vfb.get_potential_drivers(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
@@ -724,7 +724,7 @@ class VFBTerm:
         @property
         def potential_drivers_neuronbridge(self):
             if self._potential_drivers_neuronbridge is None:
-                if not hasattr(self, 'neuronbridge'):
+                if not self.has_tag('neuronbridge'):
                     return None
                 method = 'neuronbridge_score'
                 results = self.vfb.get_potential_drivers(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
