@@ -630,6 +630,9 @@ class VFBTerm:
                 print("Loading regions for the first time...") if self.has_tag('DataSet') else None
                 self._regions = VFBTerms(self._regions_ids) if self._regions_ids else None
             return self._regions
+        
+        # Dynamically add the property to the instance
+        setattr(self.__class__, 'regions', regions)
 
     @property
     def instances(self):
