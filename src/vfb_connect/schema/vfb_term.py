@@ -558,22 +558,6 @@ class VFBTerm:
             self._parents_ids = parents
             self._parents = None  # Initialize as None, will be loaded on first access
 
-            self._regions_ids = regions
-            self._regions = None  # Initialize as None, will be loaded on first access
-
-            self._dataset_ids = dataset
-            self._datasets = None  # Initialize as None, will be loaded on first access
-
-            self._subtypes = None # Initialize as None, will be loaded on first access
-
-            self._subparts = None # Initialize as None, will be loaded on first access
-
-            self._children = None # Initialize as None, will be loaded on first access
-
-            self._similar_neurons_nblast = None # Initialize as None, will be loaded on first access
-            self._similar_neurons_neuronbridge = None # Initialize as None, will be loaded on first access
-
-
             if self.term.icon:
                 self.thumbnail = self.term.icon
             elif channel_images and len(channel_images) > 0 and channel_images[0].image.image_thumbnail:
@@ -599,12 +583,36 @@ class VFBTerm:
             # Set flags for different types of terms
             self.is_type = self.has_tag('Class')
             self.is_instance = self.has_tag('Individual')
+            self.is_template = self.has_tag('Template')
             self.is_dataset = self.has_tag('DataSet')
             self.is_neuron = self.has_tag('Neuron')
             self.has_image = self.has_tag('has_image')
             self.has_scRNAseq = self.has_tag('hasScRNAseq')
             self.has_neuron_connectivity = self.has_tag('has_neuron_connectivity')
             self.has_region_connectivity = self.has_tag('has_region_connectivity')
+
+            if self.is_template:
+                self._regions_ids = regions
+                self._regions = None  # Initialize as None, will be loaded on first access
+                self.add_template_properties()
+
+            if self.is_instance:
+                self._dataset_ids = dataset
+                self._datasets = None  # Initialize as None, will be loaded on first access
+                self.add_instance_properties()
+
+            if self.is_type:
+                self._subtypes = None # Initialize as None, will be loaded on first access
+                self._subparts = None # Initialize as None, will be loaded on first access
+                self._children = None # Initialize as None, will be loaded on first access
+                self.add_type_properties()
+
+            if self.is_neuron:
+                self._similar_neurons_nblast = None # Initialize as None, will be loaded on first access
+                self._similar_neurons_neuronbridge = None # Initialize as None, will be loaded on first access
+                self._potential_drivers_nblast = None # Initialize as None, will be loaded on first access
+                self._potential_drivers_neuronbridge = None # Initialize as None, will be loaded on first access
+                self.add_neuron_properties()
 
     @property
     def parents(self, verbose=False):
@@ -613,12 +621,13 @@ class VFBTerm:
             self._parents = VFBTerms(self._parents_ids) if self._parents_ids else None
         return self._parents
 
-    @property
-    def regions(self):
-        if self._regions is None:
-            print("Loading regions for the first time...") if self.has_tag('DataSet') else None
-            self._regions = VFBTerms(self._regions_ids) if self._regions_ids else None
-        return self._regions
+    def add_template_properties(self):
+        @property
+        def regions(self):
+            if self._regions is None:
+                print("Loading regions for the first time...") if self.has_tag('DataSet') else None
+                self._regions = VFBTerms(self._regions_ids) if self._regions_ids else None
+            return self._regions
 
     @property
     def instances(self):
@@ -639,47 +648,82 @@ class VFBTerm:
             self._summary = self.get_summary()
         return self._summary
 
-    @property
-    def datasets(self):
-        if self._datasets is None:
-            self._datasets = VFBTerms(self._dataset_ids) if self._dataset_ids else None
-        return self._datasets
+    def add_instance_properties(self):
+        @property
+        def datasets(self):
+            if self._datasets is None:
+                self._datasets = VFBTerms(self._dataset_ids) if self._dataset_ids else None
+            return self._datasets
+        
+        # Dynamically add the property to the instance
+        setattr(self.__class__, 'datasets', datasets)
 
-    @property
-    def subtypes(self):
-        if self._subtypes is None:
-            self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"'{self.id}'"))
-        return self._subtypes
+    def add_type_properties(self):
+        @property
+        def subtypes(self):
+            if self._subtypes is None:
+                self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"'{self.id}'"))
+            return self._subtypes
 
-    @property
-    def subparts(self):
-        if self._subparts is None:
-            self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'BFO_0000050' some '{self.id}'"))
-        return self._subparts
+        @property
+        def subparts(self):
+            if self._subparts is None:
+                self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'BFO_0000050' some '{self.id}'"))
+            return self._subparts
 
-    @property
-    def children(self):
-        if self._children is None:
-            self._children = self.subtypes + self.subparts
-        return self._children
+        @property
+        def children(self):
+            if self._children is None:
+                self._children = self.subtypes + self.subparts
+            return self._children
+        
+        # Dynamically add the property to the instance
+        setattr(self.__class__, 'subtypes', subtypes)
+        setattr(self.__class__, 'subparts', subparts)
+        setattr(self.__class__, 'children', children)
 
-    @property
-    def similar_neurons_nblast(self):
-        if self._similar_neurons_nblast is None:
-            method = 'NBLAST_score'
-            results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
-            results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
-            self._similar_neurons_nblast = [Score(**dict) for dict in results_dict]
-        return self._similar_neurons_nblast
+    def add_neuron_properties(self):
+        @property
+        def similar_neurons_nblast(self):
+            if self._similar_neurons_nblast is None:
+                method = 'NBLAST_score'
+                results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
+                results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
+                self._similar_neurons_nblast = [Score(**dict) for dict in results_dict]
+            return self._similar_neurons_nblast
 
-    @property
-    def similar_neurons_neuronbridge(self):
-        if self._similar_neurons_neuronbridge is None:
-            method = 'neuronbridge_score'
-            results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
-            results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
-            self._similar_neurons_neuronbridge = [Score(**dict) for dict in results_dict]
-        return self._similar_neurons_neuronbridge
+        @property
+        def similar_neurons_neuronbridge(self):
+            if self._similar_neurons_neuronbridge is None:
+                method = 'neuronbridge_score'
+                results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
+                results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
+                self._similar_neurons_neuronbridge = [Score(**dict) for dict in results_dict]
+            return self._similar_neurons_neuronbridge
+
+        @property
+        def potential_drivers_nblast(self):
+            if self._potential_drivers_nblast is None:
+                method = 'NBLAST_score'
+                results = self.vfb.get_potential_drivers(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
+                results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
+                self._potential_drivers_nblast = [Score(**dict) for dict in results_dict]
+            return self._potential_drivers_nblast
+
+        @property
+        def potential_drivers_neuronbridge(self):
+            if self._potential_drivers_neuronbridge is None:
+                method = 'neuronbridge_score'
+                results = self.vfb.get_potential_drivers(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
+                results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
+                self._potential_drivers_neuronbridge = [Score(**dict) for dict in results_dict]
+            return self._potential_drivers_neuronbridge
+        
+        # Dynamically add the property to the instance
+        setattr(self.__class__, 'similar_neurons_nblast', similar_neurons_nblast)
+        setattr(self.__class__, 'similar_neurons_neuronbridge', similar_neurons_neuronbridge)
+        setattr(self.__class__, 'potential_drivers_nblast', potential_drivers_nblast)
+        setattr(self.__class__, 'potential_drivers_neuronbridge', potential_drivers_neuronbridge)
 
     def __repr__(self):
         return f"VFBTerm(term={repr(self.term)})"

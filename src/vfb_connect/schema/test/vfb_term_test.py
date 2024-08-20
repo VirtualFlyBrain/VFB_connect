@@ -145,13 +145,35 @@ class VfbTermTest(unittest.TestCase):
 
     def test_vfbterm_similarity_neuron_neuronbridge(self):
         # TODO No neuronbridge neuron - neuron score exist at the monent
-        term = self.vfb.term('JRC_MB188B_Brain_2014_20140414_32_D1_20x')
+        term = self.vfb.term('LPC1 (FlyEM-HB:1838269993)')
         print("got term ", term)
         similar = term.similar_neurons_neuronbridge
         print("got similar ", similar)
         self.assertFalse(similar)
         # self.assertFalse(isinstance(similar[0], Score))
-        self.assertFalse(len(similar)>10)
+        self.assertFalse(len(similar)>2)
+
+    def test_vfbterm_potental_drivers_nblast(self):
+        term = self.vfb.term('VGlut-F-000118')
+        print("got term ", term)
+        drivers = term.potential_drivers_nblast
+        print("got drivers ", drivers)
+        print(f"got {len(drivers)} drivers")
+        self.assertTrue(drivers)
+        self.assertTrue(isinstance(drivers, list))
+        self.assertTrue(isinstance(drivers[0], Score))
+        self.assertTrue(len(drivers)>2)
+
+    def test_vfbterm_potential_drivers_neuronbridge(self):
+        term = self.vfb.term('LPC1 (FlyEM-HB:1838269993)')
+        print("got term ", term)
+        drivers = term.potential_drivers_neuronbridge
+        print("got drivers ", drivers)
+        print(f"got {len(drivers)} drivers")
+        self.assertTrue(drivers)
+        self.assertTrue(isinstance(drivers, list))
+        self.assertTrue(isinstance(drivers[0], Score))
+        self.assertTrue(len(drivers)>2)
 
 if __name__ == "__main__":
     unittest.main()

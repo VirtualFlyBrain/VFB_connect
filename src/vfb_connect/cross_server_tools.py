@@ -346,6 +346,31 @@ class VfbConnect:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
+        
+    def get_potential_drivers(self, neuron, similarity_score='NBLAST_score', query_by_label=True, return_dataframe=True, verbose=False):
+        """Get JSON report of driver expression likely to contain the input neuron.
+
+        :param neuron: The neuron to find similar drivers for.
+        :param similarity_score: Optional. Specify the similarity score to use (e.g., 'NBLAST_score', 'neuronbridge_score'). Default 'NBLAST_score'.
+        :param query_by_label: Optional. Query neuron by label if `True`, or by ID if `False`. Default `True`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame or list of potranial drivers (id, label, tags) + similarity score.
+        :rtype: pandas.DataFrame or list of dicts
+        """
+        id = neuron if query_by_label else self.lookup_id(neuron)
+        query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1:Individual)-[r:has_similar_morphology_to_part_of]-(n2:Individual)-[:INSTANCEOF]->(c2:Class) " \
+                "WHERE n1.short_form = '%s'  and exists(r.%s) " \
+                "WITH c1, n1, r, n2, c2 " \
+                "RETURN DISTINCT n2.short_form AS id, r.%s[0] AS score, n2.label AS label, " \
+                "COLLECT(c2.label) AS tags " \
+                "ORDER BY score DESC" % (id, similarity_score, similarity_score)
+        print(query) if verbose else None
+        dc = self.neo_query_wrapper._query(query)
+        print(dc) if verbose else None
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
+        else:
+            return dc
 
     def get_neurons_downstream_of(self, neuron, weight, classification=None, query_by_label=True,
                                   return_dataframe=True,verbose=False):
