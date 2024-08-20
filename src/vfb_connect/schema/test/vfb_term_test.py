@@ -1,5 +1,5 @@
 import unittest
-from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm
+from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm, Score
 
 class VfbTermTest(unittest.TestCase):
 
@@ -107,7 +107,7 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(isinstance(terms, VFBTerms))
         self.assertTrue(len(terms)==2)
 
-    def test_vfbterms_subparts(self):
+    def test_vfbterm_subparts(self):
         term = self.vfb.term('medulla')
         print("got term ", term)
         subparts = term.subparts
@@ -116,7 +116,7 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(isinstance(subparts, VFBTerms))
         self.assertTrue(len(subparts)>20)
 
-    def test_vfbterms_subtypes(self):
+    def test_vfbterm_subtypes(self):
         term = self.vfb.term('FBt')
         print("got term ", term)
         subtypes = term.subtypes
@@ -125,7 +125,7 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(isinstance(subtypes, VFBTerms))
         self.assertTrue(len(subtypes)>60)
 
-    def test_vfbterms_children(self):
+    def test_vfbterm_children(self):
         term = self.vfb.term('medulla')
         print("got term ", term)
         children = term.children
@@ -133,6 +133,25 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(children)
         self.assertTrue(isinstance(children, VFBTerms))
         self.assertTrue(len(children)>20)
+
+    def test_vfbterm_similarity_neuron_nblast(self):
+        term = self.vfb.term('VGlut-F-000118')
+        print("got term ", term)
+        similar = term.similar_neurons_nblast
+        print("got similar ", similar)
+        self.assertTrue(similar)
+        self.assertTrue(isinstance(similar[0], Score))
+        self.assertTrue(len(similar)>10)
+
+    def test_vfbterm_similarity_neuron_neuronbridge(self):
+        # TODO No neuronbridge neuron - neuron score exist at the monent
+        term = self.vfb.term('JRC_MB188B_Brain_2014_20140414_32_D1_20x')
+        print("got term ", term)
+        similar = term.similar_neurons_neuronbridge
+        print("got similar ", similar)
+        self.assertFalse(similar)
+        # self.assertFalse(isinstance(similar[0], Score))
+        self.assertFalse(len(similar)>10)
 
 if __name__ == "__main__":
     unittest.main()

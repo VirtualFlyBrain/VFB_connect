@@ -330,15 +330,15 @@ class VfbConnect:
         :rtype: pandas.DataFrame or list of dicts
         """
         id = neuron if query_by_label else self.lookup_id(neuron)
-        query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:has_similar_morphology_to]-(n2)-[:INSTANCEOF]->(c2:Class) " \
-                "WHERE n1.short_form = '%s' " \
+        query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1:Individual)-[r:has_similar_morphology_to]-(n2:Individual)-[:INSTANCEOF]->(c2:Class) " \
+                "WHERE n1.short_form = '%s'  and exists(r.%s) " \
                 "WITH c1, n1, r, n2, c2 " \
                 "OPTIONAL MATCH (n1)-[dbx1:database_cross_reference]->(s1:Site), " \
                 "(n2)-[dbx2:database_cross_reference]->(s2:Site) " \
                 "WHERE s1.is_data_source and s2.is_data_source " \
-                "RETURN DISTINCT n2.short_form AS id, r.NBLAST_score[0] AS NBLAST_score, n2.label AS label, " \
+                "RETURN DISTINCT n2.short_form AS id, r.%s[0] AS score, n2.label AS label, " \
                 "COLLECT(c2.label) AS tags, s2.short_form AS source_id, dbx2.accession[0] AS accession_in_source " \
-                "ORDER BY %s DESC" % (id, similarity_score)
+                "ORDER BY score DESC" % (id, similarity_score, similarity_score)
         print(query) if verbose else None
         dc = self.neo_query_wrapper._query(query)
         print(dc) if verbose else None

@@ -478,7 +478,37 @@ class AnatomyChannelImage:
 
     def __repr__(self):
         return f"AnatomyChannelImage(anatomy={self.anatomy})"
+    
+class Score:
+    def __init__(self, score: float = 0.0, method: Optional[str] = None, term: Optional[str] = None):
+        self.score = score
+        self.method = method
+        self._term_id = term
+        self._term = None # Initialize as None, will be loaded on first access
 
+    @property
+    def term(self):
+        if self._term is None:
+            self._term = VFBTerm(id=self._term_id)
+        return self._term
+
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+
+    def __repr__(self):
+        return f"Score(score={self.score}, method={self.method}, term={self.term.name})"
 
 class VFBTerm:
     def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, dataset: Optional[List[str]] = None, synonyms: Optional[Synonym] = None, verbose=False):
@@ -539,6 +569,10 @@ class VFBTerm:
             self._subparts = None # Initialize as None, will be loaded on first access
 
             self._children = None # Initialize as None, will be loaded on first access
+
+            self._similar_neurons_nblast = None # Initialize as None, will be loaded on first access
+            self._similar_neurons_neuronbridge = None # Initialize as None, will be loaded on first access
+
 
             if self.term.icon:
                 self.thumbnail = self.term.icon
@@ -628,6 +662,24 @@ class VFBTerm:
         if self._children is None:
             self._children = self.subtypes + self.subparts
         return self._children
+
+    @property
+    def similar_neurons_nblast(self):
+        if self._similar_neurons_nblast is None:
+            method = 'NBLAST_score'
+            results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
+            results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
+            self._similar_neurons_nblast = [Score(**dict) for dict in results_dict]
+        return self._similar_neurons_nblast
+
+    @property
+    def similar_neurons_neuronbridge(self):
+        if self._similar_neurons_neuronbridge is None:
+            method = 'neuronbridge_score'
+            results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
+            results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
+            self._similar_neurons_neuronbridge = [Score(**dict) for dict in results_dict]
+        return self._similar_neurons_neuronbridge
 
     def __repr__(self):
         return f"VFBTerm(term={repr(self.term)})"
