@@ -42,6 +42,12 @@ class MinimalEntityInfo:
     def get_name(self):
         return self.symbol if self.symbol else self.label
 
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+
     def __str__(self):
         return f"{self.name}"
 
@@ -1055,14 +1061,12 @@ def create_vfbterm_from_json(json_data, verbose=False):
             publications = []
             for pub in data['pubs']:
                 publication = Publication(**pub)
-                publication['core'] = MinimalEntityInfo(**pub['core'])
                 publications.append(publication)
             print(f"Loaded {len(publications)} publications") if verbose else None
 
         license = None
         if 'license' in data and len(data['license']) > 0:
             license = Term(**data['license'][0])
-            license['core'] = MinimalEntityInfo(**data['license'][0]['core'])
             print(f"Loaded license: {license.core.name}") if verbose else None
 
         datasets = None
@@ -1071,7 +1075,6 @@ def create_vfbterm_from_json(json_data, verbose=False):
             for dl in data['dataset_license']:
                 if 'license' in dl and not license: # assuming there is only one license per anatomical Individual
                     license = Term(**dl['license'])
-                    license['core'] = MinimalEntityInfo(**dl['license']['core'])
                 if 'dataset' in dl:
                     datasets.append(dl['dataset']['core']['short_form'])
             print(f"Loaded {len(datasets)} datasets") if verbose else None
