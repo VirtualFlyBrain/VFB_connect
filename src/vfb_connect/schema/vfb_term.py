@@ -47,6 +47,15 @@ class MinimalEntityInfo:
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
+    
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __str__(self):
         return f"{self.name}"
