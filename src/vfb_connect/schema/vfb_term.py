@@ -957,7 +957,7 @@ def create_vfbterm_from_json(json_data, verbose=False):
             related_terms = []
             for relation in data['relationships']:
                 rel = MinimalEdgeInfo(**relation['relation'])
-                object = relation['object']['core']['short_form']
+                object = relation['object']['short_form']
                 related_terms.append(Rel(relation=rel, object=object))
             print(f"Loaded {len(related_terms)} related terms from relationships") if verbose else None
 
@@ -966,7 +966,7 @@ def create_vfbterm_from_json(json_data, verbose=False):
             bc = len(related_terms)
             for relation in data['related_individuals']:
                 rel = MinimalEdgeInfo(**relation['relation'])
-                object = relation['object']['core']['short_form']
+                object = relation['object']['short_form']
                 related_terms.append(Rel(relation=rel, object=object))
             print(f"Loaded {len(related_terms)-bc} related terms from related_individuals") if verbose else None
 
