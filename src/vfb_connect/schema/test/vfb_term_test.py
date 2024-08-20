@@ -107,5 +107,32 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(isinstance(terms, VFBTerms))
         self.assertTrue(len(terms)==2)
 
+    def test_vfbterms_subparts(self):
+        term = self.vfb.term('medulla')
+        print("got term ", term)
+        subparts = term.subparts
+        print("got subparts ", subparts)
+        self.assertTrue(subparts)
+        self.assertTrue(isinstance(subparts, VFBTerms))
+        self.assertTrue(len(subparts)>20)
+
+    def test_vfbterms_subtypes(self):
+        term = self.vfb.term('FBt')
+        print("got term ", term)
+        subtypes = term.subtypes
+        print("got subtypes ", subtypes)
+        self.assertTrue(subtypes)
+        self.assertTrue(isinstance(subtypes, VFBTerms))
+        self.assertTrue(len(subtypes)>60)
+
+    def test_vfbterms_children(self):
+        term = self.vfb.term('medulla')
+        print("got term ", term)
+        children = term.children
+        print("got children ", children)
+        self.assertTrue(children)
+        self.assertTrue(isinstance(children, VFBTerms))
+        self.assertTrue(len(children)>20)
+
 if __name__ == "__main__":
     unittest.main()
