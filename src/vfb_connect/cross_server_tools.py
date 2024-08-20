@@ -1,9 +1,10 @@
 import os
+from typing import List
 from .owl.owlery_query_tools import OWLeryConnect
 from .neo.neo4j_tools import Neo4jConnect, re, dict_cursor
 from .neo.query_wrapper import QueryWrapper, batch_query
 from .default_servers import get_default_servers
-from .schema.vfb_term import VFBTerm, VFBTerms
+from .schema.vfb_term import VFBTerm, VFBTerms, Partner
 import pandas as pd
 import numpy as np
 from colormath.color_objects import LabColor, sRGBColor
@@ -134,7 +135,7 @@ class VfbConnect:
         
         # CARO lookup: Check if the key is a CARO/BFO/UBERON/FBbt(obsolete) term; though not in the lookup they need to be handled if explicitly called
         prefixes = ('CARO_', 'BFO_', 'UBERON_', 'GENO_', 'CL_', 'FBbt_', 'VFB_', 'GO_')
-        if key.startswith(prefixes):
+        if isinstance(key,str) and key.startswith(prefixes):
             return key if not return_curie else key.replace('_', ':')
         
         # Direct lookup in the dictionary
@@ -309,7 +310,8 @@ class VfbConnect:
             cypher_query += "AND %s.short_form IN %s " % (directions[0], str(instances))
         cypher_query += "RETURN upstream.short_form as query_neuron_id, upstream.label as query_neuron_name, " \
                         "r.weight[0] as weight, " \
-                        "downstream.short_form as target_neuron_id, downstream.label as target_neuron_name"
+                        "downstream.short_form as target_neuron_id, downstream.label as target_neuron_name " \
+                        "ORDER BY weight DESC"
         print(cypher_query) if verbose else None
         r = self.nc.commit_list([cypher_query])
         dc = dict_cursor(r)
@@ -734,23 +736,29 @@ class VfbConnect:
         print(terms) if verbose else None
         return VFBTerms(terms, verbose=verbose)
     
-    def generate_lab_colors(self, num_colors):
+    def generate_lab_colors(self, num_colors, verbose=False):
         """
         Generate a list of Lab colors and convert them to RGB tuples.
         
         :param num_colors: The number of colors to generate.
         :return: A list of RGB tuples.
         """
-        # Generate evenly spaced values in Lab space
-        l_values = np.linspace(0, 100, int(np.cbrt(num_colors)))
-        a_values = np.linspace(-100, 100, int(np.cbrt(num_colors)))
-        b_values = np.linspace(-100, 100, int(np.cbrt(num_colors)))
-        
+        # Calculate the grid size for each of L, a, and b components
+        grid_size = int(np.ceil(num_colors ** (1/3)))
+
+        # Generate linearly spaced values for L, a, and b components
+        l_values = np.linspace(0, 100, grid_size)
+        a_values = np.linspace(-100, 100, grid_size)
+        b_values = np.linspace(-100, 100, grid_size)
+
+        # Create a meshgrid and reshape to get all combinations
         lab_colors = np.array(np.meshgrid(l_values, a_values, b_values)).T.reshape(-1, 3)
-        
-        # Limit the number of colors to num_colors
-        lab_colors = lab_colors[:num_colors]
-        
+
+        # If we generated more colors than needed, truncate the list
+        if len(lab_colors) > num_colors:
+            lab_colors = lab_colors[:num_colors]
+
+        # Convert Lab to RGB
         rgb_colors = []
         for lab in lab_colors:
             lab_color = LabColor(lab[0], lab[1], lab[2])
@@ -759,5 +767,7 @@ class VfbConnect:
                         int(rgb_color.clamped_rgb_g * 255), 
                         int(rgb_color.clamped_rgb_b * 255))
             rgb_colors.append(rgb_tuple)
-        
+
+        print(rgb_colors) if verbose else None
         return rgb_colors
+    

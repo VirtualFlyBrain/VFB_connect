@@ -512,6 +512,44 @@ class Score:
     def __repr__(self):
         return f"Score(score={self.score}, method={self.method}, term={self.term.name})"
 
+class Partner:
+    def __init__(self, weight: str = None, partner: str = None, partner_name: Optional[str] = None):
+        self.weight = weight
+        self.id = partner
+        self._partner = None # Initialize as None, will be loaded on first access
+        self._partner_name = partner_name
+        self._name = None # Initialize as None, will be loaded on first access
+
+    @property
+    def partner(self):
+        if self._partner is None:
+            self._partner = VFBTerm(id=self.id)
+        return self._partner
+
+    @property
+    def name(self):
+        if self._name is None:
+            self._name = self._partner_name if self._partner_name else self.partner.name
+        return self._name
+
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+
+    def __repr__(self):
+        return f"Partner(weight={self.weight}, partner={self.name})"
+
 class VFBTerm:
     def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, dataset: Optional[List[str]] = None, synonyms: Optional[Synonym] = None, verbose=False):
         from vfb_connect import vfb
@@ -782,6 +820,30 @@ class VFBTerm:
             return remaining_terms
         raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
 
+    def downstream_partners(self, weight=0, classification=None, verbose=False):
+        """
+        Get neurons downstream of this neuron.
+        """
+        print("Getting downstream partners for ", self.name) if verbose else None
+        results = self.vfb.get_neurons_downstream_of(neuron=self.id, weight=weight, classification=classification, query_by_label=False,
+                                  return_dataframe=False,verbose=verbose)
+        print("Results: ", results) if verbose else None
+        dicts = [{"weight": item['weight'], "partner": item['target_neuron_id'], "partner_name": item['target_neuron_name']} for item in results]
+        print("Dict: ", dict) if verbose else None
+        return [Partner(**dict) for dict in dicts]
+
+    def upstream_partners(self, weight=0, classification=None, verbose=False):
+        """
+        Get neurons upstream of this neuron.
+        """
+        print("Getting upstream partners for ", self.name) if verbose else None
+        results = self.vfb.get_neurons_upstream_of(neuron=self.id, weight=weight, classification=classification, query_by_label=False,
+                                  return_dataframe=False,verbose=verbose)
+        print("Results: ", results) if verbose else None
+        dicts = [{"weight": item['weight'], "partner": item['query_neuron_id'], "partner_name": item['query_neuron_name']} for item in results]
+        print("Dict: ", dict) if verbose else None
+        return [Partner(**dict) for dict in dicts]
+
     def get_summary(self, return_dataframe=True, verbose=False):
         """
         Returns a summary of the term's information.
@@ -1010,6 +1072,70 @@ class VFBTerm:
     def open(self, verbose=False):
         print("Opening ", self.url) if verbose else None
         webbrowser.open(self.url)
+
+    def plot_partners(self, partners: List[Partner], include_self=True, template=None, verbose=False):
+        """Plot a network of neuron partners.
+
+        Parameters
+        ----------
+        partners : List[Partner] usually the output from the downstream_partners or upstream_partners methods.
+            List of Partner objects to plot.
+        """
+        if partners and len(partners) > 0:
+            neurons = [self] if include_self else []
+            neurons = neurons + [partner.partner for partner in partners]
+            print(f"Plotting {len(neurons)} neurons") if verbose else None
+            weights = [np.float32(partner.weight) for partner in partners]
+            max_weight = max(weights)
+            min_weight = min(weights)
+            normalized_weights = [(weight - min_weight) / (max_weight - min_weight) for weight in weights]
+            colours = self.vfb.generate_lab_colors(len(neurons)-1)
+            colours = [(0,0,0)] + colours # Reverse the colours to match the order of the neurons
+            alphas = []
+            max_alpha = int(255)
+            for i, neuron in enumerate(neurons):
+                if i == 0:
+                    alpha = max_alpha
+                    colours[i]= colours[i] + (max_alpha,)
+                else:
+                    alpha = int(max_alpha*normalized_weights[i-1])
+                    colours[i]= colours[i] + (alpha,)
+                alphas.append(alpha)
+            print("Colours: ", colours) if verbose else None
+            VFBTerms(neurons).plot3d(verbose=verbose, template=template, colors=colours)
+
+        else:
+            print(f"No partners found for {self.name}") if verbose else None
+
+    def plot_similar(self, similar: List[Score], template=None, verbose=False):
+        """Plot a network of similar neurons or potential drivers.
+
+        Parameters
+        ----------
+        similar : List[Score] usually the output from the similar_neurons_nblast or similar_neurons_neuronbridge methods.
+            List of Score objects to plot.
+        """
+        if similar and len(similar) > 0:
+            neurons = [self] + [score.term for score in similar]
+            print(f"Plotting {len(neurons)} neurons") if verbose else None
+            weights = [np.float32(score.score) for score in similar]
+            max_weight = max(weights)
+            min_weight = min(weights)
+            normalized_weights = [(weight - min_weight) / (max_weight - min_weight) for weight in weights]
+            colours = self.vfb.generate_lab_colors(len(neurons)-1)
+            colours = [(0,0,0)] + colours
+            alphas = []
+            max_alpha = int(255)
+            for i, neuron in enumerate(neurons):
+                if i == 0:
+                    alpha = max_alpha
+                    colours[i]= colours[i] + (max_alpha,)
+                else:
+                    alpha = int(max_alpha*normalized_weights[i-1])
+                    colours[i]= colours[i] + (alpha,)
+                alphas.append(alpha)
+            print("Colours: ", colours) if verbose else None
+            VFBTerms(neurons).plot3d(verbose=verbose, template=template, colors=colours)
 
 class VFBTerms:
     def __init__(self, terms: Union[List[VFBTerm], List[str], pandas.core.frame.DataFrame, List[dict]], verbose=False):
