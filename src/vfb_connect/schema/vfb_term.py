@@ -96,6 +96,21 @@ class Term:
         self.link = link if link else "https://n2t.net/vfb:" + self.core.short_form
         self.icon = icon if icon else ""
 
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+    
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+
     def __repr__(self):
         return f"Term(term={repr(self.core)}, link={self.link})"
 
@@ -125,6 +140,22 @@ class Publication:
 
     def __repr__(self):
         return f"Publication(pub={repr(self.core)}, link={self.link})"
+    
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+    
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+
 
 class Syn:
     def __init__(self, scope: str, label: str, type: Optional[str] = None):
@@ -132,6 +163,21 @@ class Syn:
         self.label = label
         if type:
             self.type = type
+
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+    
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __repr__(self):
         if hasattr(self, 'type'):
@@ -141,14 +187,40 @@ class Syn:
         return f"Syn(label={self.label})"
 class Synonym:
     def __init__(self, synonym: Syn, pub: Optional[Publication] = None):
-        self.synonym = synonym
+        if isinstance(synonym, dict):
+            self.synonym = Syn(**synonym)
+        elif isinstance(synonym, Syn):
+            self.synonym = synonym
+        else:
+            raise ValueError("synonym must be a Syn object")
         if pub and pub.core.short_form != 'Unattributed':
-            self.pub = pub
+            if isinstance(pub, dict):
+                self.pub = Publication(**pub)
+            elif isinstance(pub, Publication):
+                self.pub = pub
+            else:
+                raise ValueError("pub must be a Publication object")
 
     def __repr__(self):
         if hasattr(self, 'pub'):
             return f"Synonym(synonym={repr(self.synonym)}, pub={repr(self.pub)})"
         return f"Synonym(synonym={repr(self.synonym)})"
+
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+    
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+
 
 class Xref:
     def __init__(self, core: MinimalEntityInfo, is_data_source: bool = False, link: Optional[str] = None, icon: Optional[str] = None, accession: Optional[str] = None, link_text: Optional[str] = None, homepage: Optional[str] = None):
@@ -170,6 +242,22 @@ class Xref:
         if homepage:
             self.homepage = homepage
 
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+    
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+
+
     def __repr__(self):
         return f"Xref(link_text={self.link_text if hasattr(self, 'link_text') else self.core.name}, link={self.link if hasattr(self,'link') else self.homepage if hasattr(self,'homepage') else self.core.iri}, accession={self.accession if hasattr(self,'accession') else self.core.short_form})"
 
@@ -184,6 +272,21 @@ class Rel:
         if self._object is None:
             self._object = VFBTerm(id=self._object_id)
         return self._object
+    
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+    
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __repr__(self):
         return f"Rel(relation={repr(self.relation)}, object={repr(self.object)})"
@@ -200,6 +303,22 @@ class Image:
         self.image_swc = image_swc if image_swc else None
         self.image_obj = image_obj if image_obj else None
         self.image_wlz = image_wlz if image_wlz else None
+
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+    
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+
 
     def __repr__(self):
         return f"Image(image_thmbnail={self.image_thumbnail})"
@@ -318,6 +437,21 @@ class ChannelImage:
         self.channel = channel
         self.imaging_technique = imaging_technique
 
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+    
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+
     def __repr__(self):
         return f"ChannelImage(image={repr(self.image)}, imaging_technique={self.imaging_technique.name}, aligned_to={self.image.template_anatomy.name})"
 
@@ -326,6 +460,21 @@ class AnatomyChannelImage:
     def __init__(self, anatomy: MinimalEntityInfo, channel_image: ChannelImage):
         self.anatomy = anatomy
         self.channel_image = channel_image
+
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
+    
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __repr__(self):
         return f"AnatomyChannelImage(anatomy={self.anatomy})"
@@ -464,6 +613,12 @@ class VFBTerm:
             print("VFBTerm only has one item")
             return VFBTerms([self])
         return self
+
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
 
     def __len__(self):
         return 1
@@ -761,6 +916,12 @@ class VFBTerms:
         else:
             # Otherwise, return the specific item from the list
             return self.terms[index]
+
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        return getattr(self, key, default)
 
     def __len__(self):
         return len(self.terms)
