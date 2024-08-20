@@ -1307,6 +1307,83 @@ class VFBTerms:
         else:
             print("Nothing found to plot")
 
+    def plot3d_by_type(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
+        """
+        Plot the 3D representation of any neuron or expression coloured by it's parent type.
+        """
+        if template:
+            if query_by_label:
+                selected_template = self.vfb.lookup_id(template)
+                print("Template (", template, ") resolved to id ", selected_template) if verbose else None
+                query_by_label = False
+            else:
+                selected_template = template
+        else:
+                selected_template = template
+        skeletons=[]
+        types = []
+        for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Images"):
+            if term.has_tag('Individual'):
+                print(f"{term.name} is an instance") if verbose else None
+            else:
+                print(f"{term.name} is not an instance soo won't have a skeleton, mesh or volume") if verbose else None
+                continue
+            if not hasattr(term, 'skeleton') or force_reload:
+                term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
+            if hasattr(term, 'skeleton') and term.skeleton:
+                print(f"Skeleton found for {term.name}") if verbose else None
+                if not selected_template:
+                    if isinstance(term.skeleton, list):
+                        print("Multiple skeletons found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
+                        selected_template = term.channel_images[0].image.template_anatomy.short_form
+                        print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
+                        term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
+                    else:
+                        selected_template = term.channel_images[0].image.template_anatomy.short_form
+                        print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first skeleton found. Specify a template to avoid this.")
+                skeletons.append(term.skeleton)
+                types.append({'text': term.parents[0].name})
+            else:
+                print(f"No skeleton found for {term.name} check for a mesh") if verbose else None
+                if not hasattr(term, 'mesh') or force_reload:
+                    term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
+                if hasattr(term, 'mesh') and term.mesh:
+                    print(f"Mesh found for {term.name}") if verbose else None
+                    if not selected_template:
+                        if isinstance(term.mesh, list):
+                            print("Multiple meshes found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
+                            selected_template = term.channel_images[0].image.template_anatomy.short_form
+                            print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
+                            term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
+                        else:
+                            selected_template = term.channel_images[0].image.template_anatomy.short_form
+                            print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first mesh found. Specify a template to avoid this.")
+                    skeletons.append(term.mesh)
+                    types.append({'text': term.parents[0].name})
+                else:
+                    print(f"No mesh found for {term.name} check for a volume") if verbose else None
+                    if not hasattr(term, 'volume') or force_reload:
+                        term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
+                    if hasattr(term, 'volume') and term.volume:
+                        if not selected_template:
+                            if isinstance(term.volume, list):
+                                print("Multiple volumes found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
+                                selected_template = term.channel_images[0].image.template_anatomy.short_form
+                                print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
+                                term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
+                            elif isinstance(term.volume, navis.core.volumes.Volume):
+                                selected_template = term.channel_images[0].image.template_anatomy.short_form
+                                print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first volume found. Specify a template to avoid this.")
+                        skeletons.append(term.volume)
+                        types.append({'text': term.parents[0].name})
+                    else:
+                        print(f"No volume found for {term.name}") if verbose else None
+        if skeletons:
+            print(f"Plotting 3D representation of {len(skeletons)} items")
+            navis.plot3d(skeletons, legend_group=types)
+        else:
+            print("Nothing found to plot")
+
     def get_ids(self):
         return [term.id for term in self.terms]
 
