@@ -620,7 +620,7 @@ class VFBTerm:
     @property
     def subparts(self):
         if self._subparts is None:
-            self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'part of' some '{self.id}'"))
+            self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'BFO_0000050' some '{self.id}'"))
         return self._subparts
 
     @property

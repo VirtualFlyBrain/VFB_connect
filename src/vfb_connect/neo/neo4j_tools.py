@@ -291,6 +291,20 @@ class Neo4jConnect:
                                 "RETURN a.short_form as id, a.label as name"
         q = self.commit_list([property_lookup_query])
         out.extend(dict_cursor(q))
+
+        # All alternative terms for ObjectProperties
+        if limit_properties_by_prefix:
+            match_string = "' OR a.short_form STARTS WITH '".join(limit_properties_by_prefix)
+            where = " WHERE exists(a.alternative_term) and size(a.alternative_term) > 0 and a.short_form STARTS WITH '%s' " % match_string
+        else:
+            where = ''
+        print(f"Caching ObjectProperties...")
+        property_lookup_query = "MATCH (a:ObjectProperty) " \
+                                + where + \
+                                "UNWIND n.alternative_term as label " + \
+                                "RETURN a.short_form as id, label as name"
+        q = self.commit_list([property_lookup_query])
+        out.extend(dict_cursor(q))
         
         # Removing duplicates while maintaining order
         seen = set()
