@@ -100,18 +100,7 @@ class Publication:
 
     def __repr__(self):
         return f"Publication(pub={repr(self.core)}, link={self.link})"
-    
-class Synonym:
-    def __init__(self, synonym: Syn, pub: Optional[Publication] = None):
-        self.synonym = synonym
-        if pub and pub.core.short_form != 'Unattributed':
-            self.pub = pub
 
-    def __repr__(self):
-        if hasattr(self, 'pub'):
-            return f"Synonym(synonym={repr(self.synonym)}, pub={repr(self.pub)})"
-        return f"Synonym(synonym={repr(self.synonym)})"
-        
 class Syn:
     def __init__(self, scope: str, label: str, type: Optional[str] = None):
         self.scope = scope
@@ -125,6 +114,17 @@ class Syn:
         if self.scope:
             return f"Syn(scope={self.scope}, label={self.label})"
         return f"Syn(label={self.label})"
+class Synonym:
+    def __init__(self, synonym: Syn, pub: Optional[Publication] = None):
+        self.synonym = synonym
+        if pub and pub.core.short_form != 'Unattributed':
+            self.pub = pub
+
+    def __repr__(self):
+        if hasattr(self, 'pub'):
+            return f"Synonym(synonym={repr(self.synonym)}, pub={repr(self.pub)})"
+        return f"Synonym(synonym={repr(self.synonym)})"
+
 class Xref:
     def __init__(self, core: MinimalEntityInfo, is_data_source: bool = False, link: Optional[str] = None, icon: Optional[str] = None, accession: Optional[str] = None, link_text: Optional[str] = None, homepage: Optional[str] = None):
         self.core = core
