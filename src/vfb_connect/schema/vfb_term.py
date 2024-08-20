@@ -64,7 +64,7 @@ class MinimalEdgeInfo:
         if self.confidence_value:
             return f"MinimalEdgeInfo(label={self.label}, confidence={self.confidence_value})"
         if self.database_cross_reference:
-            return f"MinimalEdgeInfo(label={self.label}, reference={"; ".join(self.database_cross_reference)})"
+            return f"MinimalEdgeInfo(label={self.label}, reference={'; '.join(self.database_cross_reference)})"
         return f"MinimalEdgeInfo(label={self.label}, type={self.type})"
 
 

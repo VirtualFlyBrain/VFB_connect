@@ -16,3 +16,4 @@ vispy
 colormath
 matplotlib
 tqdm
+sphinx-autodoc-typehints
