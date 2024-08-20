@@ -609,7 +609,7 @@ class VFBTerm:
 
             if self.is_neuron:
                 self._similar_neurons_nblast = None # Initialize as None, will be loaded on first access
-                self._similar_neurons_neuronbridge = None # Initialize as None, will be loaded on first access
+                # self._similar_neurons_neuronbridge = None # Initialize as None, will be loaded on first access
                 self._potential_drivers_nblast = None # Initialize as None, will be loaded on first access
                 self._potential_drivers_neuronbridge = None # Initialize as None, will be loaded on first access
                 self.add_neuron_properties()
@@ -686,24 +686,30 @@ class VFBTerm:
         @property
         def similar_neurons_nblast(self):
             if self._similar_neurons_nblast is None:
+                if not hasattr(self, 'NBLAST'):
+                    return None
                 method = 'NBLAST_score'
                 results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
                 results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
                 self._similar_neurons_nblast = [Score(**dict) for dict in results_dict]
             return self._similar_neurons_nblast
 
-        @property
-        def similar_neurons_neuronbridge(self):
-            if self._similar_neurons_neuronbridge is None:
-                method = 'neuronbridge_score'
-                results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
-                results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
-                self._similar_neurons_neuronbridge = [Score(**dict) for dict in results_dict]
-            return self._similar_neurons_neuronbridge
+        # @property
+        # def similar_neurons_neuronbridge(self):
+        #     if self._similar_neurons_neuronbridge is None:
+        #         if not hasattr(self, 'neuronbridge'):
+        #             return None
+        #         method = 'neuronbridge_score'
+        #         results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
+        #         results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
+        #         self._similar_neurons_neuronbridge = [Score(**dict) for dict in results_dict]
+        #     return self._similar_neurons_neuronbridge
 
         @property
         def potential_drivers_nblast(self):
             if self._potential_drivers_nblast is None:
+                if not hasattr(self, 'NBLASTexp'):
+                    return None
                 method = 'NBLAST_score'
                 results = self.vfb.get_potential_drivers(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
                 results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
@@ -713,6 +719,8 @@ class VFBTerm:
         @property
         def potential_drivers_neuronbridge(self):
             if self._potential_drivers_neuronbridge is None:
+                if not hasattr(self, 'neuronbridge'):
+                    return None
                 method = 'neuronbridge_score'
                 results = self.vfb.get_potential_drivers(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
                 results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
@@ -721,7 +729,7 @@ class VFBTerm:
         
         # Dynamically add the property to the instance
         setattr(self.__class__, 'similar_neurons_nblast', similar_neurons_nblast)
-        setattr(self.__class__, 'similar_neurons_neuronbridge', similar_neurons_neuronbridge)
+        # setattr(self.__class__, 'similar_neurons_neuronbridge', similar_neurons_neuronbridge)
         setattr(self.__class__, 'potential_drivers_nblast', potential_drivers_nblast)
         setattr(self.__class__, 'potential_drivers_neuronbridge', potential_drivers_neuronbridge)
 

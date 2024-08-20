@@ -143,15 +143,15 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(isinstance(similar[0], Score))
         self.assertTrue(len(similar)>10)
 
-    def test_vfbterm_similarity_neuron_neuronbridge(self):
-        # TODO No neuronbridge neuron - neuron score exist at the monent
-        term = self.vfb.term('LPC1 (FlyEM-HB:1838269993)')
-        print("got term ", term)
-        similar = term.similar_neurons_neuronbridge
-        print("got similar ", similar)
-        self.assertFalse(similar)
-        # self.assertFalse(isinstance(similar[0], Score))
-        self.assertFalse(len(similar)>2)
+    # def test_vfbterm_similarity_neuron_neuronbridge(self):
+    #     # TODO No neuronbridge neuron - neuron score exist at the monent
+    #     term = self.vfb.term('LPC1 (FlyEM-HB:1838269993)')
+    #     print("got term ", term)
+    #     similar = term.similar_neurons_neuronbridge
+    #     print("got similar ", similar)
+    #     self.assertFalse(similar)
+    #     # self.assertFalse(isinstance(similar[0], Score))
+    #     self.assertFalse(len(similar)>2)
 
     def test_vfbterm_potental_drivers_nblast(self):
         term = self.vfb.term('VGlut-F-000118')
