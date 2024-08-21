@@ -724,9 +724,15 @@ class Image:
 
         :return: A string representation of the Image object.
         """
-        return f"Image(image_thmbnail={self.image_thumbnail})"
+        return f"Image(image_thumbnail={self.image_thumbnail})"
 
     def get_skeleton(self, verbose=False):
+        """
+        Get the skeleton representation from the image.
+
+        :param verbose: If True, print additional information.
+        :return: The skeleton as a navis object or None if not found.
+        """
         if self.image_swc:
             return navis.read_swc(self.image_swc)
         if self.image_obj and 'volume_man.obj' in self.image_obj:
@@ -746,6 +752,13 @@ class Image:
         return None
 
     def get_mesh(self, verbose=False, output='neuron'):
+        """
+        Get the mesh representation from the image.
+
+        :param verbose: If True, print additional information.
+        :param output: The type of output desired ('neuron' or 'volume').
+        :return: The mesh as a navis object or None if not found.
+        """
         if self.image_obj and 'volume_man.obj' in self.image_obj:
             print("Reading mesh from ", self.image_obj) if verbose else None
             local_file = self.create_temp_file(suffix=".obj", verbose=verbose)
@@ -760,6 +773,12 @@ class Image:
         return None
 
     def get_volume(self, verbose=False):
+        """
+        Get the volume representation from the image.
+
+        :param verbose: If True, print additional information.
+        :return: The volume as a navis object or None if not found.
+        """
         if self.image_nrrd:
             print("Reading volume from ", self.image_nrrd) if verbose else None
             local_file = self.create_temp_file(suffix=".nrrd", verbose=verbose)
@@ -773,12 +792,27 @@ class Image:
         return None
 
     def create_temp_file(self, suffix=".nrrd", delete=False, verbose=False):
-        # Create a temporary file with a specific extension
+        """
+        Create a temporary file with a specific extension.
+
+        :param suffix: The file extension for the temporary file.
+        :param delete: Whether to delete the file automatically.
+        :param verbose: If True, print additional information.
+        :return: The temporary file object.
+        """
         temp_file = tempfile.NamedTemporaryFile(suffix=suffix, delete=delete)
         print(f"Temporary file created: {temp_file.name}") if verbose else None
         return temp_file
 
     def download_file(self, url, local_filename, verbose=False):
+        """
+        Download a file from a URL to a local file.
+
+        :param url: The URL of the file to download.
+        :param local_filename: The path to save the downloaded file.
+        :param verbose: If True, print additional information.
+        :return: The path to the downloaded file, or None if the download failed.
+        """
         response = requests.get(url, stream=True)
         if response.status_code == 200:
             with open(local_filename, 'wb') as f:
@@ -791,10 +825,10 @@ class Image:
 
     def delete_temp_file(self, file_path, verbose=False):
         """
-        Deletes the temporary file at the specified path.
+        Delete the temporary file at the specified path.
 
         :param file_path: The path to the temporary file to be deleted.
-        :return: None
+        :param verbose: If True, print additional information.
         """
         try:
             if os.path.exists(file_path):
@@ -806,6 +840,12 @@ class Image:
             print(f"Error deleting file {file_path}: {e}") if verbose else None
 
     def show(self, transparent=False, verbose=False):
+        """
+        Display the image, with optional transparency.
+
+        :param transparent: If True, use a transparent version of the image.
+        :param verbose: If True, print additional information.
+        """
         from PIL import Image
         import requests
         from io import BytesIO
@@ -836,6 +876,13 @@ class Image:
 
 class ChannelImage:
     def __init__(self, image: Image, channel: MinimalEntityInfo, imaging_technique: Optional[MinimalEntityInfo] = None):
+        """
+        Initialize a ChannelImage object.
+
+        :param image: An Image object representing the image.
+        :param channel: A MinimalEntityInfo object representing the channel information.
+        :param imaging_technique: Optional MinimalEntityInfo object representing the imaging technique.
+        """
         self.image = image
         self.channel = channel
         self.imaging_technique = imaging_technique
@@ -843,15 +890,28 @@ class ChannelImage:
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
 
     def __len__(self):
+        """
+        Return the length of the ChannelImage object. Always 1 as it represents a single image.
+
+        :return: The length of the ChannelImage object.
+        """
         return 1
 
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
@@ -859,23 +919,42 @@ class ChannelImage:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __repr__(self):
+        """
+        Return a string representation of the ChannelImage object.
+
+        :return: A string representation of the ChannelImage object.
+        """
         return f"ChannelImage(image={repr(self.image)}, imaging_technique={self.imaging_technique.name}, aligned_to={self.image.template_anatomy.name})"
 
 
 class AnatomyChannelImage:
     def __init__(self, anatomy: MinimalEntityInfo, channel_image: ChannelImage):
+        """
+        Initialize an AnatomyChannelImage object.
+
+        :param anatomy: A MinimalEntityInfo object representing the anatomy.
+        :param channel_image: A ChannelImage object representing the channel image.
+        """
         self.anatomy = anatomy
         self.channel_image = channel_image
 
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
 
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
@@ -883,13 +962,30 @@ class AnatomyChannelImage:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __len__(self):
+        """
+        Return the length of the AnatomyChannelImage object. Always 1 as it represents a single anatomy-channel relationship.
+
+        :return: The length of the AnatomyChannelImage object.
+        """
         return 1
 
     def __repr__(self):
+        """
+        Return a string representation of the AnatomyChannelImage object.
+
+        :return: A string representation of the AnatomyChannelImage object.
+        """
         return f"AnatomyChannelImage(anatomy={self.anatomy})"
 
 class Score:
     def __init__(self, score: float = 0.0, method: Optional[str] = None, term: Optional[str] = None):
+        """
+        Initialize a Score object representing a similarity score.
+
+        :param score: The similarity score.
+        :param method: The method used to compute the score.
+        :param term: The ID of the related term.
+        """
         self.score = score
         self.method = method
         self._term_id = term
@@ -897,6 +993,11 @@ class Score:
 
     @property
     def term(self):
+        """
+        Lazy-load the related term as a VFBTerm.
+
+        :return: The related VFBTerm object.
+        """
         if self._term is None:
             self._term = VFBTerm(id=self._term_id)
         return self._term
@@ -904,12 +1005,20 @@ class Score:
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
 
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
@@ -917,13 +1026,30 @@ class Score:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __len__(self):
+        """
+        Return the length of the Score object. Always 1 as it represents a single score.
+
+        :return: The length of the Score object.
+        """
         return 1
 
     def __repr__(self):
+        """
+        Return a string representation of the Score object.
+
+        :return: A string representation of the Score object.
+        """
         return f"Score(score={self.score}, method={self.method}, term={self.term.name})"
 
 class Partner:
     def __init__(self, weight: str = None, partner: str = None, partner_name: Optional[str] = None):
+        """
+        Initialize a Partner object representing a neural connection partner.
+
+        :param weight: The connection weight.
+        :param partner: The ID of the partner neuron.
+        :param partner_name: Optional name of the partner neuron.
+        """
         self.weight = weight
         self.id = partner
         self._partner = None # Initialize as None, will be loaded on first access
@@ -932,12 +1058,22 @@ class Partner:
 
     @property
     def partner(self):
+        """
+        Lazy-load the partner neuron as a VFBTerm.
+
+        :return: The related VFBTerm object.
+        """
         if self._partner is None:
             self._partner = VFBTerm(id=self.id)
         return self._partner
 
     @property
     def name(self):
+        """
+        Get the name of the partner neuron.
+
+        :return: The name of the partner neuron.
+        """
         if self._name is None:
             self._name = self._partner_name if self._partner_name else self.partner.name
         return self._name
@@ -945,15 +1081,28 @@ class Partner:
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
 
     def __len__(self):
+        """
+        Return the length of the Partner object. Always 1 as it represents a single partner relationship.
+
+        :return: The length of the Partner object.
+        """
         return 1
 
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
@@ -961,10 +1110,32 @@ class Partner:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __repr__(self):
+        """
+        Return a string representation of the Partner object.
+
+        :return: A string representation of the Partner object.
+        """
         return f"Partner(weight={self.weight}, partner={self.name})"
 
 class VFBTerm:
     def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[Relations] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, dataset: Optional[List[str]] = None, synonyms: Optional[Synonym] = None, verbose=False):
+        """
+        Initialize a VFBTerm object representing a Virtual Fly Brain term.
+
+        :param id: The ID of the term.
+        :param term: An optional Term object representing the core term information.
+        :param related_terms: An optional Relations object representing related terms.
+        :param channel_images: Optional list of ChannelImage objects.
+        :param parents: Optional list of parent term IDs.
+        :param regions: Optional list of region IDs.
+        :param counts: Optional dictionary of term counts.
+        :param publications: Optional list of Publication objects.
+        :param license: Optional Term object representing the license.
+        :param xrefs: Optional list of Xref objects.
+        :param dataset: Optional list of dataset IDs.
+        :param synonyms: Optional Synonym object.
+        :param verbose: If True, print additional information.
+        """
         from vfb_connect import vfb
         self.vfb = vfb
         if id is not None:
