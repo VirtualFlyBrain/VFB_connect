@@ -98,6 +98,9 @@ class OWLeryConnect:
         out = self.query(query_type='subclasses', return_type='superClassOf',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
+        if not out:
+            print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
+            return []
         if return_short_forms:
             return list(map(gen_short_form, out))
         else:
@@ -116,6 +119,9 @@ class OWLeryConnect:
         out = self.query(query_type='instances', return_type='hasInstance',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
+        if not out:
+            print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
+            return []
         if return_short_forms:
             return list(map(gen_short_form, out))
         else:
@@ -134,6 +140,9 @@ class OWLeryConnect:
         out = self.query(query_type='superclasses', return_type='subClassOf',
                           query=query, query_by_label=query_by_label,
                           direct=direct)
+        if not out:
+            print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
+            return []
         if return_short_forms:
             return list(map(gen_short_form, out))
         else:

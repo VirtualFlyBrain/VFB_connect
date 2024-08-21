@@ -10,6 +10,18 @@ import tempfile
 
 import webbrowser
 
+neuron_containing_anatomy_tags = [
+            "Painted_domain",
+            "Synaptic_neuropil_domain",
+            "Synaptic_neuropil_subdomain",
+            "Neuron_projection_bundle",
+            "Split",
+            "Expression_pattern",
+            "Muscle",
+            "Neuromere",
+            "Ganglion",
+        ]
+
 def is_notebook():
     """Check if the environment is a Jupyter notebook."""
     try:
@@ -654,8 +666,22 @@ class VFBTerm:
                 self._potential_drivers_neuronbridge = None # Initialize as None, will be loaded on first access
                 self.add_neuron_properties()
 
+            if any(self.has_tag(tag) for tag in neuron_containing_anatomy_tags):
+                self._neurons_that_overlap = None
+                self._neurons_with_synaptic_terminals_here = None
+                self._downstream_neurons = None
+                self._upstream_neurons = None
+                self._upstream_neuron_types = None
+                self._downstream_neuron_types = None
+                self._neuron_types_that_overlap = None
+                self._neuron_types_with_synaptic_terminals_here = None
+                self.add_anatomy_containing_neurons()
+
     @property
     def parents(self, verbose=False):
+        """
+        Get the parents of this term. In order of specificity.
+        """
         if self._parents is None:
             print("Loading parents for the first time...") if verbose else None
             self._parents = VFBTerms(self._parents_ids) if self._parents_ids else None
@@ -674,6 +700,9 @@ class VFBTerm:
 
     @property
     def instances(self):
+        """
+        Get the instances of this term.
+        """
         if self._instances is None:
             print("Loading instances for the first time...")
             if self.has_tag('Class'):
@@ -687,6 +716,9 @@ class VFBTerm:
 
     @property
     def summary(self):
+        """
+        Get the summary of the term.
+        """
         if self._summary is None:
             self._summary = self.get_summary()
         return self._summary
@@ -694,6 +726,9 @@ class VFBTerm:
     def add_instance_properties(self):
         @property
         def datasets(self):
+            """
+            Get the datasets associated with this instance.
+            """
             if self._datasets is None:
                 self._datasets = VFBTerms(self._dataset_ids) if self._dataset_ids else None
             return self._datasets
@@ -704,18 +739,27 @@ class VFBTerm:
     def add_type_properties(self):
         @property
         def subtypes(self):
+            """
+            Get the subtypes of this term.
+            """
             if self._subtypes is None:
                 self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"'{self.id}'"))
             return self._subtypes
 
         @property
         def subparts(self):
+            """
+            Get the subparts of this term.
+            """
             if self._subparts is None:
-                self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'BFO_0000050' some '{self.id}'"))
+                self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'is part of' some '{self.id}'"))
             return self._subparts
 
         @property
         def children(self):
+            """
+            Get the children of this term. This is a combination or subtypes and subparts.
+            """
             if self._children is None:
                 self._children = self.subtypes + self.subparts
             return self._children
@@ -725,9 +769,148 @@ class VFBTerm:
         setattr(self.__class__, 'subparts', subparts)
         setattr(self.__class__, 'children', children)
 
+    def add_anatomy_containing_neurons(self):
+
+        @property
+        def neuron_types_that_overlap(self):
+            """
+            Get the types of neurons that overlap this region.
+            """
+            # If not a type then run the query against the first parent type
+            if self._neuron_types_that_overlap is None:
+                # If not a type then run the query against the first parent type
+                if self.is_type:
+                    id = self.id
+                else:
+                    id = self.parents[0].id
+                    print("Running query against parent type: ", self.parents[0].name)
+                self._neuron_types_that_overlap = VFBTerms(terms = self.vfb.oc.get_subclasses(f"'neuron' that 'overlaps' some '{id}'", query_by_label=True))
+            return self._neuron_types_that_overlap
+
+        @property
+        def neuron_types_with_synapic_terminals_here(self):
+            """
+            Get the types of neurons that have synaptic terminals in this region.
+            """
+            # If not a type then run the query against the first parent type
+            if self._neuron_types_with_synaptic_terminals_here is None:
+                # If not a type then run the query against the first parent type
+                if self.is_type:
+                    id = self.id
+                else:
+                    id = self.parents[0].id
+                    print("Running query against parent type: ", self.parents[0].name)
+                self._neuron_types_with_synaptic_terminals_here = VFBTerms(terms = self.vfb.oc.get_subclasses(f"'neuron' that 'has synaptic terminal in' some '{id}'", query_by_label=True))
+            return self._neuron_types_with_synaptic_terminals_here
+
+        @property
+        def neurons_that_overlap(self):
+            """
+            Get the neurons that overlap this region.
+            """
+            # If not a type then run the query against the first parent type
+            if self._neurons_that_overlap is None:
+                # If not a type then run the query against the first parent type
+                if self.is_type:
+                    id = self.id
+                else:
+                    id = self.parents[0].id
+                    print("Running query against parent type: ", self.parents[0].name)
+                self._neurons_that_overlap = VFBTerms(terms = self.vfb.oc.get_instances(f"'neuron' that 'overlaps' some '{id}'", query_by_label=True))
+            return self._neurons_that_overlap
+
+        @property
+        def neurons_with_synaptic_terminals_here(self):
+            """
+            Get the neurons that have synaptic terminals in this region. Based on literature.
+            """
+            if self._neurons_with_synaptic_terminals_here is None:
+                # If not a type then run the query against the first parent type
+                if self.is_type:
+                    id = self.id
+                else:
+                    id = self.parents[0].id
+                    print("Running query against parent type: ", self.parents[0].name)
+                self._neurons_with_synaptic_terminals_here = VFBTerms(terms = self.vfb.oc.get_instances(f"'neuron' that 'has synaptic terminal in' some '{id}'", query_by_label=True))
+            return self._neurons_with_synaptic_terminals_here
+
+        @property
+        def downstream_neurons(self):
+            """
+            Get the neurons that have presynaptic terminals in this region. Based on literature.
+            """
+            if self._downstream_neurons is None:
+                # If not a type then run the query against the first parent type
+                if self.is_type:
+                    id = self.id
+                else:
+                    id = self.parents[0].id
+                    print("Running query against parent type: ", self.parents[0].name)
+                self._downstream_neurons = VFBTerms(terms = self.vfb.oc.get_instances(f"'neuron' that 'has presynaptic terminals in' some '{id}'", query_by_label=True))
+            return self._downstream_neurons
+
+        @property
+        def upstream_neurons(self):
+            """
+            Get the neurons that have postsynaptic terminals in this region. Based on literature.
+            """
+            if self._upstream_neurons is None:
+                # If not a type then run the query against the first parent type
+                if self.is_type:
+                    id = self.id
+                else:
+                    id = self.parents[0].id
+                    print("Running query against parent type: ", self.parents[0].name)
+                self._upstream_neurons = VFBTerms(terms = self.vfb.oc.get_instances(f"'neuron' that 'has postsynaptic terminal in' some '{id}'", query_by_label=True))
+            return self._upstream_neurons
+
+        @property
+        def downstream_neuron_types(self):
+            """
+            Get the types of neurons that have presynaptic terminals in this region. Based on literature.
+            """
+            if self._downstream_neuron_types is None:
+                # If not a type then run the query against the first parent type
+                if self.is_type:
+                    id = self.id
+                else:
+                    id = self.parents[0].id
+                    print("Running query against parent type: ", self.parents[0].name)
+                self._downstream_neuron_types = VFBTerms(terms = self.vfb.oc.get_subclasses(f"'neuron' that 'has presynaptic terminals in' some '{id}'", query_by_label=True))
+            return self._downstream_neuron_types
+
+        @property
+        def upstream_neuron_types(self):
+            """
+            Get the types of neurons that have postsynaptic terminals in this region. Based on literature.
+            """
+            if self._upstream_neuron_types is None:
+                # If not a type then run the query against the first parent type
+                if self.is_type:
+                    id = self.id
+                else:
+                    id = self.parents[0].id
+                    print("Running query against parent type: ", self.parents[0].name)
+                self._upstream_neuron_types = VFBTerms(terms = self.vfb.oc.get_subclasses(f"'neuron' that 'has postsynaptic terminal in' some '{id}'", query_by_label=True))
+            return self._upstream_neuron_types
+
+
+        # Dynamically add the property to the instance
+        setattr(self.__class__, 'neurons_that_overlap', neurons_that_overlap)
+        setattr(self.__class__, 'neurons_with_synaptic_terminals_here', neurons_with_synaptic_terminals_here)
+        setattr(self.__class__, 'downstream_neurons', downstream_neurons)
+        setattr(self.__class__, 'upstream_neurons', upstream_neurons)
+        setattr(self.__class__, 'neuron_types_that_overlap', neuron_types_that_overlap)
+        setattr(self.__class__, 'neuron_types_with_synapic_terminals_here', neuron_types_with_synapic_terminals_here)
+        setattr(self.__class__, 'downstream_neuron_types', downstream_neuron_types)
+        setattr(self.__class__, 'upstream_neuron_types', upstream_neuron_types)
+
     def add_neuron_properties(self):
         @property
         def similar_neurons_nblast(self):
+            """
+            Get neurons similar to this neuron based on NBLAST scores.
+            """
             if self._similar_neurons_nblast is None:
                 if not self.has_tag('NBLAST'):
                     return None
@@ -739,6 +922,9 @@ class VFBTerm:
 
         # @property
         # def similar_neurons_neuronbridge(self):
+        #     """
+        #     Get neurons similar to this neuron based on NeuronBridge scores.
+        #     """
         #     if self._similar_neurons_neuronbridge is None:
         #         if not self.has_tag('neuronbridge'):
         #             return None
@@ -750,6 +936,9 @@ class VFBTerm:
 
         @property
         def potential_drivers_nblast(self):
+            """
+            Get neurons that are potential drivers of this neuron based on NBLAST scores.
+            """
             if self._potential_drivers_nblast is None:
                 if not self.has_tag('NBLASTexp'):
                     return None
@@ -761,6 +950,9 @@ class VFBTerm:
 
         @property
         def potential_drivers_neuronbridge(self):
+            """
+            Get neurons that are potential drivers of this neuron based on NeuronBridge scores.
+            """
             if self._potential_drivers_neuronbridge is None:
                 if not self.has_tag('neuronbridge'):
                     return None
@@ -825,7 +1017,7 @@ class VFBTerm:
 
     def downstream_partners(self, weight=0, classification=None, verbose=False):
         """
-        Get neurons downstream of this neuron.
+        Get neurons downstream of this neuron. Based on individual connectomic data.
         """
         print("Getting downstream partners for ", self.name) if verbose else None
         results = self.vfb.get_neurons_downstream_of(neuron=self.id, weight=weight, classification=classification, query_by_label=False,
@@ -837,7 +1029,7 @@ class VFBTerm:
 
     def upstream_partners(self, weight=0, classification=None, verbose=False):
         """
-        Get neurons upstream of this neuron.
+        Get neurons upstream of this neuron. Based on individual connectomic data.
         """
         print("Getting upstream partners for ", self.name) if verbose else None
         results = self.vfb.get_neurons_upstream_of(neuron=self.id, weight=weight, classification=classification, query_by_label=False,

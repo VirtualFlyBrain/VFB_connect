@@ -175,5 +175,96 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(isinstance(drivers[0], Score))
         self.assertTrue(len(drivers)>2)
 
+    def test_vfbterm_downstream_types(self):
+        term = self.vfb.term('medulla')
+        print("got term ", term)
+        downstream = term.downstream_neuron_types
+        print("got downstream ", downstream)
+        self.assertTrue(downstream)
+        self.assertTrue(isinstance(downstream, VFBTerms))
+        self.assertTrue(len(downstream)>200)
+
+    def test_vfbterm_upstream_types(self):
+        term = self.vfb.term('medulla')
+        print("got term ", term)
+        upstream = term.upstream_neuron_types
+        print("got upstream ", upstream)
+        self.assertTrue(upstream)
+        self.assertTrue(isinstance(upstream, VFBTerms))
+        self.assertTrue(len(upstream)>200)
+
+    def test_vfbterm_overlaps_types(self):
+        term = self.vfb.term('medulla')
+        print("got term ", term)
+        overlaps = term.neuron_types_that_overlap
+        print("got overlaps ", overlaps)
+        self.assertTrue(overlaps)
+        self.assertTrue(isinstance(overlaps, VFBTerms))
+        self.assertTrue(len(overlaps)>300)
+
+    def test_vfbterm_overlaps_instances(self):
+        term = self.vfb.term('medulla')
+        print("got term ", term)
+        overlaps = term.neurons_that_overlap
+        print("got overlaps ", overlaps)
+        self.assertTrue(overlaps)
+        self.assertTrue(isinstance(overlaps, VFBTerms))
+        self.assertTrue(len(overlaps)>3000)
+
+    def test_vfbterm_downstream_neurons(self):
+        term = self.vfb.term('medulla')
+        print("got term ", term)
+        downstream = term.downstream_neurons
+        print("got downstream ", downstream)
+        self.assertTrue(downstream)
+        self.assertTrue(isinstance(downstream, VFBTerms))
+        self.assertTrue(len(downstream) > 100)
+
+    def test_vfbterm_upstream_neurons(self):
+        term = self.vfb.term('medulla')
+        print("got term ", term)
+        upstream = term.upstream_neurons
+        print("got upstream ", upstream)
+        self.assertTrue(upstream)
+        self.assertTrue(isinstance(upstream, VFBTerms))
+        self.assertTrue(len(upstream) > 700)
+
+    def test_vfbterm_downstream_neuron_types(self):
+        term = self.vfb.term('medulla')
+        print("got term ", term)
+        downstream_types = term.downstream_neuron_types
+        print("got downstream types ", downstream_types)
+        self.assertTrue(downstream_types)
+        self.assertTrue(isinstance(downstream_types, VFBTerms))
+        self.assertTrue(len(downstream_types) > 150)
+
+    def test_vfbterm_neuron_types_with_synaptic_terminals_here(self):
+        term = self.vfb.term('medulla')
+        print("got term ", term)
+        synaptic_terminals_types = term.neuron_types_with_synapic_terminals_here
+        print("got synaptic terminals types ", synaptic_terminals_types)
+        self.assertTrue(synaptic_terminals_types)
+        self.assertTrue(isinstance(synaptic_terminals_types, VFBTerms))
+        self.assertTrue(len(synaptic_terminals_types) > 300)
+
+    def test_vfbterm_neurons_with_synaptic_terminals_here(self):
+        term = self.vfb.term('medulla')
+        print("got term ", term)
+        synaptic_terminals_neurons = term.neurons_with_synaptic_terminals_here
+        print("got synaptic terminals neurons ", synaptic_terminals_neurons)
+        self.assertTrue(synaptic_terminals_neurons)
+        self.assertTrue(isinstance(synaptic_terminals_neurons, VFBTerms))
+        self.assertTrue(len(synaptic_terminals_neurons) > 900)
+
+    def test_vfbterm_downstream_neuron_types_from_ind(self):
+        term = self.vfb.term('ME on JRC2018Unisex adult brain')
+        print("got term ", term)
+        downstream_types = term.downstream_neuron_types
+        print("got downstream types ", downstream_types)
+        self.assertTrue(downstream_types)
+        self.assertTrue(isinstance(downstream_types, VFBTerms))
+        self.assertTrue(len(downstream_types) > 150)
+
+
 if __name__ == "__main__":
     unittest.main()
