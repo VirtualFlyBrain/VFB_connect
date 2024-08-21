@@ -820,6 +820,9 @@ class VFBTerm:
             return remaining_terms
         raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
 
+    def __dir__(self):
+        return [attr for attr in list(self.__dict__.keys()) if not attr.startswith('_')] + [attr for attr in dir(self.__class__) if not attr.startswith('_') and not attr.startswith('get') and not attr.startswith('add_')]
+
     def downstream_partners(self, weight=0, classification=None, verbose=False):
         """
         Get neurons downstream of this neuron.
@@ -1211,6 +1214,8 @@ class VFBTerms:
             return remaining_terms
         raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
 
+    def __dir__(self):
+        return [attr for attr in list(self.__dict__.keys()) if not attr.startswith('_')] + [attr for attr in dir(self.__class__) if not attr.startswith('_') and not attr.startswith('add_')]
 
     def load_skeletons(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """

@@ -500,7 +500,7 @@ class QueryWrapper(Neo4jConnect):
                                                         for d in dc], summary=summary, return_dataframe=return_dataframe)
 
     @batch_query
-    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True, limit=None):
+    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True, limit=None, verbose=False):
         """
         Generate a JSON report or summary for terms specified by a list of VFB IDs.
 
@@ -515,9 +515,22 @@ class QueryWrapper(Neo4jConnect):
         :return: A list of term metadata as VFB_json or summary_report_json, or a pandas DataFrame if `return_dataframe` is `True`.
         :rtype: list of dicts or pandas.DataFrame
         """
+        from vfb_connect import vfb
         if cache:
-            result = self._get_Cached_TermInfo(short_forms, summary=summary, return_dataframe=False)
-            if len(result) == len(short_forms):
+            result = self._get_Cached_TermInfo(short_forms, summary=summary, return_dataframe=False, verbose=verbose)
+            cn = len(set(short_forms))
+            rn = len(result)
+            if rn != cn:
+                print(f"\033[33mWarning:\033[0m Cache didn't return all results. Got {rn} out of {cn}") if verbose else None
+                missing = set(short_forms) - set([r['term']['core']['short_form'] for r in result])
+                print(f"Missing: {missing}") if verbose else None
+                for i in missing:
+                    print(f"Checking: {i}") if verbose else None
+                    if not i in vfb.lookup.values():
+                        print(f"\033[33mWarning:\033[0m called a non existant id:{i}")
+                        cn -= 1
+            if rn == cn:
+                print("Using cached results.") if verbose else None
                 result = result[:limit] if limit else result
                 if summary:
                     results = []
@@ -527,7 +540,9 @@ class QueryWrapper(Neo4jConnect):
                 else:
                     return result
             else:
+                print(f"\033[33mWarning:\033[0m Cache didn't return all results. Got {rn} out of {cn}. Falling back to slower query.")
                 return self.get_TermInfo(short_forms, summary=summary, cache=False, return_dataframe=return_dataframe, limit=limit)
+        print("Pulling results from VFB PDB (Neo4j): http://pdb.virtualflybrain.org") if verbose else None
         pre_query = "MATCH (e:Entity) " \
                     "WHERE e.short_form in %s " \
                     "RETURN e.short_form as short_form, labels(e) as labs " % str(short_forms)
@@ -535,32 +550,47 @@ class QueryWrapper(Neo4jConnect):
         out = []
         for e in r:
             if 'class' in e['labs'] and 'Neuron' in e['labs']:
+                print(f"Getting Neuron: {e['short_form']}") if verbose else None
                 out.extend(self.get_neuron_class_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'class' in e['labs'] and 'Split' in e['labs']:
+                print(f"Getting Split: {e['short_form']}") if verbose else None
                 out.extend(self.get_split_class_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             if 'Class' in e['labs']:
+                print
                 out.extend(self.get_type_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'DataSet' in e['labs']:
+                print(f"Getting DataSet: {e['short_form']}") if verbose else None
                 out.extend(self.get_DataSet_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'License' in e['labs']:
+                print(f"Getting License: {e['short_form']}") if verbose else None
                 out.extend(self.get_License_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'Template' in e['labs']:
+                print(f"Getting Template: {e['short_form']}") if verbose else None
                 out.extend(self.get_template_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
             elif 'pub' in e['labs']:
+                print(f"Getting Pub: {e['short_form']}") if verbose else None
                 out.extend(self.get_pub_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
-            elif 'Individual' in e['labs'] and 'Anatomy' in e['labs']:
+            elif 'Individual' in e['labs']:
+                print(f"Getting Individual: {e['short_form']}") if verbose else None
                 out.extend(self.get_anatomical_individual_TermInfo([e['short_form']], summary=summary, return_dataframe=False))
+        print(f"Got {len(out)} results.") if verbose else None
         return out[:limit] if limit else out
 
     @batch_query
-    def _get_Cached_TermInfo(self, short_forms: iter, summary=True, return_dataframe=True):
+    def _get_Cached_TermInfo(self, short_forms: iter, summary=True, return_dataframe=True, verbose=False):
         # Flatten the list of short_forms in case it's nested
         if isinstance(short_forms, str):
             short_forms = [short_forms]
         if isinstance(short_forms, list):
             short_forms = list(chain.from_iterable(short_forms)) if any(isinstance(i, list) for i in short_forms) else short_forms
-
+        print(f"Checking cache for results: short_forms={short_forms}") if verbose else None
+        print(f"Looking for {len(short_forms)} results.") if verbose else None
         results = self._serialize_solr_output(vfb_solr.search('*', **{'fl': 'term_info','df': 'id', 'defType': 'edismax', 'q.op': 'OR','rows': len(short_forms)+10,'fq':'{!terms f=id}'+ ','.join(short_forms)}))
+        print(f"Got {len(results)} results.") if verbose else None
+        if len(short_forms) != len(results):
+            print(f"Warning: Cache didn't return all results. Got {len(results)} out of {len(short_forms)}") if verbose else None
+            missing = set(short_forms) - set([r['term']['core']['short_form'] for r in results])
+            print(f"Missing: {missing}") if verbose else None
         return results
 
 
@@ -577,16 +607,16 @@ class QueryWrapper(Neo4jConnect):
         else:
             return self._query(qs)
 
-    def _get_anatomical_individual_TermInfo_by_type(self, classification, summary=True, return_dataframe=True, limit=None):
+    def _get_anatomical_individual_TermInfo_by_type(self, classification, summary=True, return_dataframe=True, limit=None, verbose=False):
         # TODO use the limit parameter
         typ = 'Get JSON for Individual:Anatomy_by_type'
         qs = Template(self.queries[typ]).substitute(ID=classification)
         if summary:
-            return self._termInfo_2_summary(self._query(qs), typ='Get JSON for Individual')
+            return self._termInfo_2_summary(self._query(qs), typ='Get JSON for Individual', verbose=verbose)
         else:
             return self._query(qs)
 
-    def _termInfo_2_summary(self, TermInfo, typ):
+    def _termInfo_2_summary(self, TermInfo, typ, verbose=False):
         # type_2_summary = {
         #     'Get JSON for Individual': '_populate_instance_summary_tab',
         #     'Get JSON for Class': '_populate_anatomical_entity_summary',
@@ -594,11 +624,15 @@ class QueryWrapper(Neo4jConnect):
         dc = []
         for r in TermInfo:
             if 'Class' in typ:
+                print(f"Getting Class: {r['short_form']}") if verbose else None
                 dc.append(_populate_anatomical_entity_summary(r))
             elif typ == 'Get JSON for DataSet':
+                print(f"Getting DataSet: {r['short_form']}") if verbose else None
                 dc.append(_populate_dataset_summary_tab(r))
             else:
+                print(f"Getting Individual: {r['short_form']}") if verbose else None
                 dc.append(_populate_instance_summary_tab(r))
+        print(f"Got {len(dc)} results.") if verbose else None
         return dc
 
     def _serialize_solr_output(self, results):

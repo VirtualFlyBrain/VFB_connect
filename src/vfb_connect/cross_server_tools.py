@@ -89,6 +89,10 @@ class VfbConnect:
         print("")
         print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.get_TermInfo)\033[0m")
 
+    def __dir__(self):
+        return [attr for attr in list(self.__dict__.keys()) if not attr.startswith('_')] + [attr for attr in dir(self.__class__) if not attr.startswith('_') and not attr.startswith('add_')]
+
+
     def get_cache_file_path(self):
         """Determine a safe place to save the pickle file in the same directory as the module."""
         # Get the directory where this script/module is located
@@ -134,7 +138,7 @@ class VfbConnect:
             return key if not return_curie else key.replace('_', ':')
         
         # CARO lookup: Check if the key is a CARO/BFO/UBERON/FBbt(obsolete) term; though not in the lookup they need to be handled if explicitly called
-        prefixes = ('CARO_', 'BFO_', 'UBERON_', 'GENO_', 'CL_', 'FBbt_', 'VFB_', 'GO_')
+        prefixes = ('CARO_', 'BFO_', 'UBERON_', 'GENO_', 'CL_', 'FB', 'VFB_', 'GO_')
         if isinstance(key,str) and key.startswith(prefixes):
             return key if not return_curie else key.replace('_', ':')
         
@@ -254,7 +258,7 @@ class VfbConnect:
             return pd.DataFrame.from_records(results)
         return results
 
-    def get_instances(self, class_expression, query_by_label=True, summary=True, return_dataframe=True, limit=None, return_id_only=False):
+    def get_instances(self, class_expression, query_by_label=True, summary=True, return_dataframe=True, limit=None, return_id_only=False, verbose=False):
         """Generate JSON report of all instances of a given class expression.
 
         Instances are specific examples of a type/class, e.g., a neuron of type DA1 adPN from the FAFB_catmaid database.
@@ -270,12 +274,12 @@ class VfbConnect:
             if query_by_label:
                 class_expression = self.lookup[class_expression]
             out = self.neo_query_wrapper._get_anatomical_individual_TermInfo_by_type(class_expression,
-                                                                                     summary=summary, return_dataframe=False, limit=limit)
+                                                                                     summary=summary, return_dataframe=False, limit=limit, verbose=verbose)
         else:
             terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
             if return_id_only:
                 return terms
-            out = self.get_TermInfo(terms, summary=summary, return_dataframe=False, limit=limit)
+            out = self.get_TermInfo(terms, summary=summary, return_dataframe=False, limit=limit, verbose=verbose)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(out)
         return out
@@ -664,7 +668,7 @@ class VfbConnect:
                                                              return_dataframe=False)
     
     @batch_query
-    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True, query_by_label=True, limit=None):
+    def get_TermInfo(self, short_forms: iter, summary=True, cache=True, return_dataframe=True, query_by_label=True, limit=None, verbose=False):
         """
         Generate a JSON report or summary for terms specified by a list of VFB IDs.
 
@@ -687,11 +691,13 @@ class VfbConnect:
             short_forms = [short_forms.id]
         if isinstance(short_forms, VFBTerms):
             short_forms = short_forms.get_ids()
+        print(short_forms) if verbose else None
         # Convert labels to IDs if use_labels is True
         if query_by_label:
             short_forms = [self.lookup_id(sf) for sf in short_forms]
-        return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, cache=cache, return_dataframe=False, limit=limit)
-    
+        print(short_forms) if verbose else None
+        return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, cache=cache, return_dataframe=False, limit=limit, verbose=verbose) 
+
     @batch_query
     def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
         """Map a list of short_form IDs in VFB to external DB IDs
@@ -706,7 +712,15 @@ class VfbConnect:
                 dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
         """
         return self.neo_query_wrapper.vfb_id_2_xrefs(vfb_id=vfb_id, db=db, id_type=id_type, reverse_return=reverse_return)
-    
+
+    def get_dbs(self):
+        """Get all external databases in the database.
+
+        :return: List of external databases in the database.
+        :rtype: list
+        """
+        return self.neo_query_wrapper.get_dbs()
+
     def term(self, term, verbose=False):
         """Get a VFBTerm object for a given term id, name, symbol or synonym.
 
