@@ -98,10 +98,12 @@ class OWLeryConnect:
         out = self.query(query_type='subclasses', return_type='superClassOf',
                           query=query, query_by_label=query_by_label,
                           direct=direct, verbose=verbose)
-        if not out:
+        if not isinstance(out,list):
             print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
             print("Query: " + query)
-            print("Results: " + str(out))
+            print("Results: " + str(self.query(query_type='subclasses', return_type='superClassOf',
+                          query=query, query_by_label=query_by_label,
+                          direct=direct, verbose=True)))
             return []
         if return_short_forms:
             return list(map(gen_short_form, out))
@@ -121,10 +123,12 @@ class OWLeryConnect:
         out = self.query(query_type='instances', return_type='hasInstance',
                           query=query, query_by_label=query_by_label,
                           direct=direct, verbose=verbose)
-        if not out:
+        if not isinstance(out,list):
             print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
             print("Query: " + query)
-            print("Results: " + str(out))
+            print("Results: " + str(self.query(query_type='subclasses', return_type='superClassOf',
+                          query=query, query_by_label=query_by_label,
+                          direct=direct, verbose=True)))
             return []
         if return_short_forms:
             return list(map(gen_short_form, out))
@@ -144,10 +148,12 @@ class OWLeryConnect:
         out = self.query(query_type='superclasses', return_type='subClassOf',
                           query=query, query_by_label=query_by_label,
                           direct=direct, verbose=verbose)
-        if not out:
+        if not isinstance(out,list):
             print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
             print("Query: " + query)
-            print("Results: " + str(out))
+            print("Results: " + str(self.query(query_type='subclasses', return_type='superClassOf',
+                          query=query, query_by_label=query_by_label,
+                          direct=direct, verbose=True)))
             return []
         if return_short_forms:
             return list(map(gen_short_form, out))

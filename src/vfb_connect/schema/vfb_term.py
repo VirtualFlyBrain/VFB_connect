@@ -115,7 +115,10 @@ class Term:
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
-    
+
+    def __len__(self):
+        return 1
+
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
@@ -154,13 +157,16 @@ class Publication:
 
     def __repr__(self):
         return f"Publication(pub={repr(self.core)}, link={self.link})"
-    
+
+    def __len__(self):
+        return 1
+
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
-    
+
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
@@ -183,7 +189,10 @@ class Syn:
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
-    
+
+    def __len__(self):
+        return 1
+
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
@@ -220,12 +229,15 @@ class Synonym:
             return f"Synonym(synonym={repr(self.synonym)}, pub={repr(self.pub)})"
         return f"Synonym(synonym={repr(self.synonym)})"
 
+    def __len__(self):
+        return 1
+
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
-    
+
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
@@ -261,7 +273,10 @@ class Xref:
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
-    
+
+    def __len__(self):
+        return 1
+
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
@@ -293,6 +308,9 @@ class Rel:
         """
         return getattr(self, key, default)
 
+    def __len__(self):
+        return 1
+
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
@@ -314,30 +332,37 @@ class Rel:
         return None
 
 class Relations:
-    def __init__(self, relations: List[Rel]):
+    def __init__(self, relations: Union[List[Rel], List[dict], 'Relations']):
         if isinstance(relations, list):
-            if len(relations) > 0:
-                if all(isinstance(rel, Rel) for rel in relations):
-                    self.relations = relations
-                elif all(isinstance(rel, dict) for rel in relations):
-                    self.relations = [Rel(**rel) for rel in relations]
-                else:
-                    raise ValueError("All elements in the list must be of type Rel")
+            if all(isinstance(rel, Rel) for rel in relations):
+                self.relations = relations
+            elif all(isinstance(rel, dict) for rel in relations):
+                self.relations = [Rel(**rel) for rel in relations]
             else:
-                self.relations = []
+                raise ValueError("All elements in the list must be of type Rel or dict")
         elif isinstance(relations, Relations):
-            self.relations = relations
+            self.relations = relations.relations
         else:
-            raise ValueError("relations must be a list of Rel objects or a Relations object")
+            raise ValueError("relations must be a list of Rel objects, a list of dicts, or a Relations object")
 
     def __getitem__(self, key):
         """
-        Enable dictionary-like access to attributes.
+        Enable dictionary-like access to attributes or list-like access to relations.
         """
-        for rel in self.relations:
-            if rel.relation.label == key:
-                return rel.object
-        raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+        if isinstance(key, int):
+            # If the key is an integer, treat it as a list index
+            if key < 0 or key >= len(self.relations):
+                raise IndexError(f"Index '{key}' out of range for Relations")
+            return self.relations[key]
+        else:
+            # Otherwise, treat it as a dictionary key for relation labels
+            for rel in self.relations:
+                if rel.relation.label == key:
+                    return rel.object
+            raise KeyError(f"Attribute '{key}' not found in Relations")
+
+    def __len__(self):
+        return len(self.relations)
 
     def __repr__(self):
         return f"Relations({', '.join([repr(rel) for rel in self.relations])})"
@@ -371,9 +396,10 @@ class Relations:
         """
         Get a summary of the relations.
         """
+        summary = [{'relation': rel.relation.label, 'object': rel.object.name} for rel in self.relations]
         if return_dataframe:
-            return pandas.DataFrame([{'relation': rel.relation.label, 'object': rel.object.name} for rel in self.relations])
-        return [{'relation': rel.relation.label, 'object': rel.object.name} for rel in self.relations]
+            return pandas.DataFrame(summary)
+        return summary
 
 class Image:
     def __init__(self, image_folder: str, template_channel: MinimalEntityInfo, template_anatomy: MinimalEntityInfo, index: Optional[List[int]] = None, image_nrrd: Optional[str] = None, image_thumbnail: Optional[str] = None, image_swc: Optional[str] = None, image_obj: Optional[str] = None, image_wlz: Optional[str] = None):
@@ -392,7 +418,7 @@ class Image:
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
-    
+
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
@@ -402,6 +428,8 @@ class Image:
         else:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
+    def __len__(self):
+        return 1
 
     def __repr__(self):
         return f"Image(image_thmbnail={self.image_thumbnail})"
@@ -525,7 +553,10 @@ class ChannelImage:
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
-    
+
+    def __len__(self):
+        return 1
+
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
@@ -549,7 +580,7 @@ class AnatomyChannelImage:
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
-    
+
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
@@ -559,9 +590,12 @@ class AnatomyChannelImage:
         else:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
+    def __len__(self):
+        return 1
+
     def __repr__(self):
         return f"AnatomyChannelImage(anatomy={self.anatomy})"
-    
+
 class Score:
     def __init__(self, score: float = 0.0, method: Optional[str] = None, term: Optional[str] = None):
         self.score = score
@@ -589,6 +623,9 @@ class Score:
             return getattr(self, key)
         else:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+
+    def __len__(self):
+        return 1
 
     def __repr__(self):
         return f"Score(score={self.score}, method={self.method}, term={self.term.name})"
@@ -618,6 +655,9 @@ class Partner:
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
+
+    def __len__(self):
+        return 1
 
     def __getitem__(self, key):
         """
@@ -828,7 +868,7 @@ class VFBTerm:
             Get the subtypes of this term.
             """
             if self._subtypes is None:
-                self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"'{self.id}'"))
+                self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"'{self.id}'", ))
             return self._subtypes
 
         @property
@@ -1468,9 +1508,22 @@ class VFBTerms:
         """
         return getattr(self, key, default)
 
-    def append(self, vfb_term):
+    def append(self, vfb_term, verbose=False):
         if isinstance(vfb_term, VFBTerm):
             self.terms.append(vfb_term)
+            print("Appended ", vfb_term.name) if verbose else None
+            return
+        if isinstance(vfb_term, VFBTerms):
+            self.terms = self.terms + vfb_term.terms
+            print("Appended ", len(vfb_term), " terms") if verbose else None
+            return
+        if isinstance(vfb_term, list) and all(isinstance(term, VFBTerm) for term in vfb_term):
+            self.terms = self.terms + vfb_term
+            print("Appended ", len(vfb_term), " terms from passed list") if verbose else None
+            return
+        if isinstance(vfb_term, list) and len(vfb_term) == 0:
+            print("Empty list provided. No terms appended.") if verbose else None
+            return
         else:
             raise TypeError("Only VFBTerm objects can be appended to VFBTerms.")
 
@@ -1479,13 +1532,31 @@ class VFBTerms:
 
     def __add__(self, other):
         if isinstance(other, VFBTerms):
-            combined_terms = self.terms + other.terms
+            combined_terms = VFBTerms(self.terms) + other.terms
             unique_terms = {term.id: term for term in combined_terms}.values()
             return VFBTerms(list(unique_terms))
         if isinstance(other, VFBTerm):
-            combined_terms = self.terms + [other]
+            combined_terms = self.terms + VFBTerms(other)
             unique_terms = {term.id: term for term in combined_terms}.values()
             return VFBTerms(list(unique_terms))
+        if isinstance(other, list) and all(isinstance(term, VFBTerm) for term in other):
+            combined_terms = self.terms + other
+            unique_terms = {term.id: term for term in combined_terms}.values()
+            return VFBTerms(list(unique_terms))
+        if isinstance(other, list) and all(isinstance(term, str) for term in other):
+            combined_terms = self.terms + [VFBTerm(id=term) for term in other]
+            unique_terms = {term.id: term for term in combined_terms}.values()
+            return VFBTerms(list(unique_terms))
+        if isinstance(other, list) and all(isinstance(term, dict) for term in other):
+            combined_terms = self.terms + [VFBTerm(id=term['id']) for term in other]
+            unique_terms = {term.id: term for term in combined_terms}.values()
+            return VFBTerms(list(unique_terms))
+        if isinstance(other, pandas.core.frame.DataFrame):
+            combined_terms = self.terms + [VFBTerm(id=term) for term in other['id'].values]
+            unique_terms = {term.id: term for term in combined_terms}.values()
+            return VFBTerms(list(unique_terms))
+        if isinstance(other, list) and len(other) == 0:
+            return self
         raise TypeError("Unsupported operand type(s) for +: 'VFBTerms' and '{}'".format(type(other).__name__))
 
     def __sub__(self, other, verbose=False):
