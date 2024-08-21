@@ -45,6 +45,16 @@ else:
 
 class MinimalEntityInfo:
     def __init__(self, short_form: str, iri: str, label: str, types: List[str], unique_facets: Optional[List[str]] = None, symbol: Optional[str] = None):
+        """
+        Initialize a MinimalEntityInfo object.
+
+        :param short_form: Short form identifier of the entity.
+        :param iri: Internationalized Resource Identifier (IRI) of the entity.
+        :param label: Human-readable label of the entity.
+        :param types: List of types associated with the entity.
+        :param unique_facets: Optional list of unique facets associated with the entity.
+        :param symbol: Optional symbol representing the entity.
+        """
         self.short_form = short_form
         self.iri = iri
         self.label = label
@@ -54,17 +64,30 @@ class MinimalEntityInfo:
         self.name = self.get_name()
 
     def get_name(self):
+        """
+        Get the name of the entity, prioritizing the symbol if available.
+
+        :return: The name of the entity.
+        """
         return self.symbol if self.symbol else self.label
 
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
     
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
@@ -72,14 +95,34 @@ class MinimalEntityInfo:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __str__(self):
+        """
+        Return the string representation of the entity's name.
+
+        :return: The name of the entity.
+        """
         return f"{self.name}"
 
     def __repr__(self):
+        """
+        Return a string representation of the MinimalEntityInfo object.
+
+        :return: A string representation of the MinimalEntityInfo object.
+        """
         return f"MinimalEntityInfo(name={self.name}, short_form={self.short_form})"
 
 
 class MinimalEdgeInfo:
     def __init__(self, iri: str, label: str, type: str, short_form: Optional[str] = None, confidence_value: Optional[str] = None, database_cross_reference: Optional[List[str]] = None):
+        """
+        Initialize a MinimalEdgeInfo object representing a relationship between entities.
+
+        :param iri: Internationalized Resource Identifier (IRI) of the edge.
+        :param label: Label describing the relationship.
+        :param type: Type of the relationship.
+        :param short_form: Optional short form identifier of the edge.
+        :param confidence_value: Optional confidence value associated with the relationship.
+        :param database_cross_reference: Optional list of database cross-references.
+        """
         self.short_form = short_form
         self.iri = iri
         self.label = label
@@ -88,6 +131,11 @@ class MinimalEdgeInfo:
         self.database_cross_reference = database_cross_reference
 
     def __repr__(self):
+        """
+        Return a string representation of the MinimalEdgeInfo object.
+
+        :return: A string representation of the MinimalEdgeInfo object.
+        """
         if self.confidence_value and self.database_cross_reference:
             return f"MinimalEdgeInfo(label={self.label}, confidence={self.confidence_value}, reference={'; '.join(self.database_cross_reference)})"
         if self.confidence_value:
@@ -99,6 +147,15 @@ class MinimalEdgeInfo:
 
 class Term:
     def __init__(self, core: MinimalEntityInfo, description: Optional[List[str]] = None, comment: Optional[List[str]] = None, link: Optional[str] = None, icon: Optional[str] = None):
+        """
+        Initialize a Term object.
+
+        :param core: A MinimalEntityInfo object representing the core information of the term.
+        :param description: Optional description of the term.
+        :param comment: Optional comments about the term.
+        :param link: Optional link to more information about the term.
+        :param icon: Optional icon representing the term.
+        """
         if isinstance(core, dict):
             self.core = MinimalEntityInfo(**core)
         elif isinstance(core, MinimalEntityInfo):
@@ -113,15 +170,28 @@ class Term:
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
 
     def __len__(self):
+        """
+        Return the length of the Term object. Always 1 as it represents a single term.
+
+        :return: The length of the Term object.
+        """
         return 1
 
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
@@ -129,14 +199,36 @@ class Term:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __repr__(self):
+        """
+        Return a string representation of the Term object.
+
+        :return: A string representation of the Term object.
+        """
         return f"Term(term={repr(self.core)}, link={self.link})"
 
     def open(self, verbose=False):
+        """
+        Open the term's link in a web browser.
+
+        :param verbose: If True, print the link being opened.
+        """
         print(f"Opening {self.link}...") if verbose else None
         webbrowser.open(self.link)
 
 class Publication:
     def __init__(self, core: MinimalEntityInfo, description: Optional[List[str]] = None, comment: Optional[List[str]] = None, link: Optional[str] = None, icon: Optional[str] = None, FlyBase: Optional[str] = None, PubMed: Optional[str] = None, DOI: Optional[str] = None):
+        """
+        Initialize a Publication object.
+
+        :param core: A MinimalEntityInfo object representing the core information of the publication.
+        :param description: Optional description of the publication.
+        :param comment: Optional comments about the publication.
+        :param link: Optional link to more information about the publication.
+        :param icon: Optional icon representing the publication.
+        :param FlyBase: Optional FlyBase ID associated with the publication.
+        :param PubMed: Optional PubMed ID associated with the publication.
+        :param DOI: Optional DOI associated with the publication.
+        """
         if isinstance(core, dict):
             self.core = MinimalEntityInfo(**core)
         elif isinstance(core, MinimalEntityInfo):
@@ -156,20 +248,38 @@ class Publication:
             self.DOI = DOI
 
     def __repr__(self):
+        """
+        Return a string representation of the Publication object.
+
+        :return: A string representation of the Publication object.
+        """
         return f"Publication(pub={repr(self.core)}, link={self.link})"
 
     def __len__(self):
+        """
+        Return the length of the Publication object. Always 1 as it represents a single publication.
+
+        :return: The length of the Publication object.
+        """
         return 1
 
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
 
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
@@ -179,6 +289,13 @@ class Publication:
 
 class Syn:
     def __init__(self, scope: str, label: str, type: Optional[str] = None):
+        """
+        Initialize a Syn object representing a synonym.
+
+        :param scope: The scope of the synonym (e.g., exact, broad).
+        :param label: The label of the synonym.
+        :param type: Optional type of the synonym.
+        """
         self.scope = scope
         self.label = label
         if type:
@@ -187,15 +304,28 @@ class Syn:
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
 
     def __len__(self):
+        """
+        Return the length of the Syn object. Always 1 as it represents a single synonym.
+
+        :return: The length of the Syn object.
+        """
         return 1
 
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
@@ -203,13 +333,26 @@ class Syn:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __repr__(self):
+        """
+        Return a string representation of the Syn object.
+
+        :return: A string representation of the Syn object.
+        """
         if hasattr(self, 'type'):
             return f"Syn(scope={self.scope}, label={self.label}, type={self.type})"
         if self.scope:
             return f"Syn(scope={self.scope}, label={self.label})"
         return f"Syn(label={self.label})"
+
 class Synonym:
     def __init__(self, synonym: Syn, pub: Optional[Publication] = None):
+        """
+        Initialize a Synonym object.
+
+        :param synonym: A Syn object representing the synonym.
+        :param pub: Optional Publication object associated with the synonym.
+        :raises ValueError: If the synonym is not a Syn object.
+        """
         if isinstance(synonym, dict):
             self.synonym = Syn(**synonym)
         elif isinstance(synonym, Syn):
@@ -225,22 +368,40 @@ class Synonym:
                 raise ValueError("pub must be a Publication object")
 
     def __repr__(self):
+        """
+        Return a string representation of the Synonym object.
+
+        :return: A string representation of the Synonym object.
+        """
         if hasattr(self, 'pub'):
             return f"Synonym(synonym={repr(self.synonym)}, pub={repr(self.pub)})"
         return f"Synonym(synonym={repr(self.synonym)})"
 
     def __len__(self):
+        """
+        Return the length of the Synonym object. Always 1 as it represents a single synonym.
+
+        :return: The length of the Synonym object.
+        """
         return 1
 
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
 
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
@@ -250,6 +411,17 @@ class Synonym:
 
 class Xref:
     def __init__(self, core: MinimalEntityInfo, is_data_source: bool = False, link: Optional[str] = None, icon: Optional[str] = None, accession: Optional[str] = None, link_text: Optional[str] = None, homepage: Optional[str] = None):
+        """
+        Initialize an Xref object representing a cross-reference.
+
+        :param core: A MinimalEntityInfo object representing the core information of the cross-reference.
+        :param is_data_source: Whether this cross-reference is a data source.
+        :param link: Optional link to more information.
+        :param icon: Optional icon representing the cross-reference.
+        :param accession: Optional accession number for the cross-reference.
+        :param link_text: Optional text to display for the link.
+        :param homepage: Optional homepage URL associated with the cross-reference.
+        """
         if isinstance(core, dict):
             self.core = MinimalEntityInfo(**core)
         elif isinstance(core, MinimalEntityInfo):
@@ -271,33 +443,61 @@ class Xref:
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
 
     def __len__(self):
+        """
+        Return the length of the Xref object. Always 1 as it represents a single cross-reference.
+
+        :return: The length of the Xref object.
+        """
         return 1
 
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
         else:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
-
     def __repr__(self):
+        """
+        Return a string representation of the Xref object.
+
+        :return: A string representation of the Xref object.
+        """
         return f"Xref(link_text={self.link_text if hasattr(self, 'link_text') else self.core.name}, link={self.link if hasattr(self,'link') else self.homepage if hasattr(self,'homepage') else self.core.iri}, accession={self.accession if hasattr(self,'accession') else self.core.short_form})"
 
 class Rel:
     def __init__(self, relation: MinimalEdgeInfo, object: str):
+        """
+        Initialize a Rel object representing a relationship between entities.
+
+        :param relation: A MinimalEdgeInfo object representing the relationship type.
+        :param object: The ID of the related object.
+        """
         self.relation = relation
         self._object_id = object
         self._object = None
 
     @property
     def object(self):
+        """
+        Lazy-load the related object as a VFBTerm.
+
+        :return: The related VFBTerm object.
+        """
         if self._object is None:
             self._object = VFBTerm(id=self._object_id)
         return self._object
@@ -305,15 +505,28 @@ class Rel:
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
 
     def __len__(self):
+        """
+        Return the length of the Rel object. Always 1 as it represents a single relationship.
+
+        :return: The length of the Rel object.
+        """
         return 1
 
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
@@ -321,11 +534,19 @@ class Rel:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __repr__(self):
+        """
+        Return a string representation of the Rel object.
+
+        :return: A string representation of the Rel object.
+        """
         return f"Rel(relation={repr(self.relation)}, object={repr(self.object)})"
 
     def where(self, relation: str):
         """
         Get the object of the relation if the relation matches the specified label.
+
+        :param relation: The label of the relation to match.
+        :return: The related VFBTerm object if the relation matches, otherwise None.
         """
         if self.relation.label == relation:
             return self.object
@@ -333,6 +554,12 @@ class Rel:
 
 class Relations:
     def __init__(self, relations: Union[List[Rel], List[dict], 'Relations']):
+        """
+        Initialize a Relations object.
+
+        :param relations: A list of Rel objects, dictionaries, or another Relations object.
+        :raises ValueError: If the input is not of the expected type.
+        """
         if isinstance(relations, list):
             if all(isinstance(rel, Rel) for rel in relations):
                 self.relations = relations
@@ -348,6 +575,10 @@ class Relations:
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes or list-like access to relations.
+
+        :param key: The key or index to retrieve.
+        :return: The related object or relation.
+        :raises KeyError: If the key is out of range or not found.
         """
         if isinstance(key, int):
             # If the key is an integer, treat it as a list index
@@ -362,14 +593,27 @@ class Relations:
             raise KeyError(f"Attribute '{key}' not found in Relations")
 
     def __len__(self):
+        """
+        Return the number of relations.
+
+        :return: The number of relations.
+        """
         return len(self.relations)
 
     def __repr__(self):
+        """
+        Return a string representation of the Relations object.
+
+        :return: A string representation of the Relations object.
+        """
         return f"Relations({', '.join([repr(rel) for rel in self.relations])})"
 
     def where(self, relation: str):
         """
-        Get the object of the relation if the relation matches the specified label.
+        Get the objects of all relations that match the specified label.
+
+        :param relation: The label of the relation to match.
+        :return: A VFBTerms object containing the matching objects.
         """
         results = []
         for rel in self.relations:
@@ -380,6 +624,10 @@ class Relations:
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The relation label to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The related object if found, otherwise the default value.
         """
         for rel in self.relations:
             if rel.relation.label == key:
@@ -387,14 +635,27 @@ class Relations:
         return default
 
     def get_terms(self):
+        """
+        Get all the related terms as a VFBTerms object.
+
+        :return: A VFBTerms object containing all the related terms.
+        """
         return VFBTerms([rel.object for rel in self.relations])
 
     def get_relations(self):
+        """
+        Get all the relations as a list of MinimalEdgeInfo objects.
+
+        :return: A list of MinimalEdgeInfo objects.
+        """
         return [MinimalEdgeInfo(rel.relation) for rel in self.relations]
 
     def get_summary(self, return_dataframe=True):
         """
         Get a summary of the relations.
+
+        :param return_dataframe: Whether to return the summary as a pandas DataFrame.
+        :return: A summary of the relations, either as a DataFrame or a list of dictionaries.
         """
         summary = [{'relation': rel.relation.label, 'object': rel.object.name} for rel in self.relations]
         if return_dataframe:
@@ -403,6 +664,19 @@ class Relations:
 
 class Image:
     def __init__(self, image_folder: str, template_channel: MinimalEntityInfo, template_anatomy: MinimalEntityInfo, index: Optional[List[int]] = None, image_nrrd: Optional[str] = None, image_thumbnail: Optional[str] = None, image_swc: Optional[str] = None, image_obj: Optional[str] = None, image_wlz: Optional[str] = None):
+        """
+        Initialize an Image object.
+
+        :param image_folder: The folder where the image is stored.
+        :param template_channel: The template channel associated with the image.
+        :param template_anatomy: The template anatomy associated with the image.
+        :param index: Optional list of indices for the image.
+        :param image_nrrd: Optional path to the NRRD file.
+        :param image_thumbnail: Optional path to the thumbnail image.
+        :param image_swc: Optional path to the SWC file.
+        :param image_obj: Optional path to the OBJ file.
+        :param image_wlz: Optional path to the WLZ file.
+        """
         self.image_folder = image_folder
         self.template_channel = template_channel
         self.template_anatomy = template_anatomy
@@ -416,12 +690,20 @@ class Image:
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
         """
         return getattr(self, key, default)
 
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
         """
         if hasattr(self, key):
             return getattr(self, key)
@@ -429,9 +711,19 @@ class Image:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
     def __len__(self):
+        """
+        Return the length of the Image object. Always 1 as it represents a single image.
+
+        :return: The length of the Image object.
+        """
         return 1
 
     def __repr__(self):
+        """
+        Return a string representation of the Image object.
+
+        :return: A string representation of the Image object.
+        """
         return f"Image(image_thmbnail={self.image_thumbnail})"
 
     def get_skeleton(self, verbose=False):
