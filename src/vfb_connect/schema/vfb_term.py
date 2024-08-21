@@ -634,7 +634,7 @@ class Partner:
         return f"Partner(weight={self.weight}, partner={self.name})"
 
 class VFBTerm:
-    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[Relations[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, dataset: Optional[List[str]] = None, synonyms: Optional[Synonym] = None, verbose=False):
+    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[Relations] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, dataset: Optional[List[str]] = None, synonyms: Optional[Synonym] = None, verbose=False):
         from vfb_connect import vfb
         self.vfb = vfb
         if id is not None:
@@ -1775,6 +1775,9 @@ def create_vfbterm_from_json(json_data, verbose=False):
                 object = relation['object']['short_form']
                 related_terms.append(Rel(relation=rel, object=object))
             print(f"Loaded {len(related_terms)-bc} related terms from related_individuals") if verbose else None
+
+        if related_terms:
+            related_terms = Relations(relations=related_terms)
 
         # Handle channel images
         channel_images = None
