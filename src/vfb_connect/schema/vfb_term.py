@@ -646,9 +646,13 @@ class VFBTerm:
                 print("No JSON data found for ", id) if verbose else None
             else:
                 if isinstance(json_data, list): # If multiple terms are returned
-                    print("Multiple terms found for ", id) if verbose else None
-                    term_object = create_vfbterm_from_json(json_data[0], verbose=verbose)
-                    self.__dict__.update(term_object.__dict__)  # Copy attributes from the fetched term object
+                    if len(json_data) > 0:
+                        print(f"\033[33mWarning:\033[0m {len(id)} terms found for {id}") if len(json_data) > 1 else None
+                        term_object = create_vfbterm_from_json(json_data[0], verbose=verbose)
+                        self.__dict__.update(term_object.__dict__)  # Copy attributes from the fetched term object
+                    else:
+                        print("\033[33mWarning:\033[0m No term found for ", id) if verbose else None
+                        return None
                 elif isinstance(json_data, dict):
                     term_object = create_vfbterm_from_json(json_data, verbose=verbose)
                     self.__dict__.update(term_object.__dict__)
@@ -665,7 +669,8 @@ class VFBTerm:
                     term_object = VFBTerm(id=json_data['id'].values[0], verbose=verbose)
                     self.__dict__.update(term_object.__dict__)
                 else:
-                    print("Unable to resolve term for ", id) if verbose else None
+                    print("\033[33mWarning:\033[0m Unable to resolve term for ", id)
+                    return None
         elif term is not None:
             self.term = term
             if related_terms:
@@ -1423,7 +1428,13 @@ class VFBTerms:
 
         # Check if terms is a list of strings (IDs)
         elif isinstance(terms, list) and all(isinstance(term, str) for term in terms):
-            self.terms = [VFBTerm(id=term, verbose=verbose) for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")] if len(terms) > 0 else []
+            self.terms = VFBTerms([])
+            for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms"):
+                vfb_term = VFBTerm(id=term, verbose=verbose)
+                if hasattr(vfb_term, 'term'):
+                    self.terms.append(vfb_term)
+                else:
+                    print(f"\033[33mWarning:\033[0m Term with ID {term} not found") if verbose else None
 
         # Check if terms is a DataFrame
         elif isinstance(terms, pandas.core.frame.DataFrame):
@@ -1456,6 +1467,12 @@ class VFBTerms:
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
+
+    def append(self, vfb_term):
+        if isinstance(vfb_term, VFBTerm):
+            self.terms.append(vfb_term)
+        else:
+            raise TypeError("Only VFBTerm objects can be appended to VFBTerms.")
 
     def __len__(self):
         return len(self.terms)
