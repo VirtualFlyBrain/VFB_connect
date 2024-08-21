@@ -286,13 +286,13 @@ class Rel:
         if self._object is None:
             self._object = VFBTerm(id=self._object_id)
         return self._object
-    
+
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
         """
         return getattr(self, key, default)
-    
+
     def __getitem__(self, key):
         """
         Enable dictionary-like access to attributes.
@@ -304,6 +304,77 @@ class Rel:
 
     def __repr__(self):
         return f"Rel(relation={repr(self.relation)}, object={repr(self.object)})"
+
+    def where(self, relation: str):
+        """
+        Get the object of the relation if the relation matches the specified label.
+        """
+        if self.relation.label == relation:
+            return self.object
+        return None
+
+class Relations:
+    def __init__(self, relations: List[Rel]):
+        if isinstance(relations, list):
+            if len(relations) > 0:
+                if all(isinstance(rel, Rel) for rel in relations):
+                    self.relations = relations
+                elif all(isinstance(rel, dict) for rel in relations):
+                    self.relations = [Rel(**rel) for rel in relations]
+                else:
+                    raise ValueError("All elements in the list must be of type Rel")
+            else:
+                self.relations = []
+        elif isinstance(relations, Relations):
+            self.relations = relations
+        else:
+            raise ValueError("relations must be a list of Rel objects or a Relations object")
+
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+        """
+        for rel in self.relations:
+            if rel.relation.label == key:
+                return rel.object
+        raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+
+    def __repr__(self):
+        return f"Relations({', '.join([repr(rel) for rel in self.relations])})"
+
+    def where(self, relation: str):
+        """
+        Get the object of the relation if the relation matches the specified label.
+        """
+        results = []
+        for rel in self.relations:
+            if rel.relation.label == relation:
+                results.append(rel.object)
+        return VFBTerms(results)
+
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+        """
+        for rel in self.relations:
+            if rel.relation.label == key:
+                return rel.object
+        return default
+
+    def get_terms(self):
+        return VFBTerms([rel.object for rel in self.relations])
+
+    def get_relations(self):
+        return [MinimalEdgeInfo(rel.relation) for rel in self.relations]
+
+    def get_summary(self, return_dataframe=True):
+        """
+        Get a summary of the relations.
+        """
+        if return_dataframe:
+            return pandas.DataFrame([{'relation': rel.relation.label, 'object': rel.object.name} for rel in self.relations])
+        return [{'relation': rel.relation.label, 'object': rel.object.name} for rel in self.relations]
+
 
 
 class Image:
@@ -563,7 +634,7 @@ class Partner:
         return f"Partner(weight={self.weight}, partner={self.name})"
 
 class VFBTerm:
-    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[List[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, dataset: Optional[List[str]] = None, synonyms: Optional[Synonym] = None, verbose=False):
+    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[Relations[Rel]] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, dataset: Optional[List[str]] = None, synonyms: Optional[Synonym] = None, verbose=False):
         from vfb_connect import vfb
         self.vfb = vfb
         if id is not None:
@@ -599,7 +670,18 @@ class VFBTerm:
                     print("Unable to resolve term for ", id) if verbose else None
         elif term is not None:
             self.term = term
-            self.related_terms = related_terms
+            if related_terms:
+                if isinstance(related_terms, list):
+                    if all(isinstance(rel, Rel) for rel in related_terms):
+                        self.related_terms = Relations(related_terms)
+                    elif all(isinstance(rel, dict) for rel in related_terms):
+                        self.related_terms = Relations([Rel(**rel) for rel in related_terms])
+                    else:
+                        raise ValueError("All elements in the list must be of type Rel")
+                elif isinstance(related_terms, Relations):
+                    self.related_terms = related_terms
+            else:
+                self.related_terms = Relations([])
             self.channel_images = channel_images
             self._summary = None
             self.name = self.term.core.name

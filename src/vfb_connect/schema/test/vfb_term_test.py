@@ -1,5 +1,5 @@
 import unittest
-from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm, Score
+from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm, Score, Relations
 
 class VfbTermTest(unittest.TestCase):
 
@@ -264,6 +264,25 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(downstream_types)
         self.assertTrue(isinstance(downstream_types, VFBTerms))
         self.assertTrue(len(downstream_types) > 150)
+
+    def test_vfbterm_scRNAseq_Clusters(self):
+        term = self.vfb.term('scRNAseq_2018_Davie_FULL_seq_clustering_dopaminergic_PAM_neurons')
+        print("got term ", term)
+        print(term.get_summary(return_dataframe=False))
+        print(term.related_terms)
+        self.assertTrue(term)
+
+    def test_vfbterm_related_terms(self):
+        term = self.vfb.term('scRNAseq_2018_Davie_FULL_seq_clustering_dopaminergic_PAM_neurons')
+        print("got term ", term)
+        print(term.related_terms)
+        self.assertTrue(term)
+        self.assertTrue(term.related_terms)
+        self.assertTrue(isinstance(term.related_terms, Relations))
+        print(term.related_terms.get_summary(return_dataframe=False))
+        print(term.related_terms.get_terms())
+        print(term.related_terms.get_relations())
+        print(term.related_terms.where(relation='composed primarily of').get_summary(return_dataframe=False))
 
 
 if __name__ == "__main__":
