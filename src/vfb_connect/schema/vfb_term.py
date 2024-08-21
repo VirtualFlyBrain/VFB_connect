@@ -648,7 +648,7 @@ class Relations:
 
         :return: A list of MinimalEdgeInfo objects.
         """
-        return [MinimalEdgeInfo(rel.relation) for rel in self.relations]
+        return [rel.get('relation') for rel in self.relations]
 
     def get_summary(self, return_dataframe=True):
         """

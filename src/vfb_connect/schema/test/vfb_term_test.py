@@ -285,7 +285,9 @@ class VfbTermTest(unittest.TestCase):
         print(term.related_terms.get_summary(return_dataframe=False))
         print(term.related_terms.get_terms())
         print(term.related_terms.get_relations())
-        print(term.related_terms.where(relation='composed primarily of').get_summary(return_dataframe=False))
+        composed_of = term.related_terms.where(relation='composed primarily of')
+        print(composed_of.get_summaries(return_dataframe=False))
+        self.assertTrue(isinstance(composed_of, VFBTerms))
 
 if __name__ == "__main__":
     unittest.main()
