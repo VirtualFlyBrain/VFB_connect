@@ -375,8 +375,6 @@ class Relations:
             return pandas.DataFrame([{'relation': rel.relation.label, 'object': rel.object.name} for rel in self.relations])
         return [{'relation': rel.relation.label, 'object': rel.object.name} for rel in self.relations]
 
-
-
 class Image:
     def __init__(self, image_folder: str, template_channel: MinimalEntityInfo, template_anatomy: MinimalEntityInfo, index: Optional[List[int]] = None, image_nrrd: Optional[str] = None, image_thumbnail: Optional[str] = None, image_swc: Optional[str] = None, image_obj: Optional[str] = None, image_wlz: Optional[str] = None):
         self.image_folder = image_folder

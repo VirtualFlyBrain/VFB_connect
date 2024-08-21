@@ -200,7 +200,7 @@ class Neo4jConnect:
         return [x['k'] for x in d]
 
     def get_lookup(self, cache=None, limit_type_by_prefix=('FBbt', 'VFBexp', 'VFBext'), include_individuals=True,
-               limit_properties_by_prefix=('RO', 'BFO', 'VFBext'), curies=False, include_synonyms=True):
+               limit_properties_by_prefix=('RO', 'BFO', 'VFBext'), curies=False, include_synonyms=True, verbose=False):
         """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a list of prefixes.
 
         :param use_cache: If `True`, uses a cached lookup. If `False`, generates a new lookup.
@@ -214,6 +214,7 @@ class Neo4jConnect:
         try:
             three_months_in_seconds = 3 * 30 * 24 * 60 * 60
             if cache and os.path.exists(cache) and os.path.getctime(cache) > time.time() - three_months_in_seconds:
+                print("Loading cache lookup from disk...") if verbose else None
                 with open(cache, 'rb') as f:
                     return pickle.load(f)
         except Exception as e:
@@ -227,7 +228,7 @@ class Neo4jConnect:
             regex_string = '.+|'.join(limit_type_by_prefix) + '.+'
             where += "AND a.short_form =~ '%s' " % regex_string
         where += "AND NOT a:Deprecated "
-        
+
         out = []
         # All Classes wanted, where id starts with prefix in limit_type_by_prefix
         l = 'Class'
@@ -240,7 +241,7 @@ class Neo4jConnect:
                     "RETURN a.short_form as id, a.symbol[0] as name" % (l, where)
         q = self.commit_list([lookup_query])
         out.extend(dict_cursor(q))
-        
+
         if include_synonyms:
             print(f"Caching {l} synonyms...")
             lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) %s AND EXISTS(a.synonyms) OR (a)-[:has_reference {typ:'syn'}]->(:pub:Individual) " \
@@ -252,7 +253,7 @@ class Neo4jConnect:
                         "RETURN DISTINCT id, synonym AS name" % (l, where)
             q = self.commit_list([lookup_query])
             out.extend(dict_cursor(q))
-        
+
         if include_individuals:
             where = "AND NOT a:Deprecated AND NOT a.short_form STARTS WITH 'VFBc_' AND NOT a:Person "
             # If individuals are wanted, get them
@@ -266,7 +267,7 @@ class Neo4jConnect:
                         "RETURN a.short_form as id, a.symbol[0] as name" % (l, where)
             q = self.commit_list([lookup_query])
             out.extend(dict_cursor(q))
-            
+
             if include_synonyms:
                 print(f"Caching {l} synonyms...")
                 lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) %s AND EXISTS(a.synonyms) OR (a)-[:has_reference {typ:'syn'}]->(:pub:Individual) " \
@@ -298,24 +299,36 @@ class Neo4jConnect:
             where = " WHERE exists(a.alternative_term) and size(a.alternative_term) > 0 and a.short_form STARTS WITH '%s' " % match_string
         else:
             where = ''
-        print(f"Caching ObjectProperties...")
+        print(f"Caching ObjectProperties alternative labels...")
         property_lookup_query = "MATCH (a:ObjectProperty) " \
                                 + where + \
                                 "UNWIND a.alternative_term as label " + \
                                 "RETURN a.short_form as id, label as name"
         q = self.commit_list([property_lookup_query])
-        out.extend(dict_cursor(q))
-        
+
+        # Iterate through the results and add only if the label doesn't already exist to avoid duplicate object properties e.g. overlaps
+        name_to_id = {item['name']: item['id'] for item in out}
+        print(f"Initial lookup contains {len(name_to_id)} entries") if verbose else None
+        print(f"Result for overlaps: {name_to_id['overlaps']}") if verbose else None
+        existing_names = set(name_to_id.keys())
+        for result in dict_cursor(q):
+            if not result['name'] in existing_names:
+                out.append(result)
+                existing_names.add(result['name'])
+                name_to_id[result['name']] = result['id']
+            else:
+                print(f"Skipping duplicate object property: {result['name']} - {result['id']} in favour or existing {name_to_id[result['name']]}") if verbose else None
+
         # Removing duplicates while maintaining order
         seen = set()
         unique_out = []
-        
+
         for item in out:
             pair = (item['name'], item['id'])
             if pair not in seen:
                 seen.add(pair)
                 unique_out.append(item)
-        
+
         # Construct the final lookup dictionary
         if curies:
             lookup = {x['name']: x['id'].replace('_', ':') for x in unique_out}

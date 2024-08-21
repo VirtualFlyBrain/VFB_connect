@@ -38,7 +38,10 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(term[0].volume and term[0].volume.id == "VFB_jrcv0jvf")
 
     def test_VFBterms_by_region(self):
-        terms = create_vfbterm_from_json(self.vfb.get_terms_by_region("nodulus", summary=False))
+        oid = self.vfb.lookup_id('overlaps', return_curie=True)
+        print(f"got overlaps: {oid}")
+        self.assertEqual(oid, 'RO:0002131')
+        terms = create_vfbterm_from_json(self.vfb.get_terms_by_region("nodulus", summary=False, verbose=True), verbose=True)
         print(f"got {len(terms)} VFBTerms: {terms}")
         self.assertTrue(terms)
         ids = terms.get_ids()

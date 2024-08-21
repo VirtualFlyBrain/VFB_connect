@@ -101,14 +101,14 @@ class VfbConnect:
         cache_file = os.path.join(module_dir, 'lookup_cache.pkl')
         return cache_file
     
-    def reload_lookup_cache(self):
+    def reload_lookup_cache(self, verbose=False):
         """Clear the lookup cache file."""
         if os.path.exists(self.cache_file):
             os.remove(self.cache_file)
             print("Cache file removed.")
         else:
             print("No cache file found.")
-        self.lookup = self.nc.get_lookup(cache=self.cache_file)
+        self.lookup = self.nc.get_lookup(cache=self.cache_file, verbose=verbose)
 
     def lookup_id(self, key, return_curie=False, allow_subsitutions=True, subsitution_stages=['adult', 'larval', 'pupal']):
         """Lookup the ID for a given key (label or symbol) using the internal lookup table.
@@ -211,16 +211,15 @@ class VfbConnect:
         if verbose:
             print("Running query: %s" % owl_query)
 
-        terms = self.oc.get_subclasses(owl_query, query_by_label=query_by_label)
+        terms = self.oc.get_subclasses(owl_query, query_by_label=query_by_label, verbose=verbose)
         if verbose:
             print("Found: %d terms" % len(terms))
-        results = self.neo_query_wrapper.get_type_TermInfo(terms,
-                                                           summary=summary, return_dataframe=False)
+        results = self.get_TermInfo(terms, summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
 
-    def get_subclasses(self, class_expression, query_by_label=True, direct=False, summary=True, return_dataframe=True):
+    def get_subclasses(self, class_expression, query_by_label=True, direct=False, summary=True, return_dataframe=True, verbose=False):
         """Generate JSON report of all subclasses of a given class expression.
 
         :param class_expression: A valid OWL class expression, e.g., the name of a class.
@@ -233,8 +232,8 @@ class VfbConnect:
         """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
-        terms = self.oc.get_subclasses("%s" % class_expression, direct=direct, query_by_label=query_by_label)
-        results = self.neo_query_wrapper.get_type_TermInfo(terms, summary=summary, return_dataframe=False)
+        terms = self.oc.get_subclasses("%s" % class_expression, direct=direct, query_by_label=query_by_label, verbose=verbose)
+        results = self.get_TermInfo(terms, summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
@@ -253,7 +252,7 @@ class VfbConnect:
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
         terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label, direct=direct)
-        results = self.neo_query_wrapper.get_type_TermInfo(terms, summary=summary, return_dataframe=False)
+        results = self.get_TermInfo(terms, summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
