@@ -2535,6 +2535,79 @@ class VFBTerms:
         # Open the URL in the default browser
         webbrowser.open(url + images)
 
+    def show(self, template=None, transparent=False, verbose=False):
+        """
+        Show a merged thumbnail for all terms in a Jupyter notebook.
+
+        :param template: The template short form to display thumbnails for.
+        :param transparent: Use transparent thumbnails if True.
+        :param verbose: Print additional information if True.
+        """
+        if template:
+            template = self.vfb.lookup_id(template)
+
+        thumbnails = []
+        for term in self.terms:
+            for ci in term.channel_images:
+                if ci.image.image_thumbnail:
+                    if not template or ci.image.template_anatomy.short_form == template:
+                        if verbose:
+                            print(f"Adding thumbnail for {term.name}")
+                        thumbnails.append(ci.image.image_thumbnail)
+                        if not template:
+                            template = ci.image.template_anatomy.short_form
+                            if verbose:
+                                print(f"Fixing template to {template}. Please specify a template to avoid this.")
+                        break
+
+        if thumbnails:
+            from PIL import Image
+            import requests
+            from io import BytesIO
+
+            alpha = 1.0 / len(thumbnails)
+
+            try:
+                images = []
+                for thumbnail in thumbnails:
+                    if verbose:
+                        print("Fetching image: ", thumbnail if not transparent else thumbnail.replace('thumbnail.png', 'thumbnailT.png'))
+
+                    # Fetch the image
+                    response = requests.get(thumbnail if not transparent else thumbnail.replace('thumbnail.png', 'thumbnailT.png'))
+                    if verbose:
+                        print("Response: ", response)
+                        print("Content: ", response.content)
+
+                    img = Image.open(BytesIO(response.content))
+                    images.append(img)
+
+                # Initialize overlay_img with the first image
+                overlay_img = images[0]
+
+                # Blend subsequent images
+                for image in images[1:]:
+                    overlay_img = Image.blend(overlay_img, image, alpha)
+
+                # Try to display the image in a notebook environment
+                try:
+                    from IPython.display import display
+                    if verbose:
+                        print("Displaying thumbnail in notebook...")
+                    display(overlay_img)
+                except ImportError:
+                    # If not in a notebook, fall back to PIL's image viewer
+                    if verbose:
+                        print("IPython not available, using PIL to show the image.")
+                    overlay_img.show()
+
+            except Exception as e:
+                print("Error displaying thumbnail: ", e)
+        else:
+            print("No thumbnails found to display")
+
+
+
     def tqdm_with_threshold(self, iterable, threshold=10, **tqdm_kwargs):
         """
         Custom tqdm that only shows the progress bar if the length of the iterable exceeds the threshold.
