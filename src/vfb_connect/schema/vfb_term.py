@@ -979,6 +979,217 @@ class AnatomyChannelImage:
         """
         return f"AnatomyChannelImage(anatomy={self.anatomy})"
 
+class Expression:
+    def __init__(self, term: str = None, term_name: Optional[str] = None, type: Optional[str] = None, type_name: Optional[str] = None, expression_extent: Optional[float] = None, expression_level: Optional[float] = None):
+        """
+        Initialize an Expression object representing expression data.
+
+        :param term: The ID of the term.
+        :param expression_extent: The extent of expression.
+        :param expression_level: The level of expression.
+        """
+        self._term_id = term
+        self._term = None # Initialize as None, will be loaded on first access
+        self.id = term
+        if term_name:
+            self.name = term_name
+        self._type_id = type
+        self._type = None # Initialize as None, will be loaded on first access
+        if type_name:
+            self.type_name = type_name
+        self.expression_extent = expression_extent
+        self.expression_level = expression_level
+
+    @property
+    def gene(self):
+        """
+        Lazy-load the related term as a VFBTerm.
+
+        :return: The related VFBTerm object.
+        """
+        if self._term is None:
+            self._term = VFBTerm(id=self._term_id)
+            self.name = self._term.name
+        return self._term
+
+    @property
+    def cell_type(self):
+        """
+        Lazy-load the related type as a VFBTerm.
+
+        :return: The related VFBTerm object.
+        """
+        if self._type is None:
+            self._type = VFBTerm(id=self._type_id)
+            self.type_name = self._type.name
+        return self._type
+
+    @property
+    def summary(self):
+        """
+        Return a summary of the expression data.
+
+        :return: A dictionary containing the expression data.
+        """
+        return {'gene': self.name, 'cell_type': self.type_name, 'extent': self.expression_extent, 'level': self.expression_level}
+    
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method.
+
+        :param key: The attribute name to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The value of the attribute, or the default value if not found.
+        """
+        return getattr(self, key, default)
+    
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes.
+
+        :param key: The attribute name to retrieve.
+        :return: The value of the attribute.
+        :raises KeyError: If the attribute does not exist.
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+        
+    def __len__(self):
+        """
+        Return the length of the Expression object. Always 1 as it represents a single expression.
+
+        :return: The length of the Expression object.
+        """
+        return 1
+    
+    def __repr__(self):
+        """
+        Return a string representation of the Expression object.
+
+        :return: A string representation of the Expression object.
+        """
+        if not self.type_name:
+            if self.expression_extent and self.expression_level:
+                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, extent={self.expression_extent}, level={self.expression_level})"
+            if self.expression_extent:
+                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, extent={self.expression_extent})"
+            if self.expression_level:
+                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, level={self.expression_level})"
+            return f"Expression(term={self.name if hasattr(self, 'name') else self.term.name})"
+        else:
+            if self.expression_extent and self.expression_level:
+                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, cell_type={self.type_name if hasattr(self, 'type_name') else self.gene.name}, extent={self.expression_extent}, level={self.expression_level})"
+            if self.expression_extent:
+                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, cell_type={self.type_name if hasattr(self, 'type_name') else self.gene.name}, extent={self.expression_extent})"
+            if self.expression_level:
+                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, cell_type={self.type_name if hasattr(self, 'type_name') else self.gene.name}, level={self.expression_level})"
+        return f"Expression(term={self.name if hasattr(self, 'name') else self.term.name}, cell_type={self.type_name if hasattr(self, 'type_name') else self.gene.name})"
+
+class ExpressionList:
+    def __init__(self, expressions: Union[List[Expression], List[dict], 'ExpressionList']):
+        """
+        Initialize an ExpressionList object.
+
+        :param expressions: A list of Expression objects, dictionaries, or another ExpressionList object.
+        :raises ValueError: If the input is not of the expected type.
+        """
+        if isinstance(expressions, list):
+            if all(isinstance(exp, Expression) for exp in expressions):
+                self.expressions = expressions
+            elif all(isinstance(exp, dict) for exp in expressions):
+                self.expressions = [Expression(**exp) for exp in expressions]
+            else:
+                raise ValueError("All elements in the list must be of type Expression or dict")
+        elif isinstance(expressions, ExpressionList):
+            self.expressions = expressions.expressions
+        else:
+            raise ValueError("expressions must be a list of Expression objects, a list of dicts, or an ExpressionList object")
+
+    def __getitem__(self, key):
+        """
+        Enable dictionary-like access to attributes or list-like access to expressions.
+
+        :param key: The key or index to retrieve.
+        :return: The related object or expression.
+        :raises KeyError: If the key is out of range or not found.
+        """
+        if isinstance(key, int):
+            # If the key is an integer, treat it as a list index
+            if key < 0 or key >= len(self.expressions):
+                raise IndexError(f"Index '{key}' out of range for ExpressionList")
+            return self.expressions[key]
+        else:
+            # Otherwise, treat it as a dictionary key for term IDs
+            for exp in self.expressions:
+                if exp.id == key:
+                    return exp
+            raise KeyError(f"Attribute '{key}' not found in ExpressionList")
+
+    def __len__(self):
+        """
+        Return the number of expressions.
+
+        :return: The number of expressions.
+        """
+        return len(self.expressions)
+
+    def __repr__(self):
+        """
+        Return a string representation of the ExpressionList object.
+
+        :return: A string representation of the ExpressionList object.
+        """
+        if len(self.expressions) > 0:
+            return f"ExpressionList({', '.join([repr(exp) for exp in self.expressions])})"
+        return "ExpressionList([])"
+
+    def get(self, key, default=None):
+        """
+        Mimics dictionary-like .get() method
+
+        :param key: The term ID to retrieve.
+        :param default: The default value to return if the key is not found.
+        :return: The related object if found, otherwise the default value.
+        """
+        for exp in self.expressions:
+            if exp.id == key:
+                return exp
+        return default
+
+    def get_terms(self):
+        """
+        Get all the related terms as a VFBTerms object.
+
+        :return: A VFBTerms object containing all the related terms.
+        """
+        return VFBTerms([exp.term for exp in self.expressions])
+
+    def get_summary(self, return_dataframe=True):
+        """
+        Get a summary of the expressions.
+
+        :param return_dataframe: Whether to return the summary as a pandas DataFrame.
+        :return: A summary of the expressions, either as a DataFrame or a list of dictionaries.
+        """
+        summary = [{'term': exp.term.name, 'extent': exp.expression_extent, 'level': exp.expression_level} for exp in self.expressions]
+        if return_dataframe:
+            return pandas.DataFrame(summary)
+        return summary
+
+    def where(self, term: str):
+        """
+        Get the expression data for a specific term.
+
+        :param term: The term ID to match.
+        :return: The related Expression object if found, otherwise None.
+        """
+        for exp in self.expressions:
+            if exp.id == term:
+                return exp
+        return None
+
 class Score:
     def __init__(self, score: float = 0.0, method: Optional[str] = None, term: Optional[str] = None):
         """
@@ -1312,7 +1523,8 @@ class VFBTerm:
             Get the genes associated with this cluster.
             """
             if self._scRNAseq_genes is None:
-                self._scRNAseq_genes = VFBTerms(self.vfb.get_scRNAseq_gene_expression(return_id_only=True, cluster=self.id))
+                exp_list = self.vfb.get_scRNAseq_gene_expression(cluster=self.id, return_id_only=False, return_dataframe=False)
+                self._scRNAseq_genes = ExpressionList([Expression(term=exp['gene']['short_form'], term_name=exp['gene']['symbol'] if exp['gene']['symbol'] else exp['gene']['label'], type=exp['anatomy']['short_form'], type_name=exp['anatomy']['symbol'] if exp['anatomy']['symbol'] else exp['anatomy']['label'], expression_extent=float(exp['expression_extent']), expression_level=float(exp['expression_level'])) for exp in exp_list])
             return self._scRNAseq_genes
 
         # Dynamically add the property to the instance
