@@ -1970,9 +1970,10 @@ class VFBTerms:
         # Check if terms is a list of VFBTerm objects
         if isinstance(terms, list) and all(isinstance(term, VFBTerm) for term in terms):
             self.terms = terms
+            return
 
         # Check if terms is a list of strings (IDs)
-        elif isinstance(terms, list) and all(isinstance(term, str) for term in terms):
+        if isinstance(terms, list) and all(isinstance(term, str) for term in terms):
             self.terms = VFBTerms([])
             for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms"):
                 vfb_term = VFBTerm(id=term, verbose=verbose)
@@ -1980,18 +1981,26 @@ class VFBTerms:
                     self.terms.append(vfb_term)
                 else:
                     print(f"\033[33mWarning:\033[0m Term with ID {term} not found") if verbose else None
+            return
 
         # Check if terms is a DataFrame
-        elif isinstance(terms, pandas.core.frame.DataFrame):
+        if isinstance(terms, pandas.core.frame.DataFrame):
             self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(terms['id'].values, threshold=10, desc="Loading terms")] if 'id' in terms.columns else []
+            return
 
         # Check if terms is a numpy array
-        elif isinstance(terms, np.ndarray):
+        if isinstance(terms, np.ndarray):
             self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")] if len(terms) > 0 and isinstance(terms[0], str) else []
+            return
 
         # Check if terms is a list of dictionaries
-        elif isinstance(terms, list) and all(isinstance(term, dict) for term in terms):
+        if isinstance(terms, list) and all(isinstance(term, dict) for term in terms):
             self.terms = [VFBTerm(id=term['id'], verbose=verbose) for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")]
+            return
+
+        if isinstance(terms, VFBTerms):
+            self.terms = terms.terms
+            return
 
         else:
             raise ValueError("Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame.")
