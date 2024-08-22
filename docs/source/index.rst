@@ -38,7 +38,9 @@ the General Documentation should provide sufficient details in an accessible for
    tutorials/overview.ipynb
    tutorials/discovery.ipynb
    tutorials/connectomics.ipynb
-
+   tutorials/vfb_terms.ipynb
+   tutorials/vfb_neurons.ipynb
+   tutorials/vfb_datasets.ipynb
 
 .. toctree::
    :maxdepth: 2
@@ -47,6 +49,7 @@ the General Documentation should provide sufficient details in an accessible for
    vfb_connect
    neo
    owl
+   schema
 
 
 
