@@ -1374,7 +1374,7 @@ class VFBTerm:
             return self._neuron_types_that_overlap
 
         @property
-        def neuron_types_with_synapic_terminals_here(self):
+        def neuron_types_with_synaptic_terminals_here(self):
             """
             Get the types of neurons that have synaptic terminals in this region.
             """
@@ -1486,7 +1486,7 @@ class VFBTerm:
         setattr(self.__class__, 'downstream_neurons', downstream_neurons)
         setattr(self.__class__, 'upstream_neurons', upstream_neurons)
         setattr(self.__class__, 'neuron_types_that_overlap', neuron_types_that_overlap)
-        setattr(self.__class__, 'neuron_types_with_synapic_terminals_here', neuron_types_with_synaptic_terminals_here)
+        setattr(self.__class__, 'neuron_types_with_synaptic_terminals_here', neuron_types_with_synaptic_terminals_here)
         setattr(self.__class__, 'downstream_neuron_types', downstream_neuron_types)
         setattr(self.__class__, 'upstream_neuron_types', upstream_neuron_types)
 
@@ -2017,7 +2017,7 @@ class VFBTerms:
         :return: A new VFBTerms object containing the combined terms.
         """
         if isinstance(other, VFBTerms):
-            combined_terms = VFBTerms(self.terms) + other.terms
+            combined_terms = self.terms + other.terms
             unique_terms = {term.id: term for term in combined_terms}.values()
             return VFBTerms(list(unique_terms))
         if isinstance(other, VFBTerm):
@@ -2073,6 +2073,173 @@ class VFBTerms:
         :return: List of attribute and method names.
         """
         return [attr for attr in list(self.__dict__.keys()) if not attr.startswith('_')] + [attr for attr in dir(self.__class__) if not attr.startswith('_') and not attr.startswith('add_')]
+
+    def __eq__(self, other):
+        """
+        Compare two VFBTerms objects for equality.
+        Two VFBTerms objects are considered equal if they contain the same set of term IDs.
+
+        :param other: The other VFBTerms object to compare.
+        :return: True if the two VFBTerms objects are equal, False otherwise.
+        """
+        if not isinstance(other, VFBTerms):
+            return False
+
+        # Compare the sets of IDs for equality
+        return set(self.get_ids()) == set(other.get_ids())
+
+    def AND(self, other, verbose=False):
+        """
+        Perform a logical AND operation on two VFBTerms objects or a VFBTerm object and a VFBTerms object.
+
+        :param other: The other VFBTerms or VFBTerm object to AND.
+        :param verbose: Print additional information if True.
+        :return: A new VFBTerms object containing the terms that are common to both.
+        """
+        print("Starting with ", self.get_ids()) if verbose else None
+        if isinstance(other, VFBTerms):
+            other_ids = other.get_ids()
+            print("ANDing with ", other_ids) if verbose else None
+            remaining_terms = VFBTerms([term for term in self.terms if term.id in other_ids])
+            print ("Remaining ", remaining_terms.get_ids()) if verbose else None
+            return remaining_terms
+        if isinstance(other, VFBTerm):
+            other_ids = [other.id]
+            print("ANDing with ", other.id) if verbose else None
+            remaining_terms = VFBTerms([term for term in self.terms if term.id == other.id])
+            return remaining_terms
+        raise TypeError("Unsupported operand type(s) for AND: 'VFBTerms' and '{}'".format(type(other).__name__))
+    
+    def OR(self, other, verbose=False):
+        """
+        Perform a logical OR operation on two VFBTerms objects or a VFBTerm object and a VFBTerms object.
+
+        :param other: The other VFBTerms or VFBTerm object to OR.
+        :param verbose: Print additional information if True.
+        :return: A new VFBTerms object containing the combined terms.
+        """
+        print("Starting with ", self.get_ids()) if verbose else None
+        if isinstance(other, VFBTerms):
+            other_ids = other.get_ids()
+            print("ORing with ", other_ids) if verbose else None
+            combined_terms = self.terms + other.terms
+            unique_terms = {term.id: term for term in combined_terms}.values()
+            return VFBTerms(list(unique_terms))
+        if isinstance(other, VFBTerm):
+            combined_terms = self.terms + [other]
+            unique_terms = {term.id: term for term in combined_terms}.values()
+            return VFBTerms(list(unique_terms))
+        raise TypeError("Unsupported operand type(s) for OR: 'VFBTerms' and '{}'".format(type(other).__name__))
+    
+    def XOR(self, other, verbose=False):
+        """
+        Perform a logical XOR operation on two VFBTerms objects or a VFBTerm object and a VFBTerms object.
+
+        :param other: The other VFBTerms or VFBTerm object to XOR.
+        :param verbose: Print additional information if True.
+        :return: A new VFBTerms object containing the terms that are unique to each.
+        """
+        print("Starting with ", self.get_ids()) if verbose else None
+        if isinstance(other, VFBTerms):
+            other_ids = other.get_ids()
+            print("XORing with ", other_ids) if verbose else None
+            combined_terms = self.terms + other.terms
+            unique_terms = [term for term in combined_terms if term.id not in self.get_ids() or term.id not in other_ids]
+            return VFBTerms(list(unique_terms))
+        if isinstance(other, VFBTerm):
+            other_ids = [other.id]
+            print("XORing with ", other.id) if verbose else None
+            unique_terms = [term for term in self.terms if term.id != other.id]
+            return VFBTerms(list(unique_terms))
+        raise TypeError("Unsupported operand type(s) for XOR: 'VFBTerms' and '{}'".format(type(other).__name__))
+
+    def NAND(self, other, verbose=False):
+        """
+        Perform a logical NAND operation on two VFBTerms objects or a VFBTerm object and a VFBTerms object.
+
+        :param other: The other VFBTerms or VFBTerm object to NAND.
+        :param verbose: Print additional information if True.
+        :return: A new VFBTerms object containing the terms that are unique to each.
+        """
+        print("Starting with ", self.get_ids()) if verbose else None
+        if isinstance(other, VFBTerms):
+            other_ids = other.get_ids()
+            print("NANDing with ", other_ids) if verbose else None
+            combined_terms = self.terms + other.terms
+            unique_terms = [term for term in combined_terms if term.id not in self.get_ids() or term.id not in other_ids]
+            return VFBTerms(list(unique_terms))
+        if isinstance(other, VFBTerm):
+            other_ids = [other.id]
+            print("NANDing with ", other.id) if verbose else None
+            unique_terms = [term for term in self.terms if term.id != other.id]
+            return VFBTerms(list(unique_terms))
+        raise TypeError("Unsupported operand type(s) for NAND: 'VFBTerms' and '{}'".format(type(other).__name__))
+
+    def NOR(self, other, verbose=False):
+        """
+        Perform a logical NOR operation on two VFBTerms objects or a VFBTerm object and a VFBTerms object.
+
+        :param other: The other VFBTerms or VFBTerm object to NOR.
+        :param verbose: Print additional information if True.
+        :return: A new VFBTerms object containing the terms that are unique to each.
+        """
+        print("Starting with ", self.get_ids()) if verbose else None
+        if isinstance(other, VFBTerms):
+            other_ids = other.get_ids()
+            print("NORing with ", other_ids) if verbose else None
+            combined_terms = self.terms + other.terms
+            unique_terms = [term for term in combined_terms if term.id not in self.get_ids() or term.id not in other_ids]
+            return VFBTerms(list(unique_terms))
+        if isinstance(other, VFBTerm):
+            other_ids = [other.id]
+            print("NORing with ", other.id) if verbose else None
+            unique_terms = [term for term in self.terms if term.id != other.id]
+            return VFBTerms(list(unique_terms))
+        raise TypeError("Unsupported operand type(s) for NOR: 'VFBTerms' and '{}'".format(type(other).__name__))
+
+    def XNOR(self, other, verbose=False):
+        """
+        Perform a logical XNOR operation on two VFBTerms objects or a VFBTerm object and a VFBTerms object.
+
+        :param other: The other VFBTerms or VFBTerm object to XNOR.
+        :param verbose: Print additional information if True.
+        :return: A new VFBTerms object containing the terms that are unique to each.
+        """
+        print("Starting with ", self.get_ids()) if verbose else None
+        if isinstance(other, VFBTerms):
+            other_ids = other.get_ids()
+            print("XNORing with ", other_ids) if verbose else None
+            combined_terms = self.terms + other.terms
+            unique_terms = [term for term in combined_terms if term.id not in self.get_ids() or term.id not in other_ids]
+            return VFBTerms(list(unique_terms))
+        if isinstance(other, VFBTerm):
+            other_ids = [other.id]
+            print("XNORing with ", other.id) if verbose else None
+            unique_terms = [term for term in self.terms if term.id != other.id]
+            return VFBTerms(list(unique_terms))
+        raise TypeError("Unsupported operand type(s) for XNOR: 'VFBTerms' and '{}'".format(type(other).__name__))
+
+    def NOT(self, other, verbose=False):
+        """
+        Perform a logical NOT operation on the current VFBTerms object.
+
+        :param other: The other VFBTerms or VFBTerm to remove from this VFBTerms.
+        :param verbose: Print additional information if True.
+        :return: A new VFBTerms object containing the terms that are not in the other object.
+        """
+        print("Starting with ", self.get_ids()) if verbose else None
+        if isinstance(other, VFBTerms):
+            other_ids = other.get_ids()
+            print("NOTing with ", other_ids) if verbose else None
+            remaining_terms = VFBTerms([term for term in self.terms if term.id not in other_ids])
+            print ("Remaining ", remaining_terms.get_ids()) if verbose else None
+            return remaining_terms
+        if isinstance(other, VFBTerm):
+            other_ids = [other.id]
+            print("NOTing with ", other.id) if verbose else None
+            remaining_terms = VFBTerms([term for term in self.terms if term.id != other.id])
+            return remaining_terms
+        raise TypeError("Unsupported operand type(s) for NOT: 'VFBTerms' and '{}'".format(type(other).__name__))
 
     def load_skeletons(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """

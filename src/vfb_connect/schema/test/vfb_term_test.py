@@ -289,5 +289,35 @@ class VfbTermTest(unittest.TestCase):
         print(composed_of.get_summaries(return_dataframe=False))
         self.assertTrue(isinstance(composed_of, VFBTerms))
 
+    def test_vfbterm_addition(self):
+        terms1 = self.vfb.terms(['medulla on JRC2018Unisex adult brain', 'nodulus on JRC2018Unisex adult brain'])
+        ids = self.vfb.get_instances("'neuron' that 'has synaptic terminal in' some 'nodulus' and 'has synaptic terminal in' some 'medulla'")
+        terms2 = self.vfb.terms(ids)
+        print("got terms1 ", terms1)
+        print("got terms2 ", terms2)
+        terms = terms1+terms2
+        print("got terms ", terms)
+        self.assertTrue(terms)
+        self.assertTrue(isinstance(terms, VFBTerms))
+        self.assertTrue(len(terms) == len(terms1)+len(terms2))
+        terms = terms1+terms1
+        print("got terms ", terms)
+        self.assertTrue(terms)
+        self.assertTrue(isinstance(terms, VFBTerms))
+        self.assertTrue(len(terms) == len(terms1))
+
+        med_neurons = terms1[0].neurons_with_synaptic_terminals_here
+        nod_neurons = terms1[1].neurons_with_synaptic_terminals_here
+        print("got med_neurons ", med_neurons)
+        print("got nod_neurons ", nod_neurons)
+        neurons = med_neurons.AND(nod_neurons)
+        print("got neurons ", neurons)
+        print(f"got {len(neurons)} via logic and {len(terms2)} via OWL query")
+        print(f"{neurons.get_names()} == {terms2.get_names()}")
+        self.assertTrue(neurons == terms2)
+
+
+
+
 if __name__ == "__main__":
     unittest.main()
