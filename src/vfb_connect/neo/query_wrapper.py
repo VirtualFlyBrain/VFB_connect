@@ -640,6 +640,25 @@ class QueryWrapper(Neo4jConnect):
                 dc.append(_populate_instance_summary_tab(r))
         print(f"Got {len(dc)} results.") if verbose else None
         return dc
+    
+    def _query_2_summary(self, TermInfo, typ, verbose=False):
+        # type_2_summary = {
+        #     'Get JSON for Individual': '_populate_instance_summary_tab',
+        #     'Get JSON for Class': '_populate_anatomical_entity_summary',
+        # }
+        dc = []
+        for r in TermInfo:
+            if 'Class' in typ:
+                print(f"Getting Class: {r['short_form']}") if verbose else None
+                dc.append(_populate_anatomical_entity_summary(r))
+            elif typ == 'Get JSON for DataSet':
+                print(f"Getting DataSet: {r['short_form']}") if verbose else None
+                dc.append(_populate_dataset_summary_tab(r))
+            else:
+                print(f"Getting Individual: {r['short_form']}") if verbose else None
+                dc.append(_populate_instance_summary_tab(r))
+        print(f"Got {len(dc)} results.") if verbose else None
+        return dc
 
     def _serialize_solr_output(self, results):
         """

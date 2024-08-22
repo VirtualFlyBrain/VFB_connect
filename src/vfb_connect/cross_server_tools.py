@@ -1,5 +1,10 @@
+import json
 import os
+from string import Template
 from typing import List
+from xml.sax import saxutils
+
+import pkg_resources
 from .owl.owlery_query_tools import OWLeryConnect
 from .neo.neo4j_tools import Neo4jConnect, re, dict_cursor
 from .neo.query_wrapper import QueryWrapper, batch_query
@@ -85,6 +90,13 @@ class VfbConnect:
         self.oc = OWLeryConnect(endpoint=owlery_endpoint,
                                 lookup=self.lookup)
         self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
+
+        multi_query_json = pkg_resources.resource_filename(
+                            "vfb_connect",
+                            "resources/VFB_results_multi_input.json")
+        with open(multi_query_json, 'r') as f:
+            self.queries = json.loads(saxutils.unescape(f.read()))
+
         print("\033[32mSession Established!\033[0m")
         print("")
         print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.get_TermInfo)\033[0m")
@@ -720,6 +732,37 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.get_dbs(include_symbols=include_symbols)
 
+    def get_scRNAseq_gene_expression(self, cluster, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
+
+        typ = 'Get JSON for cluster_expression query'
+        query = self.queries.get(typ,None)
+        if not query:
+            print("\033[31mError:\033[0m Query not found for %s" % typ)
+            return None
+        cluster_id = None
+        if isinstance(cluster, VFBTerm):
+            cluster_id = cluster.id
+        if isinstance(cluster, VFBTerms):
+            raise ValueError("VFBTerms object passed to get_scRNAseq_gene_expression method. Please pass a single id/label/VFBTerm object.")
+        if isinstance(cluster, str):
+            if query_by_label:
+                cluster_id = self.lookup_id(cluster)
+            else:
+                cluster_id = cluster
+        if not cluster_id:
+            raise ValueError("Cluster ID not matched for %s" % cluster)
+        qs = Template(query).substitute(ID=cluster_id)
+        print(f"Running query: {qs}") if verbose else None
+        r = self.nc.commit_list([qs])
+        dc = dict_cursor(r)
+        if return_id_only:
+            return [d.get('gene',{}).get('short_form', None) for d in dc if d.get('gene',{}).get('short_form', None)]
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
+        return dc
+
+        "MATCH (primary:Individual:Cluster) WHERE primary.short_form in [$id] WITH primary MATCH (primary)-[e:expresses]->(g:Gene:Class) WITH coalesce(e.expression_level_padded[0], e.expression_level[0]) as expression_level, e.expression_extent[0] as expression_extent, { short_form: g.short_form, label: coalesce(g.label,''), iri: g.iri, types: labels(g), unique_facets: apoc.coll.sort(coalesce(g.uniqueFacets, [])), symbol: coalesce(([]+g.symbol)[0], '')}  AS gene,primary MATCH (a:Anatomy)<-[:composed_primarily_of]-(primary) WITH { short_form: a.short_form, label: coalesce(a.label,''), iri: a.iri, types: labels(a), unique_facets: apoc.coll.sort(coalesce(a.uniqueFacets, [])), symbol: coalesce(([]+a.symbol)[0], '')}  AS anatomy,primary,expression_level,expression_extent,gene  RETURN { core : { short_form: primary.short_form, label: coalesce(primary.label,''), iri: primary.iri, types: labels(primary), unique_facets: apoc.coll.sort(coalesce(primary.uniqueFacets, [])), symbol: coalesce(([]+primary.symbol)[0], '')} , description : coalesce(primary.description, []), comment : coalesce(primary.comment, []) } AS term, 'Get JSON for cluster expression query' AS query, 'a3c0d68' AS version , expression_level, expression_extent, gene, anatomy"
+
     def term(self, term, verbose=False):
         """Get a VFBTerm object for a given term id, name, symbol or synonym.
 
@@ -783,4 +826,3 @@ class VfbConnect:
 
         print(rgb_colors) if verbose else None
         return rgb_colors
-    

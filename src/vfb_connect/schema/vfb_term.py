@@ -1280,6 +1280,10 @@ class VFBTerm:
                 self._neuron_types_with_synaptic_terminals_here = None
                 self.add_anatomy_containing_neurons()
 
+            if self.has_tag('Cluster'):
+                self._scRNAseq_genes = None
+                self.add_cluster_properties()
+
     @property
     def parents(self, verbose=False):
         """
@@ -1300,6 +1304,19 @@ class VFBTerm:
 
         # Dynamically add the property to the instance
         setattr(self.__class__, 'regions', regions)
+
+    def add_cluster_properties(self):
+        @property
+        def scRNAseq_genes(self):
+            """
+            Get the genes associated with this cluster.
+            """
+            if self._scRNAseq_genes is None:
+                self._scRNAseq_genes = VFBTerms(self.vfb.get_scRNAseq_gene_expression(return_id_only=True, cluster=self.id))
+            return self._scRNAseq_genes
+
+        # Dynamically add the property to the instance
+        setattr(self.__class__, 'scRNAseq_genes', scRNAseq_genes)
 
     @property
     def instances(self):
