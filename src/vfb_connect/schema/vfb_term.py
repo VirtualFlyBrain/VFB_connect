@@ -1242,16 +1242,15 @@ class VFBTerm:
                 self.add_instance_properties()
 
             if self.is_type:
-                self._subtypes = None # Initialize as None, will be loaded on first access
-                self._subparts = None # Initialize as None, will be loaded on first access
-                self._children = None # Initialize as None, will be loaded on first access
+                self._subtypes = None  # Initialize as None, will be loaded on first access
+                self._subparts = None  # Initialize as None, will be loaded on first access
+                self._children = None  # Initialize as None, will be loaded on first access
                 self.add_type_properties()
 
             if self.is_neuron:
-                self._similar_neurons_nblast = None # Initialize as None, will be loaded on first access
-                # self._similar_neurons_neuronbridge = None # Initialize as None, will be loaded on first access
-                self._potential_drivers_nblast = None # Initialize as None, will be loaded on first access
-                self._potential_drivers_neuronbridge = None # Initialize as None, will be loaded on first access
+                self._similar_neurons_nblast = None  # Initialize as None, will be loaded on first access
+                self._potential_drivers_nblast = None  # Initialize as None, will be loaded on first access
+                self._potential_drivers_neuronbridge = None  # Initialize as None, will be loaded on first access
                 self.add_neuron_properties()
 
             if any(self.has_tag(tag) for tag in neuron_containing_anatomy_tags):
@@ -1358,7 +1357,6 @@ class VFBTerm:
         setattr(self.__class__, 'children', children)
 
     def add_anatomy_containing_neurons(self):
-
         @property
         def neuron_types_that_overlap(self):
             """
@@ -1372,7 +1370,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
-                self._neuron_types_that_overlap = VFBTerms(terms = self.vfb.oc.get_subclasses(f"'neuron' that 'overlaps' some '{id}'", query_by_label=True))
+                self._neuron_types_that_overlap = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'overlaps' some '{id}'", query_by_label=True))
             return self._neuron_types_that_overlap
 
         @property
@@ -1388,7 +1386,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
-                self._neuron_types_with_synaptic_terminals_here = VFBTerms(terms = self.vfb.oc.get_subclasses(f"'neuron' that 'has synaptic terminal in' some '{id}'", query_by_label=True))
+                self._neuron_types_with_synaptic_terminals_here = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'has synaptic terminal in' some '{id}'", query_by_label=True))
             return self._neuron_types_with_synaptic_terminals_here
 
         @property
@@ -1404,7 +1402,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
-                self._neurons_that_overlap = VFBTerms(terms = self.vfb.oc.get_instances(f"'neuron' that 'overlaps' some '{id}'", query_by_label=True))
+                self._neurons_that_overlap = VFBTerms(terms=self.vfb.oc.get_instances(f"'neuron' that 'overlaps' some '{id}'", query_by_label=True))
             return self._neurons_that_overlap
 
         @property
@@ -1419,7 +1417,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
-                self._neurons_with_synaptic_terminals_here = VFBTerms(terms = self.vfb.oc.get_instances(f"'neuron' that 'has synaptic terminal in' some '{id}'", query_by_label=True))
+                self._neurons_with_synaptic_terminals_here = VFBTerms(terms=self.vfb.oc.get_instances(f"'neuron' that 'has synaptic terminal in' some '{id}'", query_by_label=True))
             return self._neurons_with_synaptic_terminals_here
 
         @property
@@ -1434,7 +1432,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
-                self._downstream_neurons = VFBTerms(terms = self.vfb.oc.get_instances(f"'neuron' that 'has presynaptic terminals in' some '{id}'", query_by_label=True))
+                self._downstream_neurons = VFBTerms(terms=self.vfb.oc.get_instances(f"'neuron' that 'has presynaptic terminals in' some '{id}'", query_by_label=True))
             return self._downstream_neurons
 
         @property
@@ -1449,7 +1447,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
-                self._upstream_neurons = VFBTerms(terms = self.vfb.oc.get_instances(f"'neuron' that 'has postsynaptic terminal in' some '{id}'", query_by_label=True))
+                self._upstream_neurons = VFBTerms(terms=self.vfb.oc.get_instances(f"'neuron' that 'has postsynaptic terminal in' some '{id}'", query_by_label=True))
             return self._upstream_neurons
 
         @property
@@ -1464,7 +1462,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
-                self._downstream_neuron_types = VFBTerms(terms = self.vfb.oc.get_subclasses(f"'neuron' that 'has presynaptic terminals in' some '{id}'", query_by_label=True))
+                self._downstream_neuron_types = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'has presynaptic terminals in' some '{id}'", query_by_label=True))
             return self._downstream_neuron_types
 
         @property
@@ -1479,9 +1477,8 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
-                self._upstream_neuron_types = VFBTerms(terms = self.vfb.oc.get_subclasses(f"'neuron' that 'has postsynaptic terminal in' some '{id}'", query_by_label=True))
+                self._upstream_neuron_types = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'has postsynaptic terminal in' some '{id}'", query_by_label=True))
             return self._upstream_neuron_types
-
 
         # Dynamically add the property to the instance
         setattr(self.__class__, 'neurons_that_overlap', neurons_that_overlap)
@@ -1489,7 +1486,7 @@ class VFBTerm:
         setattr(self.__class__, 'downstream_neurons', downstream_neurons)
         setattr(self.__class__, 'upstream_neurons', upstream_neurons)
         setattr(self.__class__, 'neuron_types_that_overlap', neuron_types_that_overlap)
-        setattr(self.__class__, 'neuron_types_with_synapic_terminals_here', neuron_types_with_synapic_terminals_here)
+        setattr(self.__class__, 'neuron_types_with_synapic_terminals_here', neuron_types_with_synaptic_terminals_here)
         setattr(self.__class__, 'downstream_neuron_types', downstream_neuron_types)
         setattr(self.__class__, 'upstream_neuron_types', upstream_neuron_types)
 
@@ -1743,7 +1740,6 @@ class VFBTerm:
                 self.mesh.label = self.name
                 self.mesh.id = self.id
 
-
     def load_volume(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """
         Load the navis volume from each available image in the term.
@@ -1827,7 +1823,13 @@ class VFBTerm:
             return
 
     def show(self, template=None, transparent=False, verbose=False):
-        # First, try to show the image of the current object
+        """
+        Display the image of the term or its instances.
+
+        :param template: Template short form to match for image display.
+        :param transparent: Display the image with transparency if True.
+        :param verbose: Print additional information if True.
+        """
         if self.channel_images:
             if template:
                 selected_template = self.vfb.lookup_id(template)
@@ -1853,16 +1855,21 @@ class VFBTerm:
         print(f"No images found to display for {self.name}") if verbose else None
 
     def open(self, verbose=False):
+        """
+        Open the term's URL in the default web browser.
+
+        :param verbose: Print additional information if True.
+        """
         print("Opening ", self.url) if verbose else None
         webbrowser.open(self.url)
 
     def plot_partners(self, partners: List[Partner], include_self=True, template=None, verbose=False):
         """Plot a network of neuron partners.
 
-        Parameters
-        ----------
-        partners : List[Partner] usually the output from the downstream_partners or upstream_partners methods.
-            List of Partner objects to plot.
+        :param partners: List of Partner objects to plot, usually the output from the downstream_partners or upstream_partners methods.
+        :param include_self: Include the neuron itself in the plot if True.
+        :param template: Template short form to match for image display.
+        :param verbose: Print additional information if True.
         """
         if partners and len(partners) > 0:
             neurons = [self] if include_self else []
@@ -1873,7 +1880,7 @@ class VFBTerm:
             min_weight = min(weights)
             normalized_weights = [(weight - min_weight) / (max_weight - min_weight) for weight in weights]
             colours = self.vfb.generate_lab_colors(len(neurons)-1)
-            colours = [(0,0,0)] + colours # Reverse the colours to match the order of the neurons
+            colours = [(0,0,0)] + colours  # Reverse the colours to match the order of the neurons
             alphas = []
             max_alpha = int(255)
             for i, neuron in enumerate(neurons):
@@ -1893,10 +1900,9 @@ class VFBTerm:
     def plot_similar(self, similar: List[Score], template=None, verbose=False):
         """Plot a network of similar neurons or potential drivers.
 
-        Parameters
-        ----------
-        similar : List[Score] usually the output from the similar_neurons_nblast or similar_neurons_neuronbridge methods.
-            List of Score objects to plot.
+        :param similar: List of Score objects to plot, usually the output from the similar_neurons_nblast or potential_drivers methods.
+        :param template: Template short form to match for image display.
+        :param verbose: Print additional information if True.
         """
         if similar and len(similar) > 0:
             neurons = [self] + [score.term for score in similar]
@@ -1919,6 +1925,10 @@ class VFBTerm:
                 alphas.append(alpha)
             print("Colours: ", colours) if verbose else None
             VFBTerms(neurons).plot3d(verbose=verbose, template=template, colors=colours)
+
+        else:
+            print(f"No similar neurons found for {self.name}") if verbose else None
+
 
 class VFBTerms:
     def __init__(self, terms: Union[List[VFBTerm], List[str], pandas.core.frame.DataFrame, List[dict]], verbose=False):
@@ -1945,7 +1955,7 @@ class VFBTerms:
 
         # Check if terms is a numpy array
         elif isinstance(terms, np.ndarray):
-            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")] if len(terms) > 0 and isinstance(terms[0],str) else []
+            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")] if len(terms) > 0 and isinstance(terms[0], str) else []
 
         # Check if terms is a list of dictionaries
         elif isinstance(terms, list) and all(isinstance(term, dict) for term in terms):
@@ -1972,6 +1982,12 @@ class VFBTerms:
         return getattr(self, key, default)
 
     def append(self, vfb_term, verbose=False):
+        """
+        Append a VFBTerm or VFBTerms object to the current VFBTerms.
+
+        :param vfb_term: A VFBTerm or VFBTerms object to append.
+        :param verbose: Print additional information if True.
+        """
         if isinstance(vfb_term, VFBTerm):
             self.terms.append(vfb_term)
             print("Appended ", vfb_term.name) if verbose else None
@@ -1994,6 +2010,12 @@ class VFBTerms:
         return len(self.terms)
 
     def __add__(self, other):
+        """
+        Add two VFBTerms objects or a VFBTerm object and a VFBTerms object.
+
+        :param other: The other VFBTerms or VFBTerm object to add.
+        :return: A new VFBTerms object containing the combined terms.
+        """
         if isinstance(other, VFBTerms):
             combined_terms = VFBTerms(self.terms) + other.terms
             unique_terms = {term.id: term for term in combined_terms}.values()
@@ -2023,6 +2045,13 @@ class VFBTerms:
         raise TypeError("Unsupported operand type(s) for +: 'VFBTerms' and '{}'".format(type(other).__name__))
 
     def __sub__(self, other, verbose=False):
+        """
+        Subtract a VFBTerms or VFBTerm object from the current VFBTerms.
+
+        :param other: The VFBTerms or VFBTerm object to subtract.
+        :param verbose: Print additional information if True.
+        :return: A new VFBTerms object containing the remaining terms.
+        """
         print("Starting with ", self.get_ids()) if verbose else None
         if isinstance(other, VFBTerms):
             other_ids = other.get_ids()
@@ -2038,11 +2067,21 @@ class VFBTerms:
         raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
 
     def __dir__(self):
+        """
+        List available attributes and methods, excluding private and certain prefixed attributes.
+
+        :return: List of attribute and method names.
+        """
         return [attr for attr in list(self.__dict__.keys()) if not attr.startswith('_')] + [attr for attr in dir(self.__class__) if not attr.startswith('_') and not attr.startswith('add_')]
 
     def load_skeletons(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """
         Load the navis skeleton from each available image in the term.
+
+        :param template: The short form of the template to load skeletons for.
+        :param verbose: Print additional information if True.
+        :param query_by_label: Query by label if True.
+        :param force_reload: Force reload of skeletons if True.
         """
         for term in self.terms:
             term.load_skeleton(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
@@ -2050,6 +2089,11 @@ class VFBTerms:
     def load_meshes(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """
         Load the navis mesh from each available image in the term.
+
+        :param template: The short form of the template to load meshes for.
+        :param verbose: Print additional information if True.
+        :param query_by_label: Query by label if True.
+        :param force_reload: Force reload of meshes if True.
         """
         for term in self.terms:
             term.load_mesh(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
@@ -2057,6 +2101,11 @@ class VFBTerms:
     def load_volumes(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """
         Load the navis volume from each available image in the term.
+
+        :param template: The short form of the template to load volumes for.
+        :param verbose: Print additional information if True.
+        :param query_by_label: Query by label if True.
+        :param force_reload: Force reload of volumes if True.
         """
         for term in self.terms:
             term.load_volume(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
@@ -2064,6 +2113,12 @@ class VFBTerms:
     def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
         """
         Plot the 3D representation of any neuron or expression.
+
+        :param template: The short form of the template to plot 3D representations in.
+        :param verbose: Print additional information if True.
+        :param query_by_label: Query by label if True.
+        :param force_reload: Force reload of 3D representations if True.
+        :param kwargs: Additional arguments for plotting.
         """
         if template:
             if query_by_label:
@@ -2138,6 +2193,12 @@ class VFBTerms:
     def plot3d_by_type(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
         """
         Plot the 3D representation of any neuron or expression coloured by it's parent type.
+
+        :param template: The short form of the template to plot 3D representations in.
+        :param verbose: Print additional information if True.
+        :param query_by_label: Query by label if True.
+        :param force_reload: Force reload of 3D representations if True.
+        :param kwargs: Additional arguments for plotting.
         """
         if template:
             if query_by_label:
@@ -2213,12 +2274,28 @@ class VFBTerms:
             print("Nothing found to plot")
 
     def get_ids(self):
+        """
+        Get the IDs of the terms.
+
+        :return: List of term IDs.
+        """
         return [term.id for term in self.terms]
 
     def get_names(self):
+        """
+        Get the names of the terms.
+
+        :return: List of term names.
+        """
         return [term.name for term in self.terms]
 
     def get_summaries(self, return_dataframe=True):
+        """
+        Get the summaries of the terms.
+
+        :param return_dataframe: Return the summaries as a DataFrame if True.
+        :return: List or DataFrame of term summaries.
+        """
         summaries = [term.get_summary(return_dataframe=return_dataframe) for term in self.terms]
 
         if return_dataframe:
@@ -2227,7 +2304,12 @@ class VFBTerms:
         return summaries
 
     def open(self, template=None, verbose=False):
-        # URL for VFB browser
+        """
+        Open the VFB browser with the terms' URLs.
+
+        :param template: Template short form to include in the URL.
+        :param verbose: Print additional information if True.
+        """
         url = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto"
         space = self.vfb.lookup_id(template) + "," if template else ""
         images = "?i=" + space + ",".join(self.get_ids())
@@ -2255,6 +2337,7 @@ def create_vfbterm_list_from_json(json_data, verbose=False):
     Create a list of VFBTerm objects from JSON data.
 
     :param json_data: JSON data as a string or list of dictionaries.
+    :param verbose: Print additional information if True.
     :return: A list of VFBTerm objects.
     """
     if isinstance(json_data, str):
@@ -2269,12 +2352,12 @@ def create_vfbterm_list_from_json(json_data, verbose=False):
 
     return VFBTerms([create_vfbterm_from_json(term, verbose=verbose) for term in data])
 
-# Helper function to create a VFBTerm object from JSON
 def create_vfbterm_from_json(json_data, verbose=False):
     """
     Create a VFBTerm object from JSON data.
 
     :param json_data: JSON data as a string or dictionary.
+    :param verbose: Print additional information if True.
     :return: A VFBTerm object.
     """
     data = None
@@ -2449,7 +2532,9 @@ def load_skeletons(vfb_term, template=None, verbose=False, query_by_label=True, 
 
     :param vfb_term: A VFBTerm object or list of VFBTerm objects.
     :param template: The short form of the template to load skeletons for.
-    :return: None
+    :param verbose: Print additional information if True.
+    :param query_by_label: Query by label if True.
+    :param force_reload: Force reload of skeletons if True.
     """
     from vfb_connect import vfb
     if template:
