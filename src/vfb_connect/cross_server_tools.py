@@ -712,13 +712,13 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.vfb_id_2_xrefs(vfb_id=vfb_id, db=db, id_type=id_type, reverse_return=reverse_return)
 
-    def get_dbs(self):
+    def get_dbs(self, include_symbols=False):
         """Get all external databases in the database.
 
         :return: List of external databases in the database.
         :rtype: list
         """
-        return self.neo_query_wrapper.get_dbs()
+        return self.neo_query_wrapper.get_dbs(include_symbols=include_symbols)
 
     def term(self, term, verbose=False):
         """Get a VFBTerm object for a given term id, name, symbol or synonym.

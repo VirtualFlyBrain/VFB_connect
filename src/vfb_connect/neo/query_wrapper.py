@@ -342,14 +342,20 @@ class QueryWrapper(Neo4jConnect):
         manifest_df.to_csv(image_folder + '/manifest.tsv', sep='\t')
         return manifest_df
 
-    def get_dbs(self):
+    def get_dbs(self, include_symbols=False):
         """Get a list of available database IDs
 
         :return: list of VFB IDs."""
         query = "MATCH (i:Individual) " \
                 "WHERE 'Site' in labels(i) OR 'API' in labels(i)" \
                 "return i.short_form"
-        return [d['i.short_form'] for d in self._query(query)]
+        dbs = [d['i.short_form'] for d in self._query(query)]
+        if include_symbols:
+            query = "MATCH (i:Individual) " \
+                    "WHERE 'Site' in labels(i) OR 'API' in labels(i) AND exists(i.symbol) and not i.symbol[0] = '' " \
+                    "RETURN i.symbol"
+            dbs.extend([d['i.symbol'] for d in self._query(query) if d['i.symbol']])
+        return dbs
 
     def get_datasets(self, summary=True, return_dataframe=True):
         """

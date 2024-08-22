@@ -1,5 +1,5 @@
 import unittest
-from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm, Score, Relations
+from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm, Score, Relations, Xref
 
 class VfbTermTest(unittest.TestCase):
 
@@ -244,7 +244,7 @@ class VfbTermTest(unittest.TestCase):
     def test_vfbterm_neuron_types_with_synaptic_terminals_here(self):
         term = self.vfb.term('medulla')
         print("got term ", term)
-        synaptic_terminals_types = term.neuron_types_with_synapic_terminals_here
+        synaptic_terminals_types = term.neuron_types_with_synaptic_terminals_here
         print("got synaptic terminals types ", synaptic_terminals_types)
         self.assertTrue(synaptic_terminals_types)
         self.assertTrue(isinstance(synaptic_terminals_types, VFBTerms))
@@ -316,7 +316,15 @@ class VfbTermTest(unittest.TestCase):
         print(f"{neurons.get_names()} == {terms2.get_names()}")
         self.assertTrue(neurons == terms2)
 
-
+    def test_vfbterms_xrefs(self):
+        terms = self.vfb.terms(['catmaid_l1em:17545695', 'Neuprint web interface - hemibrain:v1.1:2039100722'])
+        print("got terms ", terms)
+        self.assertEqual(len(terms), 2)
+        xref = terms[0].xrefs
+        print("got xref ", xref)
+        self.assertTrue(xref)
+        self.assertTrue(isinstance(xref[0], Xref))
+        self.assertEqual(len(xref), 1)
 
 
 if __name__ == "__main__":

@@ -606,7 +606,9 @@ class Relations:
 
         :return: A string representation of the Relations object.
         """
-        return f"Relations({', '.join([repr(rel) for rel in self.relations])})"
+        if len(self.relations) > 0:
+            return f"Relations({', '.join([repr(rel) for rel in self.relations])})"
+        return "Relations([])"
 
     def where(self, relation: str):
         """
@@ -1141,6 +1143,20 @@ class VFBTerm:
         if id is not None:
             if isinstance(id, list):
                 id = id[0]
+            # Test for passed xrefs
+            if isinstance(id,str) and ":" in id:
+                dbs = self.vfb.get_dbs()
+                split_id = id.rsplit(":", 1)
+                db = self.vfb.lookup_id(split_id[0])
+                if db in dbs:
+                    xid = self.vfb.xref_2_vfb_id(acc=[split_id[1]], db=db)
+                    xdb = xid.get(split_id[1], [])
+                    if xdb:
+                        for x in xdb:
+                            if x.get('db',None) == db:
+                                id = x.get('vfb_id',None)
+                                print(f"\033[32mINFO:\033[0m Resolved xref {split_id[0]}:{split_id[1]} to {id}")
+                                break
             self.id = id
             self.name = "unresolved"
             json_data = self.vfb.get_TermInfo([id], summary=False)
@@ -1777,7 +1793,7 @@ class VFBTerm:
                 self.volume.label = self.name
                 self.volume.id = self.id
 
-    def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
+    def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, **kwargs):
         """
         Plot the 3D representation of any neuron, expression or regions.
         """
@@ -1795,6 +1811,10 @@ class VFBTerm:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if hasattr(self, 'skeleton') and self.skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
+                if include_template:
+                    combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
+                    combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
+                    return
                 self.skeleton.plot3d(**kwargs)
                 return
             else:
@@ -1803,6 +1823,10 @@ class VFBTerm:
                     self.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label)
                 if hasattr(self, 'mesh') and self.mesh:
                     print(f"Mesh found for {self.name}") if verbose else None
+                    if include_template:
+                        combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
+                        combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
+                        return
                     self.mesh.plot3d(**kwargs)
                     return
                 else:
@@ -1811,6 +1835,10 @@ class VFBTerm:
                         self.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label)
                     if hasattr(self, 'volume') and self.volume:
                         print(f"Volume found for {self.name}") if verbose else None
+                        if include_template:
+                            combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
+                            combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
+                            return
                         self.volume.plot3d(**kwargs)
                         return
                     else:
@@ -1819,6 +1847,10 @@ class VFBTerm:
             print(f"{self.name} is not a instance") if verbose else None
         if self.instances and len(self._instances) > 0:
             print(f"Loading instances for {self.name}") if verbose else None
+            if include_template:
+                combined = VFBTerms([selected_template if selected_template else self.instances[0].channel_images[0].image.template_anatomy.short_form]) + self.instances
+                combined.plot3d(template=selected_template if selected_template else self.instances[0].channel_images[0].image.template_anatomy.short_form, **kwargs)
+                return
             self.instances.plot3d(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, **kwargs)
             return
 
@@ -1897,7 +1929,7 @@ class VFBTerm:
         else:
             print(f"No partners found for {self.name}") if verbose else None
 
-    def plot_similar(self, similar: List[Score], template=None, verbose=False):
+    def plot_similar(self, similar: List[Score], template=None, include_template=False, verbose=False):
         """Plot a network of similar neurons or potential drivers.
 
         :param similar: List of Score objects to plot, usually the output from the similar_neurons_nblast or potential_drivers methods.
@@ -1924,7 +1956,7 @@ class VFBTerm:
                     colours[i]= colours[i] + (alpha,)
                 alphas.append(alpha)
             print("Colours: ", colours) if verbose else None
-            VFBTerms(neurons).plot3d(verbose=verbose, template=template, colors=colours)
+            VFBTerms(neurons).plot3d(verbose=verbose, template=template, include_template=include_template, colors=colours)
 
         else:
             print(f"No similar neurons found for {self.name}") if verbose else None
@@ -2017,7 +2049,10 @@ class VFBTerms:
         :return: A new VFBTerms object containing the combined terms.
         """
         if isinstance(other, VFBTerms):
-            combined_terms = self.terms + other.terms
+            if isinstance(self.terms, VFBTerms):
+                combined_terms = self.terms + other.terms
+            else:
+                combined_terms = VFBTerms(self.terms) + other.terms
             unique_terms = {term.id: term for term in combined_terms}.values()
             return VFBTerms(list(unique_terms))
         if isinstance(other, VFBTerm):
@@ -2277,7 +2312,7 @@ class VFBTerms:
         for term in self.terms:
             term.load_volume(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 
-    def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
+    def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, **kwargs):
         """
         Plot the 3D representation of any neuron or expression.
 
@@ -2302,7 +2337,7 @@ class VFBTerms:
                 print(f"{term.name} is an instance") if verbose else None
             else:
                 print(f"{term.name} is not an instance soo won't have a skeleton, mesh or volume") if verbose else None
-                continue  
+                continue
             if not hasattr(term, 'skeleton') or force_reload:
                 term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if hasattr(term, 'skeleton') and term.skeleton:
@@ -2353,6 +2388,12 @@ class VFBTerms:
 
         if skeletons:
             print(f"Plotting 3D representation of {len(skeletons)} items")
+            if include_template:
+                print(f"Adding template {selected_template} to the plot")
+                temp = VFBTerm(selected_template)
+                temp.load_mesh()
+                if hasattr(temp, 'mesh') and temp.mesh:
+                    skeletons.append(temp.mesh)
             navis.plot3d(skeletons, **kwargs)
         else:
             print("Nothing found to plot")
