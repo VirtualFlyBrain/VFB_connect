@@ -732,8 +732,52 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.get_dbs(include_symbols=include_symbols)
 
-    def get_scRNAseq_gene_expression(self, cluster, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
+    def get_scRNAseq_expression(self, id, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
+        """
+        Get scRNAseq expression data for a given anatomy term.
 
+        Returns a DataFrame of scRNAseq clusters of cells that are shown to express the current anatomy term.
+        If no data is found, returns False.
+
+        :param id: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
+        :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
+        :param return_id_only: Optional. Return only the cluster IDs if `True`. Default `False`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame with scRNAseq expression data for clusters of cells annotated as the specified cell type.
+        :rtype: pandas.DataFrame or list of dicts
+        """
+        typ = 'Get JSON for anat_scRNAseq query'
+        query = self.queries.get(typ,None)
+        if not query:
+            print("\033[31mError:\033[0m Query not found for %s" % typ)
+            return None
+        if query_by_label:
+            id = self.lookup_id(id)
+        qs = Template(query).substitute(ID=id)
+        print(f"Running query: {qs}") if verbose else None
+        r = self.nc.commit_list([qs])
+        dc = dict_cursor(r)
+        print(dc) if verbose else None
+        if return_id_only:
+            return [d.get('cluster',{}).get('short_form', None) for d in dc if d.get('cluster',{}).get('short_form', None)]
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
+        return dc
+
+    def get_scRNAseq_gene_expression(self, cluster, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
+        """
+        Get gene expression data for a given scRNAseq cluster.
+
+        Returns a DataFrame of gene expression data for a cluster of cells annotated as the specified cluster.
+        If no data is found, returns False.
+
+        :param cluster: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
+        :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
+        :param return_id_only: Optional. Return only the gene IDs if `True`. Default `False`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame with gene expression data for clusters of cells annotated as the specified cell type.
+        :rtype: pandas.DataFrame or list of dicts
+        """
         typ = 'Get JSON for cluster_expression query'
         query = self.queries.get(typ,None)
         if not query:
@@ -761,7 +805,7 @@ class VfbConnect:
             return pd.DataFrame.from_records(dc)
         return dc
     
-    
+
 
     def term(self, term, verbose=False):
         """Get a VFBTerm object for a given term id, name, symbol or synonym.

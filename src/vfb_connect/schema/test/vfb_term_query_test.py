@@ -25,25 +25,23 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(isinstance(summary, pd.DataFrame))
         self.assertGreater(len(summary), 2000)
 
-    def test_get_gene_expression(self):
-        # Get gene expression for a given gene
-        gene = self.vfb.term("FBgn0000014")
-        print(gene)
-        expression = gene.scRNAseq_expression
-        self.assertIsNotNone(expression)
-        self.assertTrue(isinstance(expression, VFBTerms))
-        self.assertGreater(len(expression), 2000)
-        print(expression[0].summary)
-        summary = self.vfb.get_scRNAseq_gene_expression(gene=gene, return_dataframe=True)
+    def test_get_scRNAseq_expression(self):
+        # Get clusters showing expressin in given anatomy term
+        term = self.vfb.term("FBbt_00100214")
+        print(term)
+        summary = self.vfb.get_scRNAseq_expression(id=term, return_dataframe=True)
         print(summary)
         self.assertIsNotNone(summary)
         self.assertTrue(isinstance(summary, pd.DataFrame))
-        self.assertGreater(len(summary), 2000)
+        self.assertGreater(len(summary), 5)
+        expression = term.scRNAseq_expression
+        print(expression)
+        print(expression[0].summary)
+        self.assertIsNotNone(expression)
+        self.assertTrue(isinstance(expression, ExpressionList))
+        self.assertGreater(len(expression), 5)
+        print(expression[0].summary)
 
-    def test_random_gene(self):
-        summary = self.vfb.get_scRNAseq_gene_expression(cluster="FBlc0006144", return_dataframe=False)
-        print(summary[0])
-    
 
 if __name__ == "__main__":
     unittest.main()

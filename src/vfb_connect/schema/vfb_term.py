@@ -286,7 +286,6 @@ class Publication:
         else:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
 
-
 class Syn:
     def __init__(self, scope: str, label: str, type: Optional[str] = None):
         """
@@ -980,7 +979,7 @@ class AnatomyChannelImage:
         return f"AnatomyChannelImage(anatomy={self.anatomy})"
 
 class Expression:
-    def __init__(self, term: str = None, term_name: Optional[str] = None, type: Optional[str] = None, type_name: Optional[str] = None, expression_extent: Optional[float] = None, expression_level: Optional[float] = None):
+    def __init__(self, term: str = None, term_name: Optional[str] = None, term_type: Optional[str] = None, type: Optional[str] = None, type_name: Optional[str] = None, reference: Optional[Publication] = None, dataset: Optional['VFBTerm'] = None , expression_extent: Optional[float] = None, expression_level: Optional[float] = None):
         """
         Initialize an Expression object representing expression data.
 
@@ -999,18 +998,62 @@ class Expression:
             self.type_name = type_name
         self.expression_extent = expression_extent
         self.expression_level = expression_level
+        self.term_type = term_type if term_type else None
 
-    @property
-    def gene(self):
-        """
-        Lazy-load the related term as a VFBTerm.
+        if reference:
+            if isinstance(reference, dict):
+                self.reference = Publication(**reference)
+            elif isinstance(reference, Publication):
+                self.reference = reference
+            else:
+                raise ValueError("reference must be a Publication object")
 
-        :return: The related VFBTerm object.
-        """
-        if self._term is None:
-            self._term = VFBTerm(id=self._term_id)
-            self.name = self._term.name
-        return self._term
+        if dataset:
+            if isinstance(dataset, dict):
+                self.dataset = VFBTerm(**dataset)
+            elif isinstance(dataset, VFBTerm):
+                self.dataset = dataset
+            elif isinstance(dataset, str):
+                self.dataset = VFBTerm(id=dataset)
+            else:
+                raise ValueError("dataset must be a VFBTerm object")
+
+        if term_type == 'gene':
+            self.add_gene_properties()
+        if term_type == 'cluster':
+            self.add_cluster_properties()
+
+    def add_gene_properties(self):
+        @property
+        def gene(self):
+            """
+            Lazy-load the related term as a VFBTerm.
+
+            :return: The related VFBTerm object.
+            """
+            if self._term is None:
+                self._term = VFBTerm(id=self._term_id)
+                self.name = self._term.name
+            return self._term
+    
+        # Dynamically add the property to the instance
+        setattr(self.__class__, 'gene', gene)
+
+    def add_cluster_properties(self):
+        @property
+        def cluster(self):
+            """
+            Lazy-load the related term as a VFBTerm.
+
+            :return: The related VFBTerm object.
+            """
+            if self._term is None:
+                self._term = VFBTerm(id=self._term_id)
+                self.name = self._term.name
+            return self._term
+    
+        # Dynamically add the property to the instance
+        setattr(self.__class__, 'cluster', cluster)
 
     @property
     def cell_type(self):
@@ -1031,8 +1074,21 @@ class Expression:
 
         :return: A dictionary containing the expression data.
         """
-        return {'gene': self.name, 'cell_type': self.type_name, 'extent': self.expression_extent, 'level': self.expression_level}
-    
+        result = {}
+        if hasattr(self, 'name') and self.name:
+            result[self.term_type if self.term_type else 'term'] = self.name if hasattr(self, 'name') else self.term.name
+        if hasattr(self, 'type_name') and self.type_name:
+            result['cell_type'] = self.type_name if hasattr(self, 'type_name') else self.gene.name
+        if hasattr(self, 'expression_extent') and self.expression_extent:
+            result['extent'] = self.expression_extent
+        if hasattr(self, 'expression_level') and self.expression_level:
+            result['level'] = self.expression_level
+        if hasattr(self, 'reference') and self.reference:
+            result['reference'] = self.reference.core.symbol if self.reference.core.symbol else self.reference.core.label
+        if hasattr(self, 'dataset') and self.dataset:
+            result['dataset'] = self.dataset.name
+        return result
+
     def get(self, key, default=None):
         """
         Mimics dictionary-like .get() method.
@@ -1063,29 +1119,33 @@ class Expression:
         :return: The length of the Expression object.
         """
         return 1
-    
+
     def __repr__(self):
         """
         Return a string representation of the Expression object.
 
         :return: A string representation of the Expression object.
         """
-        if not self.type_name:
-            if self.expression_extent and self.expression_level:
-                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, extent={self.expression_extent}, level={self.expression_level})"
-            if self.expression_extent:
-                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, extent={self.expression_extent})"
-            if self.expression_level:
-                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, level={self.expression_level})"
-            return f"Expression(term={self.name if hasattr(self, 'name') else self.term.name})"
+        result = ""
+        if hasattr(self, 'term_type') and self.term_type:
+            result += f"{self.term_type}="
         else:
-            if self.expression_extent and self.expression_level:
-                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, cell_type={self.type_name if hasattr(self, 'type_name') else self.gene.name}, extent={self.expression_extent}, level={self.expression_level})"
-            if self.expression_extent:
-                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, cell_type={self.type_name if hasattr(self, 'type_name') else self.gene.name}, extent={self.expression_extent})"
-            if self.expression_level:
-                return f"Expression(gene={self.name if hasattr(self, 'name') else self.term.name}, cell_type={self.type_name if hasattr(self, 'type_name') else self.gene.name}, level={self.expression_level})"
-        return f"Expression(term={self.name if hasattr(self, 'name') else self.term.name}, cell_type={self.type_name if hasattr(self, 'type_name') else self.gene.name})"
+            result += "term="
+        if hasattr(self, 'name') and self.name:
+            result += f"{self.name}"
+        else:
+            result += f"{self.term.name}"
+        if hasattr(self, 'type_name') and self.type_name:
+            result += f"{', ' if result else ''}cell_type={self.type_name}"
+        if hasattr(self, 'expression_extent') and self.expression_extent:
+            result += f"{', ' if result else ''}extent={self.expression_extent}"
+        if hasattr(self, 'expression_level') and self.expression_level:
+            result += f"{', ' if result else ''}level={self.expression_level}"
+        if hasattr(self, 'reference') and self.reference:
+            result += f"{', ' if result else ''}reference={self.reference.core.symbol if self.reference.core.symbol else self.reference.core.label}"
+        if hasattr(self, 'dataset') and self.dataset:
+            result += f"{', ' if result else ''}dataset={self.dataset.name}"
+        return f"Expression({result})"
 
 class ExpressionList:
     def __init__(self, expressions: Union[List[Expression], List[dict], 'ExpressionList']):
@@ -1495,6 +1555,11 @@ class VFBTerm:
                 self._scRNAseq_genes = None
                 self.add_cluster_properties()
 
+            if self.has_tag('hasScRNAseq'):
+                self._scRNAseq_expression = None
+                self.add_scRNAseq_expression_properties()
+
+
     @property
     def parents(self, verbose=False):
         """
@@ -1516,6 +1581,24 @@ class VFBTerm:
         # Dynamically add the property to the instance
         setattr(self.__class__, 'regions', regions)
 
+    def add_scRNAseq_expression_properties(self):
+        @property
+        def scRNAseq_expression(self):
+            """
+            Get the scRNAseq expression data associated with this term.
+            """
+            if self._scRNAseq_expression is None:
+                exp_list = ExpressionList([Expression(term=exp['cluster']['short_form'], 
+                                                      term_name=exp['cluster']['symbol'] if exp['cluster']['symbol'] else exp['cluster']['label'], 
+                                                      term_type='cluster', reference=Publication(**exp['pubs'][0]), dataset=VFBTerm(exp['dataset']['short_form'])
+                                                      ) for exp in self.vfb.get_scRNAseq_expression(id=self.id, return_id_only=False, return_dataframe=False)])
+                self._scRNAseq_expression = exp_list
+            return self._scRNAseq_expression
+
+        # Dynamically add the property to the instance
+        setattr(self.__class__, 'scRNAseq_expression', scRNAseq_expression)
+
+
     def add_cluster_properties(self):
         @property
         def scRNAseq_genes(self):
@@ -1524,7 +1607,7 @@ class VFBTerm:
             """
             if self._scRNAseq_genes is None:
                 exp_list = self.vfb.get_scRNAseq_gene_expression(cluster=self.id, return_id_only=False, return_dataframe=False)
-                self._scRNAseq_genes = ExpressionList([Expression(term=exp['gene']['short_form'], term_name=exp['gene']['symbol'] if exp['gene']['symbol'] else exp['gene']['label'], type=exp['anatomy']['short_form'], type_name=exp['anatomy']['symbol'] if exp['anatomy']['symbol'] else exp['anatomy']['label'], expression_extent=float(exp['expression_extent']), expression_level=float(exp['expression_level'])) for exp in exp_list])
+                self._scRNAseq_genes = ExpressionList([Expression(term=exp['gene']['short_form'], term_name=exp['gene']['symbol'] if exp['gene']['symbol'] else exp['gene']['label'], term_type='gene', type=exp['anatomy']['short_form'], type_name=exp['anatomy']['symbol'] if exp['anatomy']['symbol'] else exp['anatomy']['label'], expression_extent=float(exp['expression_extent']), expression_level=float(exp['expression_level'])) for exp in exp_list])
             return self._scRNAseq_genes
 
         # Dynamically add the property to the instance
