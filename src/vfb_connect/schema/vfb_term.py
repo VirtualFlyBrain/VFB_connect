@@ -1539,7 +1539,7 @@ class VFBTerm:
                         if hasattr(ci.image, 'image_nrrd') and 'volume.nrrd' in ci.image.image_nrrd:
                             if not self._volume:
                                 self.add_volume_property()
-                        if hasattr(self, 'volume') and hasattr(self, 'mesh'):
+                        if self._volume and self._mesh:
                             break
 
             if self.is_type:
@@ -2260,7 +2260,7 @@ class VFBTerm:
                 return
             else:
                 print(f"No skeleton found for {self.name} check for a mesh") if verbose else None
-                if not hasattr(self, 'mesh') or force_reload:
+                if not self._mesh or force_reload:
                     self.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label)
                 if self._mesh:
                     print(f"Mesh found for {self.name}") if verbose else None
@@ -2272,7 +2272,7 @@ class VFBTerm:
                     return
                 else:
                     print(f"No mesh found for {self.name} check for a volume") if verbose else None
-                    if not hasattr(self, 'volume') or force_reload:
+                    if not self._volume or force_reload:
                         self.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label)
                     if self._volume:
                         print(f"Volume found for {self.name}") if verbose else None
@@ -2328,7 +2328,7 @@ class VFBTerm:
                 return
             else:
                 print(f"No skeleton found for {self.name} check for a mesh") if verbose else None
-                if not hasattr(self, 'mesh') or force_reload:
+                if not self._mesh or force_reload:
                     self.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label)
                 if self._mesh:
                     print(f"Mesh found for {self.name}") if verbose else None
@@ -2336,7 +2336,7 @@ class VFBTerm:
                     return
                 else:
                     print(f"No mesh found for {self.name} check for a volume") if verbose else None
-                    if not hasattr(self, 'volume') or force_reload:
+                    if not self._volume or force_reload:
                         self.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label)
                     if self._volume:
                         print(f"Volume found for {self.name}") if verbose else None
