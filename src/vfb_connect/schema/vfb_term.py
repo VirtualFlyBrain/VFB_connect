@@ -1533,7 +1533,7 @@ class VFBTerm:
                 self.add_instance_properties()
                 if self.channel_images and len(self.channel_images) > 0:
                     for ci in self.channel_images:
-                        if hasattr(ci.image, 'image_obj') and 'volume.obj' in ci.image.image_obj:
+                        if hasattr(ci.image, 'image_obj') and 'volume_man.obj' in ci.image.image_obj:
                             if not self._mesh:
                                 self.add_mesh_property()
                         if hasattr(ci.image, 'image_nrrd') and 'volume.nrrd' in ci.image.image_nrrd:
