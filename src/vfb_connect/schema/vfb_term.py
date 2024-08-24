@@ -2058,7 +2058,6 @@ class VFBTerm:
                 if query_by_label:
                     selected_template = self.vfb.lookup_id(template)
                     print("Template (", template, ") resolved to id ", selected_template) if verbose else None
-                    selected_template = template
                 else:
                     selected_template = template
                 print("Loading skeleton for ", self.name, " aligned to ", template) if verbose else None
@@ -2077,9 +2076,9 @@ class VFBTerm:
                         skeleton.label = self.name
                         skeleton.id = self.id
                     if len(self._skeleton) > 1:
-                        print("Multiple skeletons found for", self.name, "Please run \033[35mZZZZ.load_skelton(template='XXXX')\033[0m to load the correct neuron skeleton.")
-                        print("Available templates:", [ci.image.template_anatomy.name for ci in self.channel_images])
                         if not allow_multiple:
+                            print("Multiple skeletons found for", self.name, "Please run \033[35mZZZZ.load_skelton(template='XXXX')\033[0m to load the correct neuron skeleton.")
+                            print("Available templates:", [ci.image.template_anatomy.name for ci in self.channel_images])
                             self._skeleton = None
                     elif len(self._skeleton) == 1:
                         print("Skeleton found for", self.name) if verbose else None
@@ -2114,7 +2113,6 @@ class VFBTerm:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
                 print("Template (", template, ") resolved to id ", selected_template) if verbose else None
-                selected_template = template
             else:
                 selected_template = template
             print("Loading mesh for ", self.name, " aligned to ", template) if verbose else None
@@ -2134,9 +2132,9 @@ class VFBTerm:
                     mesh.label = self.name
                     mesh.id = self.id
                 if len(self._mesh) > 1:
-                    print("Multiple meshes found for ", self.name, ". Please run \033[35mZZZZ.load_mesh(template='XXXX')\033[0m to load the correct mesh.")
-                    print("Available templates: ", [ci.image.template_anatomy.name.replace('_c','') for ci in self.channel_images])
                     if not allow_multiple:
+                        print("Multiple meshes found for ", self.name, ". Please run \033[35mZZZZ.load_mesh(template='XXXX')\033[0m to load the correct mesh.")
+                        print("Available templates: ", [ci.image.template_anatomy.name.replace('_c','') for ci in self.channel_images])
                         self._mesh = None
                 elif len(self._mesh) == 1:
                     print("Single mesh loaded for ", self.name) if verbose else None
@@ -2168,7 +2166,6 @@ class VFBTerm:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
                 print("Template (", template, ") resolved to id ", selected_template) if verbose else None
-                selected_template = template
             else:
                 selected_template = template
             volume = [ci.image.get_volume() for ci in self.channel_images if ci.image.template_anatomy.short_form == selected_template] if self.channel_images else None
@@ -2188,9 +2185,9 @@ class VFBTerm:
                         volume.id = self.id
 
                 if len(self._volume) > 1:
-                    print("Multiple volumes found for ", self.name, ". Please run \033[35mZZZZ.load_volume(template='XXXX')\033[0m to load the aligned volume.")
-                    print("Available templates: ", [ci.image.template_anatomy.name for ci in self.channel_images])
                     if not allow_multiple:
+                        print("Multiple volumes found for ", self.name, ". Please run \033[35mZZZZ.load_volume(template='XXXX')\033[0m to load the aligned volume.")
+                        print("Available templates: ", [ci.image.template_anatomy.name for ci in self.channel_images])
                         self._volume = None
                 elif len(self._volume) == 1:
                     self._volume = self._volume[0]
@@ -2218,14 +2215,13 @@ class VFBTerm:
         kwargs : dict
             Additional keyword arguments to pass to the plot
         """
+        selected_template = None
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
                 print("Template (", template, ") resolved to id ", selected_template) if verbose else None
                 query_by_label = False
             else:
-                selected_template = template
-        else:
                 selected_template = template
         if self.has_tag('Individual'):
             if not hasattr(self, 'skeleton') or force_reload:
@@ -2297,11 +2293,8 @@ class VFBTerm:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
                 print("Template (", template, ") resolved to id ", selected_template) if verbose else None
-                selected_template = template
             else:
                 selected_template = template
-        else:
-            selected_template = template
         if self.has_tag('Individual'):
             if not hasattr(self, 'skeleton') or force_reload:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
@@ -2867,8 +2860,6 @@ class VFBTerms:
                 query_by_label = False
             else:
                 selected_template = template
-        else:
-            selected_template = template
         skeletons=[]
         for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Images"):
             if term.has_tag('Individual'):
@@ -2935,14 +2926,13 @@ class VFBTerms:
         :param force_reload: Force reload of 3D representations if True.
         :param kwargs: Additional arguments for plotting.
         """
+        selected_template = None
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
                 print("Template (", template, ") resolved to id ", selected_template) if verbose else None
                 query_by_label = False
             else:
-                selected_template = template
-        else:
                 selected_template = template
         skeletons=[]
         types = []
@@ -3345,6 +3335,7 @@ def load_skeletons(vfb_term, template=None, verbose=False, query_by_label=True, 
     :param force_reload: Force reload of skeletons if True.
     """
     from vfb_connect import vfb
+    selected_template = None
     if template:
         if query_by_label:
             selected_template = vfb.lookup_id(template)
