@@ -12,30 +12,26 @@ class VfbTermTest(unittest.TestCase):
             create_vfbterm_from_json(self.vfb.get_TermInfo("VFB_jrcv0jvf", summary=False)))
 
     def test_load_skeleton(self):
-        json_data = self.vfb.get_TermInfo("VFB_jrcv0jvf", summary=False)
-        print("got json_data ", json_data)
-        term = create_vfbterm_from_json(json_data)
+        term = self.vfb.term("VFB_jrcv0jvf")
         print("got VFBTerm ", term)
         term.load_skeleton()
-        print("got skeleton ", term.skeleton)
-        self.assertTrue(term.skeleton and term.skeleton.id == "VFB_jrcv0jvf")
+        print("got skeleton ", term._skeleton)
+        self.assertTrue(term._skeleton and term._skeleton.id == "VFB_jrcv0jvf")
 
     def test_load_mesh(self):
-        json_data = self.vfb.get_TermInfo("VFB_jrcv0jvf", summary=False)
-        term = create_vfbterm_from_json(json_data)
+        term = self.vfb.term("VFB_jrcv0jvf")
         print("got VFBTerm ", term[0])
         term[0].load_mesh(verbose=True)
-        print("got mesh ", term[0].mesh)
-        self.assertTrue(term[0].mesh and term[0].mesh.id == "VFB_jrcv0jvf")
+        print("got mesh ", term[0]._mesh)
+        self.assertTrue(term[0]._mesh and term[0]._mesh.id == "VFB_jrcv0jvf")
 
     def test_load_volume(self):
-        json_data = self.vfb.get_TermInfo("VFB_jrcv0jvf", summary=False)
-        term = create_vfbterm_from_json(json_data)
+        term = self.vfb.term("VFB_jrcv0jvf")
         print("got VFBTerm ", term[0])
         print("nrrd ", term[0].channel_images[0].image.image_nrrd)
         term[0].load_volume(verbose=True)
-        print("got volume ", term[0].volume)
-        self.assertTrue(term[0].volume and term[0].volume.id == "VFB_jrcv0jvf")
+        print("got volume ", term[0]._volume)
+        self.assertTrue(term[0]._volume and term[0]._volume.id == "VFB_jrcv0jvf")
 
     def test_VFBterms_by_region(self):
         oid = self.vfb.lookup_id('overlaps', return_curie=True)
@@ -52,7 +48,7 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(len(names) == len(terms))
 
     def test_VFBterms_plot3d(self):
-        terms = create_vfbterm_from_json(self.vfb.get_instances("'neuron' that 'has presynaptic terminals in' some 'nodulus'", summary=False)[0:100], verbose=True)
+        terms = create_vfbterm_from_json(self.vfb.get_instances("'neuron' that 'has presynaptic terminals in' some 'nodulus'", summary=False)[0:100], verbose=False)
         terms = (terms[1:10:]+terms[0:10:])[0:2]
         self.assertTrue(isinstance(terms, VFBTerms))
         self.assertTrue(len(terms) > 0)
@@ -61,6 +57,17 @@ class VfbTermTest(unittest.TestCase):
             terms.plot3d(template='JRC2018Unisex', verbose=True)
         except Exception as e:
             print("plot3d expectedly failed with ", e)
+        self.assertTrue([True for term in terms if hasattr(term, 'skeleton') or hasattr(term, 'mesh') or hasattr(term, 'volume')])
+
+    def test_VFBterms_plot2d(self):
+        terms = self.vfb.terms(['VFB_00000001','VFB_00010001'])
+        self.assertTrue(isinstance(terms, VFBTerms))
+        self.assertTrue(len(terms) > 0)
+        self.assertTrue(isinstance(terms, VFBTerms))
+        try:
+            terms.plot2d(template='JRC2018Unisex', verbose=True)
+        except Exception as e:
+            print("plot2d expectedly failed with ", e)
         self.assertTrue([True for term in terms if hasattr(term, 'skeleton') or hasattr(term, 'mesh') or hasattr(term, 'volume')])
 
     def test_VFBterms_addition(self):

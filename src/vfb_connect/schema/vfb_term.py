@@ -1506,6 +1506,9 @@ class VFBTerm:
                 self.synonyms = synonyms
 
             self._instances = None
+            self._skeleton = None
+            self._mesh = None
+            self._volume = None
 
             # Set flags for different types of terms
             self.is_type = self.has_tag('Class')
@@ -1527,6 +1530,16 @@ class VFBTerm:
                 self._dataset_ids = dataset
                 self._datasets = None  # Initialize as None, will be loaded on first access
                 self.add_instance_properties()
+                if self.channel_images and len(self.channel_images) > 0:
+                    for ci in self.channel_images:
+                        if hasattr(ci.image, 'image_obj') and 'volume.obj' in ci.image.image_obj:
+                            if not hasattr(self, 'mesh'):
+                                self.add_mesh_property()
+                        if hasattr(ci.image, 'image_nrrd') and 'volume.nrrd' in ci.image.image_nrrd:
+                            if not hasattr(self, 'volume'):
+                                self.add_volume_property()
+                        if hasattr(self, 'volume') and hasattr(self, 'mesh'):
+                            break
 
             if self.is_type:
                 self._subtypes = None  # Initialize as None, will be loaded on first access
@@ -1875,11 +1888,45 @@ class VFBTerm:
                 self._potential_drivers_neuronbridge = [Score(**dict) for dict in results_dict]
             return self._potential_drivers_neuronbridge
 
+        @property
+        def skeleton(self):
+            """
+            Get the skeleton of this neuron.
+            """
+            if not self._skeleton:
+                self.load_skeleton()
+            return self._skeleton
+
         # Dynamically add the property to the instance
         setattr(self.__class__, 'similar_neurons_nblast', similar_neurons_nblast)
         # setattr(self.__class__, 'similar_neurons_neuronbridge', similar_neurons_neuronbridge)
         setattr(self.__class__, 'potential_drivers_nblast', potential_drivers_nblast)
         setattr(self.__class__, 'potential_drivers_neuronbridge', potential_drivers_neuronbridge)
+        setattr(self.__class__, 'skeleton', skeleton)
+
+    def add_mesh_property(self):
+        @property
+        def mesh(self):
+            """
+            Get the mesh of this neuron.
+            """
+            if not self._mesh:
+                self.load_mesh()
+            return self._mesh
+
+        setattr(self.__class__, 'mesh', mesh)
+
+    def add_volume_property(self):
+        @property
+        def volume(self):
+            """
+            Get the volume of this neuron.
+            """
+            if not self._volume:
+                self.load_volume()
+            return self._volume
+
+        setattr(self.__class__, 'volume', volume)
 
     def __repr__(self):
         return f"VFBTerm(term={repr(self.term)})"
@@ -1962,7 +2009,6 @@ class VFBTerm:
             "Description": f"{getattr(self.term, 'description', '')} {getattr(self.term, 'comment', '')}".strip(),
             "URL": getattr(self, "url", None),
         }
-
         if hasattr(self, "related_terms") and self.related_terms:
             summary["Related Terms"] = [str(rel) for rel in self.related_terms]
         if hasattr(self, "_instances") and self._instances:
@@ -1979,7 +2025,8 @@ class VFBTerm:
             summary["License"] = self.license.core.name
         if hasattr(self, "xrefs") and self.xrefs:
             summary["Cross References"] = [str(xref.link) for xref in self.xrefs]
-
+        if hasattr(self, "datasets") and self.datasets:
+            summary["Datasets"] = self.datasets.get_names()
         if return_dataframe:
             return pandas.DataFrame([summary])
 
@@ -1988,126 +2035,188 @@ class VFBTerm:
     def has_tag(self, tag):
         return tag in self.term.core.types
 
-    def load_skeleton(self, template=None, verbose=False, query_by_label=True, force_reload=False):
+    def load_skeleton(self, template=None, verbose=False, query_by_label=True, force_reload=False, allow_multiple=False):
         """
         Load the navis skeleton from each available image in the term.
+
+        Parameters
+        ----------
+        template : str
+            The template to load the skeleton for. If not provided, the first available skeleton will be loaded.
+        verbose : bool
+            Whether to print out information about the loading process.
+        query_by_label : bool
+            Whether to resolve the template by label.
+        force_reload : bool
+            Whether to force a reload of the skeleton.
+        allow_multiple : bool
+            Whether to allow multiple skeletons to be loaded.
         """
+        selected_template = None
         if self.has_tag('Neuron'):
             if template:
                 if query_by_label:
                     selected_template = self.vfb.lookup_id(template)
                     print("Template (", template, ") resolved to id ", selected_template) if verbose else None
-                    selected_template = selected_template
+                    selected_template = template
                 else:
                     selected_template = template
                 print("Loading skeleton for ", self.name, " aligned to ", template) if verbose else None
                 skeletons = [ci.image.get_skeleton() for ci in self.channel_images if ci.image.template_anatomy.short_form == selected_template] if self.channel_images else None
                 if skeletons:
-                    self.skeleton = skeletons[0] if skeletons else None
+                    self._skeleton = skeletons[0] if skeletons else None
             else:
                 print("Loading skeletons for ", self.name) if verbose else None
                 print("Processinng channel images: ", self.channel_images) if verbose else None
-                self.skeleton = [ci.image.get_skeleton() for ci in self.channel_images] if self.channel_images else None
-            if hasattr(self, 'skeleton') and self.skeleton:
-                if isinstance(self.skeleton, list):
-                    self.skeleton = [item for item in self.skeleton if item is not None]
-                    for skeleton in self.skeleton:
+                self._skeleton = [ci.image.get_skeleton() for ci in self.channel_images] if self.channel_images else None
+            if self._skeleton:
+                if isinstance(self._skeleton, list):
+                    self._skeleton = [item for item in self._skeleton if item is not None]
+                    for skeleton in self._skeleton:
                         skeleton.name = self.name
                         skeleton.label = self.name
                         skeleton.id = self.id
-
-                    if len(self.skeleton) > 1:
-                        print("Multiple skeletons found for ", self.name, ". Please specify a template.")
-                        print("Available templates: ", [ci.image.template_anatomy.name for ci in self.channel_images])
-                    elif len(self.skeleton) == 1:
-                        print("Skeleton found for ", self.name) if verbose else None
-                        self.skeleton = self.skeleton[0]
+                    if len(self._skeleton) > 1:
+                        print("Multiple skeletons found for", self.name, "Please run \033[35mZZZZ.load_skelton(template='XXXX')\033[0m to load the correct neuron skeleton.")
+                        print("Available templates:", [ci.image.template_anatomy.name for ci in self.channel_images])
+                        if not allow_multiple:
+                            self._skeleton = None
+                    elif len(self._skeleton) == 1:
+                        print("Skeleton found for", self.name) if verbose else None
+                        self._skeleton = self._skeleton[0]
                 else:
-                    print("Skeleton found for ", self.name) if verbose else None
-                    self.skeleton.name = self.name
-                    self.skeleton.label = self.name
-                    self.skeleton.id = self.id
+                    print("Skeleton found for", self.name) if verbose else None
+                    self._skeleton.name = self.name
+                    self._skeleton.label = self.name
+                    self._skeleton.id = self.id
         else:
             print(f"{self.name} is not a neuron") if verbose else None
 
-    def load_mesh(self, template=None, verbose=False, query_by_label=True, force_reload=False):
+    def load_mesh(self, template=None, verbose=False, query_by_label=True, force_reload=False, allow_multiple=False):
         """
         Load the navis mesh from each available image in the term.
+
+        Parameters
+        ----------
+        template : str
+            The template to load the mesh for. If not provided, the first available mesh will be loaded.
+        verbose : bool
+            Whether to print out information about the loading process.
+        query_by_label : bool
+            Whether to resolve the template by label.
+        force_reload : bool
+            Whether to force a reload of the mesh.
+        allow_multiple : bool
+            Whether to allow multiple meshes to be loaded.
         """
+        selected_template = None
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
                 print("Template (", template, ") resolved to id ", selected_template) if verbose else None
-                selected_template = selected_template
+                selected_template = template
             else:
                 selected_template = template
             print("Loading mesh for ", self.name, " aligned to ", template) if verbose else None
             mesh = [ci.image.get_mesh(verbose=verbose, output='neuron' if self.has_tag('Neuron') else 'volume') for ci in self.channel_images if ci.image.template_anatomy.short_form == selected_template] if self.channel_images else None
             if mesh:
-                self.mesh = mesh[0]
+                self._mesh = mesh[0]
         else:
             print("Loading meshes for ", self.name) if verbose else None
-            self.mesh = [ci.image.get_mesh(verbose=verbose, output='neuron' if self.has_tag('Neuron') else 'volume') for ci in self.channel_images] if self.channel_images else None
-        if hasattr(self, 'mesh') and self.mesh:
-            if isinstance(self.mesh, list):
-                print("Processing meshes: ", self.mesh) if verbose else None
-                self.mesh = [item for item in self.mesh if item is not None]
-                print(len(self.mesh), " Meshes found: ", self.mesh) if verbose else None
-                for mesh in self.mesh:
+            self._mesh = [ci.image.get_mesh(verbose=verbose, output='neuron' if self.has_tag('Neuron') else 'volume') for ci in self.channel_images] if self.channel_images else None
+        if self._mesh:
+            if isinstance(self._mesh, list):
+                print("Processing meshes: ", self._mesh) if verbose else None
+                self._mesh = [item for item in self._mesh if item is not None]
+                print(len(self._mesh), " Meshes found: ", self._mesh) if verbose else None
+                for mesh in self._mesh:
                     mesh.name = self.name
                     mesh.label = self.name
                     mesh.id = self.id
-                if len(self.mesh) > 1:
-                    print("Multiple meshes found for ", self.name, ". Please specify a template.")
+                if len(self._mesh) > 1:
+                    print("Multiple meshes found for ", self.name, ". Please run \033[35mZZZZ.load_mesh(template='XXXX')\033[0m to load the correct mesh.")
                     print("Available templates: ", [ci.image.template_anatomy.name.replace('_c','') for ci in self.channel_images])
-                elif len(self.mesh) == 1:
+                    if not allow_multiple:
+                        self._mesh = None
+                elif len(self._mesh) == 1:
                     print("Single mesh loaded for ", self.name) if verbose else None
-                    self.mesh = self.mesh[0]
+                    self._mesh = self._mesh[0]
             else:
-                self.mesh.name = self.name
-                self.mesh.label = self.name
-                self.mesh.id = self.id
+                self._mesh.name = self.name
+                self._mesh.label = self.name
+                self._mesh.id = self.id
 
-    def load_volume(self, template=None, verbose=False, query_by_label=True, force_reload=False):
+    def load_volume(self, template=None, verbose=False, query_by_label=True, force_reload=False, allow_multiple=False):
         """
         Load the navis volume from each available image in the term.
+
+        Parameters
+        ----------
+        template : str
+            The template to load the volume for. If not provided, the first available volume will be loaded.
+        verbose : bool
+            Whether to print out information about the loading process.
+        query_by_label : bool
+            Whether to resolve the template by label.
+        force_reload : bool
+            Whether to force a reload of the volume.
+        allow_multiple : bool
+            Whether to allow multiple volumes to be loaded.
         """
+        selected_template = None
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
                 print("Template (", template, ") resolved to id ", selected_template) if verbose else None
-                selected_template = selected_template
+                selected_template = template
             else:
                 selected_template = template
             volume = [ci.image.get_volume() for ci in self.channel_images if ci.image.template_anatomy.short_form == selected_template] if self.channel_images else None
             if volume:
-                self.volume = volume[0] if volume else None
+                self._volume = volume[0] if volume else None
         else:
             print("Loading volumes for ", self.name) if verbose else None
-            self.volume = [ci.image.get_volume() for ci in self.channel_images] if self.channel_images else None
-        if hasattr(self, 'volume') and self.volume:
-            if isinstance(self.volume, list):
-                print("Processing volumes: ", self.volume) if verbose else None
-                self.volume = [item for item in self.volume if item is not None]
-                print(len(self.volume), " Volumes found: ", self.volume) if verbose else None
-                for volume in self.volume:
+            self._volume = [ci.image.get_volume() for ci in self.channel_images] if self.channel_images else None
+        if self._volume:
+            if isinstance(self._volume, list):
+                print("Processing volumes: ", self._volume) if verbose else None
+                self._volume = [item for item in self._volume if item is not None]
+                print(len(self._volume), " Volumes found: ", self._volume) if verbose else None
+                for volume in self._volume:
                         volume.name = self.name
                         volume.label = self.name
                         volume.id = self.id
 
-                if len(self.volume) > 1:
-                    print("Multiple volumes found for ", self.name, ". Please specify a template.")
+                if len(self._volume) > 1:
+                    print("Multiple volumes found for ", self.name, ". Please run \033[35mZZZZ.load_volume(template='XXXX')\033[0m to load the aligned volume.")
                     print("Available templates: ", [ci.image.template_anatomy.name for ci in self.channel_images])
-                elif len(self.volume) == 1:
-                    self.volume = self.volume[0]
+                    if not allow_multiple:
+                        self._volume = None
+                elif len(self._volume) == 1:
+                    self._volume = self._volume[0]
             else:
-                self.volume.name = self.name
-                self.volume.label = self.name
-                self.volume.id = self.id
+                self._volume.name = self.name
+                self._volume.label = self.name
+                self._volume.id = self.id
 
     def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, **kwargs):
         """
         Plot the 3D representation of any neuron, expression or regions.
+
+        Parameters
+        ----------
+        template : str
+            The template to plot the 3D representation for. If not provided, the first available 3D representation will be plotted.
+        verbose : bool
+            Whether to print out information about the plotting process.
+        query_by_label : bool
+            Whether to resolve the template by label.
+        force_reload : bool
+            Whether to force a reload of the 3D representation.
+        include_template : bool
+            Whether to include the template in the plot.
+        kwargs : dict
+            Additional keyword arguments to pass to the plot
         """
         if template:
             if query_by_label:
@@ -2121,37 +2230,37 @@ class VFBTerm:
         if self.has_tag('Individual'):
             if not hasattr(self, 'skeleton') or force_reload:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
-            if hasattr(self, 'skeleton') and self.skeleton:
+            if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
                 if include_template:
                     combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
                     combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                     return
-                self.skeleton.plot3d(**kwargs)
+                self._skeleton.plot3d(**kwargs)
                 return
             else:
                 print(f"No skeleton found for {self.name} check for a mesh") if verbose else None
                 if not hasattr(self, 'mesh') or force_reload:
                     self.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label)
-                if hasattr(self, 'mesh') and self.mesh:
+                if self._mesh:
                     print(f"Mesh found for {self.name}") if verbose else None
                     if include_template:
                         combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
                         combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                         return
-                    self.mesh.plot3d(**kwargs)
+                    self._mesh.plot3d(**kwargs)
                     return
                 else:
                     print(f"No mesh found for {self.name} check for a volume") if verbose else None
                     if not hasattr(self, 'volume') or force_reload:
                         self.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label)
-                    if hasattr(self, 'volume') and self.volume:
+                    if self._volume:
                         print(f"Volume found for {self.name}") if verbose else None
                         if include_template:
                             combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
                             combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                             return
-                        self.volume.plot3d(**kwargs)
+                        self._volume.plot3d(**kwargs)
                         return
                     else:
                         print(f"No volume found for {self.name}") if verbose else None
@@ -2165,6 +2274,66 @@ class VFBTerm:
                 return
             self.instances.plot3d(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, **kwargs)
             return
+
+    def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
+        """
+        Plot the 2D representation of any neuron, expression or regions.
+
+        Parameters
+        ----------
+        template : str
+            The template to plot the 2D representation for. If not provided, the first available 2D representation will be plotted.
+        verbose : bool
+            Whether to print out information about the plotting process.
+        query_by_label : bool
+            Whether to resolve the template by label.
+        force_reload : bool
+            Whether to force a reload of the 2D representation.
+        kwargs : dict
+            Additional keyword arguments to pass to the plot
+        """
+        selected_template = None
+        if template:
+            if query_by_label:
+                selected_template = self.vfb.lookup_id(template)
+                print("Template (", template, ") resolved to id ", selected_template) if verbose else None
+                selected_template = template
+            else:
+                selected_template = template
+        else:
+            selected_template = template
+        if self.has_tag('Individual'):
+            if not hasattr(self, 'skeleton') or force_reload:
+                self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
+            if self._skeleton:
+                print(f"Skeleton found for {self.name}") if verbose else None
+                self._skeleton.plot2d(**kwargs)
+                return
+            else:
+                print(f"No skeleton found for {self.name} check for a mesh") if verbose else None
+                if not hasattr(self, 'mesh') or force_reload:
+                    self.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label)
+                if self._mesh:
+                    print(f"Mesh found for {self.name}") if verbose else None
+                    self._mesh.plot2d(**kwargs)
+                    return
+                else:
+                    print(f"No mesh found for {self.name} check for a volume") if verbose else None
+                    if not hasattr(self, 'volume') or force_reload:
+                        self.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label)
+                    if self._volume:
+                        print(f"Volume found for {self.name}") if verbose else None
+                        self._volume.plot2d(**kwargs)
+                        return
+                    else:
+                        print(f"No volume found for {self.name}") if verbose else None
+        else:
+            print(f"{self.name} is not a instance") if verbose else None
+        if self.instances and len(self._instances) > 0:
+            print(f"Loading instances for {self.name}") if verbose else None
+            self.instances.plot2d(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, **kwargs)
+            return
+        print(f"No images found for {self.name}") if verbose else None
 
     def show(self, template=None, transparent=False, verbose=False):
         """
@@ -2643,69 +2812,7 @@ class VFBTerms:
         :param force_reload: Force reload of 3D representations if True.
         :param kwargs: Additional arguments for plotting.
         """
-        if template:
-            if query_by_label:
-                selected_template = self.vfb.lookup_id(template)
-                print("Template (", template, ") resolved to id ", selected_template) if verbose else None
-                query_by_label = False
-            else:
-                selected_template = template
-        else:
-                selected_template = template
-        skeletons=[]
-        for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Images"):
-            if term.has_tag('Individual'):
-                print(f"{term.name} is an instance") if verbose else None
-            else:
-                print(f"{term.name} is not an instance soo won't have a skeleton, mesh or volume") if verbose else None
-                continue
-            if not hasattr(term, 'skeleton') or force_reload:
-                term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
-            if hasattr(term, 'skeleton') and term.skeleton:
-                print(f"Skeleton found for {term.name}") if verbose else None
-                if not selected_template:
-                    if isinstance(term.skeleton, list):
-                        print("Multiple skeletons found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
-                        selected_template = term.channel_images[0].image.template_anatomy.short_form
-                        print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
-                        term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=True)
-                    else:
-                        selected_template = term.channel_images[0].image.template_anatomy.short_form
-                        print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first skeleton found. Specify a template to avoid this.")
-                skeletons.append(term.skeleton)
-            else:
-                print(f"No skeleton found for {term.name} check for a mesh") if verbose else None
-                if not hasattr(term, 'mesh') or force_reload:
-                    term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
-                if hasattr(term, 'mesh') and term.mesh:
-                    print(f"Mesh found for {term.name}") if verbose else None
-                    if not selected_template:
-                        if isinstance(term.mesh, list):
-                            print("Multiple meshes found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
-                            selected_template = term.channel_images[0].image.template_anatomy.short_form
-                            print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
-                            term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=True)
-                        else:
-                            selected_template = term.channel_images[0].image.template_anatomy.short_form
-                            print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first mesh found. Specify a template to avoid this.")
-                    skeletons.append(term.mesh)
-                else:
-                    print(f"No mesh found for {term.name} check for a volume") if verbose else None
-                    if not hasattr(term, 'volume') or force_reload:
-                        term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
-                    if hasattr(term, 'volume') and term.volume:
-                        if not selected_template:
-                            if isinstance(term.volume, list):
-                                print("Multiple volumes found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
-                                selected_template = term.channel_images[0].image.template_anatomy.short_form
-                                print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
-                                term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=True)
-                            elif isinstance(term.volume, navis.core.volumes.Volume):
-                                selected_template = term.channel_images[0].image.template_anatomy.short_form
-                                print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first volume found. Specify a template to avoid this.")
-                        skeletons.append(term.volume)
-                    else:
-                        print(f"No volume found for {term.name}") if verbose else None
+        skeletons, selected_template = self._get_plot_images(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 
         if skeletons:
             print(f"Plotting 3D representation of {len(skeletons)} items")
@@ -2718,6 +2825,105 @@ class VFBTerms:
             navis.plot3d(skeletons, **kwargs)
         else:
             print("Nothing found to plot")
+
+    def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, **kwargs):
+        """
+        Plot the 2D representation of any neuron or expression.
+
+        :param template: The short form of the template to plot 2D representations in.
+        :param verbose: Print additional information if True.
+        :param query_by_label: Query by label if True.
+        :param force_reload: Force reload of 2D representations if True.
+        :param include_template: Include the template in the plot if True.
+        :param kwargs: Additional arguments for plotting.
+        """
+        skeletons, selected_template = self._get_plot_images(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
+
+        if skeletons:
+            print(f"Plotting 2D representation of {len(skeletons)} items")
+            if include_template:
+                print(f"Adding template {selected_template} to the plot")
+                temp = VFBTerm(selected_template)
+                temp.load_mesh()
+                if hasattr(temp, 'mesh') and temp.mesh:
+                    skeletons.append(temp.mesh)
+            navis.plot2d(skeletons, **kwargs)
+
+    def _get_plot_images(self, template=None, verbose=False, query_by_label=True, force_reload=False):
+        """
+        Load and return images for navis plot
+
+        :param template: The short form of the template to load images for.
+        :param verbose: Print additional information if True.
+        :param query_by_label: Query by label if True.
+        :param force_reload: Force reload of images if True.
+        :return: A list of skeletons and the selected template.
+        """
+        selected_template = None
+        if template:
+            if query_by_label:
+                selected_template = self.vfb.lookup_id(template)
+                print("Template (", template, ") resolved to id ", selected_template) if verbose else None
+                query_by_label = False
+            else:
+                selected_template = template
+        else:
+            selected_template = template
+        skeletons=[]
+        for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Images"):
+            if term.has_tag('Individual'):
+                print(f"{term.name} is an instance") if verbose else None
+            else:
+                print(f"{term.name} is not an instance soo won't have a skeleton, mesh or volume") if verbose else None
+                continue
+            if not term._skeleton or force_reload:
+                term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
+            if term._skeleton:
+                print(f"Skeleton found for {term.name}") if verbose else None
+                if not selected_template:
+                    if isinstance(term._skeleton, list):
+                        print("Multiple skeletons found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
+                        selected_template = term.channel_images[0].image.template_anatomy.short_form
+                        print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
+                        term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=True)
+                    else:
+                        selected_template = term.channel_images[0].image.template_anatomy.short_form
+                        print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first skeleton found. Specify a template to avoid this.")
+                skeletons.append(term._skeleton)
+            else:
+                print(f"No skeleton found for {term.name} check for a mesh") if verbose else None
+                if not hasattr(term, 'mesh') or force_reload:
+                    term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
+                if term._mesh:
+                    print(f"Mesh found for {term.name}") if verbose else None
+                    if not selected_template:
+                        if isinstance(term._mesh, list):
+                            print("Multiple meshes found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
+                            selected_template = term.channel_images[0].image.template_anatomy.short_form
+                            print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
+                            term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=True)
+                        else:
+                            selected_template = term.channel_images[0].image.template_anatomy.short_form
+                            print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first mesh found. Specify a template to avoid this.")
+                    skeletons.append(term._mesh)
+                else:
+                    print(f"No mesh found for {term.name} check for a volume") if verbose else None
+                    if not hasattr(term, 'volume') or force_reload:
+                        term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
+                    if term._volume:
+                        if not selected_template:
+                            if isinstance(term._volume, list):
+                                print("Multiple volumes found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
+                                selected_template = term.channel_images[0].image.template_anatomy.short_form
+                                print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
+                                term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=True)
+                            elif isinstance(term._volume, navis.core.volumes.Volume):
+                                selected_template = term.channel_images[0].image.template_anatomy.short_form
+                                print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first volume found. Specify a template to avoid this.")
+                        skeletons.append(term._volume)
+                    else:
+                        print(f"No volume found for {term.name}") if verbose else None
+        return (skeletons, selected_template)
 
     def plot3d_by_type(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
         """
@@ -2747,11 +2953,11 @@ class VFBTerms:
                 print(f"{term.name} is not an instance soo won't have a skeleton, mesh or volume") if verbose else None
                 continue
             if not hasattr(term, 'skeleton') or force_reload:
-                term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
-            if hasattr(term, 'skeleton') and term.skeleton:
+                term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
+            if term._skeleton:
                 print(f"Skeleton found for {term.name}") if verbose else None
                 if not selected_template:
-                    if isinstance(term.skeleton, list):
+                    if isinstance(term._skeleton, list):
                         print("Multiple skeletons found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
                         selected_template = term.channel_images[0].image.template_anatomy.short_form
                         print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
@@ -2759,16 +2965,16 @@ class VFBTerms:
                     else:
                         selected_template = term.channel_images[0].image.template_anatomy.short_form
                         print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first skeleton found. Specify a template to avoid this.")
-                skeletons.append(term.skeleton)
+                skeletons.append(term._skeleton)
                 types.append({'text': term.parents[0].name})
             else:
                 print(f"No skeleton found for {term.name} check for a mesh") if verbose else None
                 if not hasattr(term, 'mesh') or force_reload:
-                    term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
-                if hasattr(term, 'mesh') and term.mesh:
+                    term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
+                if term._mesh:
                     print(f"Mesh found for {term.name}") if verbose else None
                     if not selected_template:
-                        if isinstance(term.mesh, list):
+                        if isinstance(term._mesh, list):
                             print("Multiple meshes found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
                             selected_template = term.channel_images[0].image.template_anatomy.short_form
                             print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
@@ -2776,23 +2982,23 @@ class VFBTerms:
                         else:
                             selected_template = term.channel_images[0].image.template_anatomy.short_form
                             print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first mesh found. Specify a template to avoid this.")
-                    skeletons.append(term.mesh)
+                    skeletons.append(term._mesh)
                     types.append({'text': term.parents[0].name})
                 else:
                     print(f"No mesh found for {term.name} check for a volume") if verbose else None
                     if not hasattr(term, 'volume') or force_reload:
-                        term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
-                    if hasattr(term, 'volume') and term.volume:
+                        term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
+                    if term._volume:
                         if not selected_template:
-                            if isinstance(term.volume, list):
+                            if isinstance(term._volume, list):
                                 print("Multiple volumes found for ", term.name, ". Arbitarily taking the first template as the space to plot in. Specify a template to avoid this.")
                                 selected_template = term.channel_images[0].image.template_anatomy.short_form
                                 print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name}")
                                 term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
-                            elif isinstance(term.volume, navis.core.volumes.Volume):
+                            elif isinstance(term._volume, navis.core.volumes.Volume):
                                 selected_template = term.channel_images[0].image.template_anatomy.short_form
                                 print(f"Enforcing the display template space as {term.channel_images[0].image.template_anatomy.name} from the first volume found. Specify a template to avoid this.")
-                        skeletons.append(term.volume)
+                        skeletons.append(term._volume)
                         types.append({'text': term.parents[0].name})
                     else:
                         print(f"No volume found for {term.name}") if verbose else None
