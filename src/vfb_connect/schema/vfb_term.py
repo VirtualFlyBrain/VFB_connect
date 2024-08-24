@@ -1411,6 +1411,7 @@ class VFBTerm:
         """
         from vfb_connect import vfb
         self.vfb = vfb
+        self.debug = verbose
         if id is not None:
             if isinstance(id, list):
                 id = id[0]
@@ -1533,10 +1534,10 @@ class VFBTerm:
                 if self.channel_images and len(self.channel_images) > 0:
                     for ci in self.channel_images:
                         if hasattr(ci.image, 'image_obj') and 'volume.obj' in ci.image.image_obj:
-                            if not hasattr(self, 'mesh'):
+                            if not self._mesh:
                                 self.add_mesh_property()
                         if hasattr(ci.image, 'image_nrrd') and 'volume.nrrd' in ci.image.image_nrrd:
-                            if not hasattr(self, 'volume'):
+                            if not self._volume:
                                 self.add_volume_property()
                         if hasattr(self, 'volume') and hasattr(self, 'mesh'):
                             break
@@ -1574,12 +1575,12 @@ class VFBTerm:
 
 
     @property
-    def parents(self, verbose=False):
+    def parents(self):
         """
         Get the parents of this term. In order of specificity.
         """
         if self._parents is None:
-            print("Loading parents for the first time...") if verbose else None
+            print("Loading parents for the first time...") if self.debug else None
             self._parents = VFBTerms(self._parents_ids) if self._parents_ids else None
         return self._parents
 
@@ -1587,7 +1588,7 @@ class VFBTerm:
         @property
         def regions(self):
             if self._regions is None:
-                print("Loading regions for the first time...") if self.has_tag('DataSet') else None
+                print("Loading regions for the first time...") if self.debug else None
                 self._regions = VFBTerms(self._regions_ids) if self._regions_ids else None
             return self._regions
 
@@ -1601,6 +1602,7 @@ class VFBTerm:
             Get the scRNAseq expression data associated with this term.
             """
             if self._scRNAseq_expression is None:
+                print("Loading scRNAseq expression for the first time...") if self.debug else None
                 exp_list = ExpressionList([Expression(term=exp['cluster']['short_form'], 
                                                       term_name=exp['cluster']['symbol'] if exp['cluster']['symbol'] else exp['cluster']['label'], 
                                                       term_type='cluster', reference=Publication(**exp['pubs'][0]), dataset=VFBTerm(exp['dataset']['short_form'])
@@ -1619,6 +1621,7 @@ class VFBTerm:
             Get the genes associated with this cluster.
             """
             if self._scRNAseq_genes is None:
+                print("Loading scRNAseq genes for the first time...") if self.debug else None
                 exp_list = self.vfb.get_scRNAseq_gene_expression(cluster=self.id, return_id_only=False, return_dataframe=False)
                 self._scRNAseq_genes = ExpressionList([Expression(term=exp['gene']['short_form'], term_name=exp['gene']['symbol'] if exp['gene']['symbol'] else exp['gene']['label'], term_type='gene', type=exp['anatomy']['short_form'], type_name=exp['anatomy']['symbol'] if exp['anatomy']['symbol'] else exp['anatomy']['label'], expression_extent=float(exp['expression_extent']), expression_level=float(exp['expression_level'])) for exp in exp_list])
             return self._scRNAseq_genes
@@ -1634,8 +1637,10 @@ class VFBTerm:
         if self._instances is None:
             print("Loading instances for the first time...")
             if self.has_tag('Class'):
+                print("Loading instances for class: ", self.name) if self.debug else None
                 self._instances = VFBTerms(self.vfb.get_instances(class_expression=f"'{self.id}'", return_id_only=True))
             elif self.has_tag('DataSet'):
+                print("Loading instances for dataset: ", self.name) if self.debug else None
                 print(f"Loading {self.counts['images'] if self.counts and 'images' in self.counts.keys() else ''} instances for dataset: {self.name}...")
                 self._instances = VFBTerms(self.vfb.get_instances_by_dataset(dataset=self.id, return_id_only=True))
             if self._instances and len(self._instances) > 0:
@@ -1658,6 +1663,7 @@ class VFBTerm:
             Get the datasets associated with this instance.
             """
             if self._datasets is None:
+                print("Loading datasets for the first time...") if self.debug else None
                 self._datasets = VFBTerms(self._dataset_ids) if self._dataset_ids else None
             return self._datasets
 
@@ -1671,6 +1677,7 @@ class VFBTerm:
             Get the subtypes of this term.
             """
             if self._subtypes is None:
+                print("Loading subtypes for the first time...") if self.debug else None
                 self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"'{self.id}'", ))
             return self._subtypes
 
@@ -1680,6 +1687,7 @@ class VFBTerm:
             Get the subparts of this term.
             """
             if self._subparts is None:
+                print("Loading subparts for the first time...") if self.debug else None
                 self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'is part of' some '{self.id}'"))
             return self._subparts
 
@@ -1689,6 +1697,7 @@ class VFBTerm:
             Get the children of this term. This is a combination or subtypes and subparts.
             """
             if self._children is None:
+                print("Loading children for the first time...") if self.debug else None
                 self._children = self.subtypes + self.subparts
             return self._children
 
@@ -1711,6 +1720,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
+                print(f"Loading neuron types that overlap {self.name} for the first time...") if self.debug else None
                 self._neuron_types_that_overlap = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'overlaps' some '{id}'", query_by_label=True))
             return self._neuron_types_that_overlap
 
@@ -1727,6 +1737,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
+                print(f"Loading neuron types with synaptic terminals in {self.name} for the first time...") if self.debug else None
                 self._neuron_types_with_synaptic_terminals_here = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'has synaptic terminal in' some '{id}'", query_by_label=True))
             return self._neuron_types_with_synaptic_terminals_here
 
@@ -1743,6 +1754,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
+                print(f"Loading neurons that overlap {self.name} for the first time...") if self.debug else None
                 self._neurons_that_overlap = VFBTerms(terms=self.vfb.oc.get_instances(f"'neuron' that 'overlaps' some '{id}'", query_by_label=True))
             return self._neurons_that_overlap
 
@@ -1758,6 +1770,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
+                print(f"Loading neurons with synaptic terminals in {self.name} for the first time...") if self.debug else None
                 self._neurons_with_synaptic_terminals_here = VFBTerms(terms=self.vfb.oc.get_instances(f"'neuron' that 'has synaptic terminal in' some '{id}'", query_by_label=True))
             return self._neurons_with_synaptic_terminals_here
 
@@ -1773,6 +1786,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
+                print(f"Loading downstream neurons for the first time...") if self.debug else None
                 self._downstream_neurons = VFBTerms(terms=self.vfb.oc.get_instances(f"'neuron' that 'has presynaptic terminals in' some '{id}'", query_by_label=True))
             return self._downstream_neurons
 
@@ -1788,6 +1802,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
+                print(f"Loading upstream neurons for the first time...") if self.debug else None
                 self._upstream_neurons = VFBTerms(terms=self.vfb.oc.get_instances(f"'neuron' that 'has postsynaptic terminal in' some '{id}'", query_by_label=True))
             return self._upstream_neurons
 
@@ -1803,6 +1818,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
+                print(f"Loading downstream neuron types for the first time...") if self.debug else None
                 self._downstream_neuron_types = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'has presynaptic terminals in' some '{id}'", query_by_label=True))
             return self._downstream_neuron_types
 
@@ -1818,6 +1834,7 @@ class VFBTerm:
                 else:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
+                print(f"Loading upstream neuron types for the first time...") if self.debug else None
                 self._upstream_neuron_types = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'has postsynaptic terminal in' some '{id}'", query_by_label=True))
             return self._upstream_neuron_types
 
@@ -1838,6 +1855,7 @@ class VFBTerm:
             Get neurons similar to this neuron based on NBLAST scores.
             """
             if self._similar_neurons_nblast is None:
+                print("Loading similar neurons for the first time...") if self.debug else None
                 if not self.has_tag('NBLAST'):
                     return None
                 method = 'NBLAST_score'
@@ -1852,6 +1870,7 @@ class VFBTerm:
         #     Get neurons similar to this neuron based on NeuronBridge scores.
         #     """
         #     if self._similar_neurons_neuronbridge is None:
+        #         print("Loading similar neurons for the first time...") if self.debug else None
         #         if not self.has_tag('neuronbridge'):
         #             return None
         #         method = 'neuronbridge_score'
@@ -1866,6 +1885,7 @@ class VFBTerm:
             Get neurons that are potential drivers of this neuron based on NBLAST scores.
             """
             if self._potential_drivers_nblast is None:
+                print("Loading potential drivers for the first time...") if self.debug else None
                 if not self.has_tag('NBLASTexp'):
                     return None
                 method = 'NBLAST_score'
@@ -1880,6 +1900,7 @@ class VFBTerm:
             Get neurons that are potential drivers of this neuron based on NeuronBridge scores.
             """
             if self._potential_drivers_neuronbridge is None:
+                print("Loading potential drivers for the first time...") if self.debug else None
                 if not self.has_tag('neuronbridge'):
                     return None
                 method = 'neuronbridge_score'
@@ -1894,6 +1915,7 @@ class VFBTerm:
             Get the skeleton of this neuron.
             """
             if not self._skeleton:
+                print("Loading skeleton for the first time...") if self.debug else None
                 self.load_skeleton()
             return self._skeleton
 
@@ -1911,6 +1933,7 @@ class VFBTerm:
             Get the mesh of this neuron.
             """
             if not self._mesh:
+                print("Loading mesh for the first time...") if self.debug else None
                 self.load_mesh()
             return self._mesh
 
@@ -1923,6 +1946,7 @@ class VFBTerm:
             Get the volume of this neuron.
             """
             if not self._volume:
+                print("Loading volume for the first time...") if self.debug else None
                 self.load_volume()
             return self._volume
 
@@ -2224,7 +2248,7 @@ class VFBTerm:
             else:
                 selected_template = template
         if self.has_tag('Individual'):
-            if not hasattr(self, 'skeleton') or force_reload:
+            if not self._skeleton or force_reload:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
@@ -2296,7 +2320,7 @@ class VFBTerm:
             else:
                 selected_template = template
         if self.has_tag('Individual'):
-            if not hasattr(self, 'skeleton') or force_reload:
+            if not self._skeleton or force_reload:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
@@ -2883,7 +2907,7 @@ class VFBTerms:
                 skeletons.append(term._skeleton)
             else:
                 print(f"No skeleton found for {term.name} check for a mesh") if verbose else None
-                if not hasattr(term, 'mesh') or force_reload:
+                if not self._mesh or force_reload:
                     term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
                 if term._mesh:
                     print(f"Mesh found for {term.name}") if verbose else None
@@ -2899,7 +2923,7 @@ class VFBTerms:
                     skeletons.append(term._mesh)
                 else:
                     print(f"No mesh found for {term.name} check for a volume") if verbose else None
-                    if not hasattr(term, 'volume') or force_reload:
+                    if not self._volume or force_reload:
                         term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
                     if term._volume:
                         if not selected_template:
@@ -2942,7 +2966,7 @@ class VFBTerms:
             else:
                 print(f"{term.name} is not an instance soo won't have a skeleton, mesh or volume") if verbose else None
                 continue
-            if not hasattr(term, 'skeleton') or force_reload:
+            if not self._skeleton or force_reload:
                 term.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
             if term._skeleton:
                 print(f"Skeleton found for {term.name}") if verbose else None
@@ -2959,7 +2983,7 @@ class VFBTerms:
                 types.append({'text': term.parents[0].name})
             else:
                 print(f"No skeleton found for {term.name} check for a mesh") if verbose else None
-                if not hasattr(term, 'mesh') or force_reload:
+                if not self._mesh or force_reload:
                     term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
                 if term._mesh:
                     print(f"Mesh found for {term.name}") if verbose else None
@@ -2976,7 +3000,7 @@ class VFBTerms:
                     types.append({'text': term.parents[0].name})
                 else:
                     print(f"No mesh found for {term.name} check for a volume") if verbose else None
-                    if not hasattr(term, 'volume') or force_reload:
+                    if not self._volume or force_reload:
                         term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
                     if term._volume:
                         if not selected_template:
