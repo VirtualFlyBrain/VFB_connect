@@ -559,6 +559,7 @@ class Relations:
         :param relations: A list of Rel objects, dictionaries, or another Relations object.
         :raises ValueError: If the input is not of the expected type.
         """
+        self._summary = None
         if isinstance(relations, list):
             if all(isinstance(rel, Rel) for rel in relations):
                 self.relations = relations
@@ -570,6 +571,15 @@ class Relations:
             self.relations = relations.relations
         else:
             raise ValueError("relations must be a list of Rel objects, a list of dicts, or a Relations object")
+
+    @property
+    def summary(self):
+        """
+        Get the summary of the term.
+        """
+        if self._summary is None:
+            self._summary = self.get_summary()
+        return self._summary
 
     def __getitem__(self, key):
         """
@@ -979,7 +989,7 @@ class AnatomyChannelImage:
         return f"AnatomyChannelImage(anatomy={self.anatomy})"
 
 class Expression:
-    def __init__(self, term: str = None, term_name: Optional[str] = None, term_type: Optional[str] = None, type: Optional[str] = None, type_name: Optional[str] = None, reference: Optional[Publication] = None, dataset: Optional['VFBTerm'] = None , expression_extent: Optional[float] = None, expression_level: Optional[float] = None):
+    def __init__(self, term: str = None, term_name: Optional[str] = None, term_type: Optional[str] = None, type: Optional[str] = None, type_name: Optional[str] = None, reference: Optional[Publication] = None, dataset: Optional['VFBTerm'] = None , expression_extent: Optional[float] = None, expression_level: Optional[float] = None, probability: Optional[float] = None, probability_type: Optional[str] = None):
         """
         Initialize an Expression object representing expression data.
 
@@ -987,6 +997,7 @@ class Expression:
         :param expression_extent: The extent of expression.
         :param expression_level: The level of expression.
         """
+        self._percentage_terms = ['confidence value'] # List of probability types that should be displayed as percentages
         self._term_id = term
         self._term = None # Initialize as None, will be loaded on first access
         self.id = term
@@ -998,6 +1009,8 @@ class Expression:
             self.type_name = type_name
         self.expression_extent = expression_extent
         self.expression_level = expression_level
+        self.probability = probability
+        self.probability_type = probability_type
         self.term_type = term_type if term_type else None
 
         if reference:
@@ -1083,6 +1096,14 @@ class Expression:
             result['extent'] = self.expression_extent
         if hasattr(self, 'expression_level') and self.expression_level:
             result['level'] = self.expression_level
+        if hasattr(self, 'probability') and self.probability:
+            if hasattr(self, 'probability_type') and self.probability_type:
+                if self.probability_type in self._percentage_terms:
+                    result[self.probability_type] = f"{round(self.probability * 100, 2)}%"
+                else:
+                    result[self.probability_type] = self.probability
+            else:
+                result['probability'] = self.probability
         if hasattr(self, 'reference') and self.reference:
             result['reference'] = self.reference.core.symbol if self.reference.core.symbol else self.reference.core.label
         if hasattr(self, 'dataset') and self.dataset:
@@ -1141,6 +1162,14 @@ class Expression:
             result += f"{', ' if result else ''}extent={self.expression_extent}"
         if hasattr(self, 'expression_level') and self.expression_level:
             result += f"{', ' if result else ''}level={self.expression_level}"
+        if hasattr(self, 'probability') and self.probability:
+            if hasattr(self, 'probability_type') and self.probability_type:
+                if self.probability_type in self._percentage_terms:
+                    result += f"{', ' if result else ''}{self.probability_type}={round(self.probability * 100, 2)}%"
+                else:
+                    result += f"{', ' if result else ''}{self.probability_type}={self.probability}"
+            else:
+                result += f"{', ' if result else ''}probability={self.probability}"
         if hasattr(self, 'reference') and self.reference:
             result += f"{', ' if result else ''}reference={self.reference.core.symbol if self.reference.core.symbol else self.reference.core.label}"
         if hasattr(self, 'dataset') and self.dataset:
@@ -1155,6 +1184,7 @@ class ExpressionList:
         :param expressions: A list of Expression objects, dictionaries, or another ExpressionList object.
         :raises ValueError: If the input is not of the expected type.
         """
+        self._summary = None
         if isinstance(expressions, list):
             if all(isinstance(exp, Expression) for exp in expressions):
                 self.expressions = expressions
@@ -1166,6 +1196,15 @@ class ExpressionList:
             self.expressions = expressions.expressions
         else:
             raise ValueError("expressions must be a list of Expression objects, a list of dicts, or an ExpressionList object")
+
+    @property
+    def summary(self):
+        """
+        Get the summary of the term.
+        """
+        if self._summary is None:
+            self._summary = self.get_summary()
+        return self._summary
 
     def __getitem__(self, key):
         """
@@ -1233,7 +1272,7 @@ class ExpressionList:
         :param return_dataframe: Whether to return the summary as a pandas DataFrame.
         :return: A summary of the expressions, either as a DataFrame or a list of dictionaries.
         """
-        summary = [{'term': exp.term.name, 'extent': exp.expression_extent, 'level': exp.expression_level} for exp in self.expressions]
+        summary = [exp.summary() for exp in self.expressions]
         if return_dataframe:
             return pandas.DataFrame(summary)
         return summary
@@ -2464,7 +2503,7 @@ class VFBTerms:
     def __init__(self, terms: Union[List[VFBTerm], List[str], pandas.core.frame.DataFrame, List[dict]], verbose=False):
         from vfb_connect import vfb
         self.vfb = vfb
-
+        self._summary = None
         # Check if terms is a list of VFBTerm objects
         if isinstance(terms, list) and all(isinstance(term, VFBTerm) for term in terms):
             self.terms = terms
@@ -2502,6 +2541,15 @@ class VFBTerms:
 
         else:
             raise ValueError("Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame.")
+
+    @property
+    def summary(self):
+        """
+        Get the summary of the term.
+        """
+        if self._summary is None:
+            self._summary = self.get_summary()
+        return self._summary
 
     def __repr__(self):
         return f"VFBTerms(terms={self.terms})"
