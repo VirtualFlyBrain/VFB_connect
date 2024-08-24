@@ -2589,7 +2589,7 @@ class VFBTerms:
         Get the summary of the term.
         """
         if self._summary is None:
-            self._summary = self.get_summary()
+            self._summary = self.get_summaries()
         return self._summary
 
     def __repr__(self):
