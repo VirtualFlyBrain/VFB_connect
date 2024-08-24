@@ -286,16 +286,24 @@ class VfbTermTest(unittest.TestCase):
     def test_vfbterm_related_terms(self):
         term = self.vfb.term('scRNAseq_2018_Davie_FULL_seq_clustering_dopaminergic_PAM_neurons')
         print("got term ", term)
-        print(term.related_terms)
         self.assertTrue(term)
-        self.assertTrue(term.related_terms)
-        self.assertTrue(isinstance(term.related_terms, Relations))
+        rel = term.related_terms
+        print(rel.summary)
+        self.assertTrue(rel)
+        self.assertTrue(isinstance(rel, Relations))
         print(term.related_terms.get_summary(return_dataframe=False))
         print(term.related_terms.get_terms())
         print(term.related_terms.get_relations())
         composed_of = term.related_terms.where(relation='composed primarily of')
         print(composed_of.get_summaries(return_dataframe=False))
         self.assertTrue(isinstance(composed_of, VFBTerms))
+        term2 = self.vfb.term('VFB_jrcv0jj4', verbose=True)
+        rel = term2.related_terms
+        print(rel.summary)
+        print(rel.where(relation='capable of').get_summaries(return_dataframe=False))
+        print(dir(term2))
+        print(term2.part_of)
+        self.assertGreater(len(term2.part_of), 1)
 
     def test_vfbterm_addition(self):
         terms1 = self.vfb.terms(['medulla on JRC2018Unisex adult brain', 'nodulus on JRC2018Unisex adult brain'])

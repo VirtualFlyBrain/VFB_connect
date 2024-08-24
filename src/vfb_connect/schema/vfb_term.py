@@ -479,16 +479,23 @@ class Xref:
         return f"Xref(link_text={self.link_text if hasattr(self, 'link_text') else self.core.name}, link={self.link if hasattr(self,'link') else self.homepage if hasattr(self,'homepage') else self.core.iri}, accession={self.accession if hasattr(self,'accession') else self.core.short_form})"
 
 class Rel:
-    def __init__(self, relation: MinimalEdgeInfo, object: str):
+    def __init__(self, relation: MinimalEdgeInfo, object: str, object_name: str = None):
         """
         Initialize a Rel object representing a relationship between entities.
 
         :param relation: A MinimalEdgeInfo object representing the relationship type.
         :param object: The ID of the related object.
         """
-        self.relation = relation
+        if isinstance(relation, dict):
+            self.relation = MinimalEdgeInfo(**relation)
+        elif isinstance(relation, MinimalEdgeInfo):
+            self.relation = relation
+        else:
+            raise ValueError("relation must be a MinimalEdgeInfo object")
         self._object_id = object
         self._object = None
+        if object_name:
+            self._object_name = object_name
 
     @property
     def object(self):
@@ -499,6 +506,8 @@ class Rel:
         """
         if self._object is None:
             self._object = VFBTerm(id=self._object_id)
+            self._object_name = self._object.name
+            self._object_id = self._object.id
         return self._object
 
     def get(self, key, default=None):
@@ -538,7 +547,10 @@ class Rel:
 
         :return: A string representation of the Rel object.
         """
-        return f"Rel(relation={repr(self.relation)}, object={repr(self.object)})"
+        result = f"Rel(relation={repr(self.relation)}, object={repr(self.object)})"
+        if hasattr(self.relation, 'confidence_value'):
+            result = result[:-1] + f", confidence={self.relation.confidence_value})"
+        return result
 
     def where(self, relation: str):
         """
@@ -550,6 +562,25 @@ class Rel:
         if self.relation.label == relation:
             return self.object
         return None
+
+    def get_summary(self, return_dataframe=True):
+        """
+        Get a summary of the relations.
+
+        :param return_dataframe: Whether to return the summary as a pandas DataFrame.
+        :return: A summary of the relations, either as a DataFrame or a list of dictionaries.
+        """
+        summary = {}
+        summary['relation'] = self.relation.label
+        summary['object'] = self._object_name
+        if hasattr(self.relation, 'confidence_value'):
+            summary['confidence'] = self.relation.confidence_value
+        if hasattr(self.relation, 'database_cross_reference'):
+            summary['reference'] = "; ".join(self.relation.database_cross_reference)
+        if return_dataframe:
+            return pandas.DataFrame(summary)
+        return summary
+
 
 class Relations:
     def __init__(self, relations: Union[List[Rel], List[dict], 'Relations']):
@@ -668,9 +699,9 @@ class Relations:
         :param return_dataframe: Whether to return the summary as a pandas DataFrame.
         :return: A summary of the relations, either as a DataFrame or a list of dictionaries.
         """
-        summary = [{'relation': rel.relation.label, 'object': rel.object.name} for rel in self.relations]
+        summary = [rel.get_summary(return_dataframe=False) for rel in self.relations]
         if return_dataframe:
-            return pandas.DataFrame(summary)
+            return pandas.DataFrame(summary).fillna('')
         return summary
 
 class Image:
@@ -1515,6 +1546,16 @@ class VFBTerm:
                     self.related_terms = related_terms
             else:
                 self.related_terms = Relations([])
+            for rel in self.related_terms:
+                attr_name = rel.relation.type.replace(' ', '_')
+                if not hasattr(self, attr_name):
+                    if verbose:
+                        print(f"Adding related_term as a property for {attr_name}")
+                    setattr(self, attr_name, [rel._object_name])
+                else:
+                    if verbose:
+                        print(f"Adding term to {attr_name}")
+                    getattr(self, attr_name).append(rel._object_name)
             self.channel_images = channel_images
             self._summary = None
             self.name = self.term.core.name
@@ -3266,7 +3307,8 @@ def create_vfbterm_from_json(json_data, verbose=False):
             for relation in data['relationships']:
                 rel = MinimalEdgeInfo(**relation['relation'])
                 object = relation['object']['short_form']
-                related_terms.append(Rel(relation=rel, object=object))
+                object_name = relation['object']['symbol'] if relation['object']['symbol'] else relation['object']['label']
+                related_terms.append(Rel(relation=rel, object=object, object_name=object_name))
             print(f"Loaded {len(related_terms)} related terms from relationships") if verbose else None
 
         if 'related_individuals' in data:
@@ -3275,7 +3317,8 @@ def create_vfbterm_from_json(json_data, verbose=False):
             for relation in data['related_individuals']:
                 rel = MinimalEdgeInfo(**relation['relation'])
                 object = relation['object']['short_form']
-                related_terms.append(Rel(relation=rel, object=object))
+                object_name = relation['object']['symbol'] if relation['object']['symbol'] else relation['object']['label']
+                related_terms.append(Rel(relation=rel, object=object, object_name=object_name))
             print(f"Loaded {len(related_terms)-bc} related terms from related_individuals") if verbose else None
 
         if related_terms:
