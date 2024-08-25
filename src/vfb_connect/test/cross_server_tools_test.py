@@ -90,6 +90,12 @@ class VfbConnectTest(unittest.TestCase):
         if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
             shutil.rmtree('image_folder_tmp')
 
+    def test_lookup_id(self):
+        from vfb_connect import vfb
+        test_key = "LPC1 (FlyEM-HB:1808965929)"
+        term = vfb.term(test_key, verbose=True)
+        self.assertEqual(term.id, "VFB_jrchk00a")
+
 class VfbTermTests(unittest.TestCase):
 
     def setUp(self):

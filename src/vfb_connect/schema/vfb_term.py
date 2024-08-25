@@ -1504,8 +1504,10 @@ class VFBTerm:
         if id is not None:
             if isinstance(id, list):
                 id = id[0]
+            print(f"\033[32mINFO:\033[0m Fetching term for {id}") if verbose else None
             # Test for passed xrefs
-            if isinstance(id,str) and ":" in id:
+            if isinstance(id,str) and ":" in id and not ' ' in id and not '(' in id:
+                print(f"\033[32mINFO:\033[0m Checking for xrefs for {id}") if verbose else None
                 dbs = self.vfb.get_dbs()
                 split_id = id.rsplit(":", 1)
                 db = self.vfb.lookup_id(split_id[0])

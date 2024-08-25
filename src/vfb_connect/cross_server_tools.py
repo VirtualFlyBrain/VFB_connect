@@ -122,7 +122,7 @@ class VfbConnect:
             print("No cache file found.")
         self.lookup = self.nc.get_lookup(cache=self.cache_file, verbose=verbose)
 
-    def lookup_id(self, key, return_curie=False, allow_subsitutions=True, subsitution_stages=['adult', 'larval', 'pupal']):
+    def lookup_id(self, key, return_curie=False, allow_subsitutions=True, subsitution_stages=['adult', 'larval', 'pupal'], verbose=False):
         """Lookup the ID for a given key (label or symbol) using the internal lookup table.
 
         :param key: The label symbol, synonym, or potential ID to look up.
@@ -158,35 +158,41 @@ class VfbConnect:
         if key in self.lookup:
             out = self.lookup[key]
             return out if not return_curie else out.replace('_', ':')
+        else:
+            print(f"No direct match found for {key}")
 
         if allow_subsitutions:
             # Case-insensitive and character-insensitive lookup
-            normalized_key = key.lower().replace('_', '').replace('-', '').replace(' ', '')
-            matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == normalized_key}
+            normalized_key = key.lower().replace('_', '').replace('-', '').replace(' ', '').replace(':','')
+            print(f"Normalized key: {normalized_key}") if verbose else None
+            matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '').replace(':','').replace(';','') == normalized_key}
 
             if isinstance(subsitution_stages, str):
                 subsitution_stages = [subsitution_stages]
             if not matches:
                 for stage in subsitution_stages:
                         stage_normalized_key = stage + normalized_key
-                        matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '') == stage_normalized_key}
+                        matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '').replace(':','').replace(';','') == stage_normalized_key}
                         if matches:
                             break
 
             if matches:
-                matched_key = list(matches.keys())[0]
-                out = matches[matched_key]
-                
+                for k, v in matches.items():
+                    print(f"Matched: {k} -> {v}") if verbose else None
+                    if k == key:
+                        matched_key = k
+
                 # Warn if a case substitution or normalization was performed
                 if matched_key != key:
                     if len(matches) == 1:
                         print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
+                        out = matches[matched_key]
                     else:
                         all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
                         print(f"\033[33mWarning:\033[0m Ambiguous match for '\033[33m{key}\033[0m'. Using '{matched_key}' -> '\033[32m{out}\033[0m'. Other possible matches: {all_matches}")
 
                 return out if not return_curie else out.replace('_', ':')
-            
+
             # Check for partial matches: starts with
             starts_with_matches = {k: v for k, v in self.lookup.items() if k.lower().startswith(key.lower())}
             if starts_with_matches:
