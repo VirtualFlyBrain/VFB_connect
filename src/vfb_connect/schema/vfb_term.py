@@ -1675,6 +1675,9 @@ class VFBTerm:
             if self.has_tag('Anatomy') and self.is_type:
                 self._transgene_expression = None
                 self.add_anatomy_type_properties()
+                self._lineage_clones = None
+                self._lineage_clone_types = None
+                self.add_lineage_clone_properties()
 
 
     @property
@@ -1714,6 +1717,33 @@ class VFBTerm:
 
         # Dynamically add the property to the instance
         setattr(self.__class__, 'transgene_expression', transgene_expression)
+
+    def add_lineage_clone_properties(self):
+        @property
+        def lineage_clones(self):
+            """
+            Get the lineage clones associated with this term.
+            """
+            if self._lineage_clones is None:
+                print("Loading lineage clones for the first time...") if self.debug else None
+                ids = self.vfb.oc.get_instances(query=f"'neuroblast lineage clone' and 'overlaps' some '{self.id}'", verbose=self.debug)
+                self._lineage_clones = VFBTerms(ids, verbose=self.debug)
+            return self._lineage_clones
+
+        @property
+        def lineage_clone_types(self):
+            """
+            Get the lineage clone types associated with this term.
+            """
+            if self._lineage_clone_types is None:
+                print("Loading lineage clones for the first time...") if self.debug else None
+                ids = self.vfb.oc.get_subclasses(query=f"'neuroblast lineage clone' and 'overlaps' some '{self.id}'", verbose=self.debug)
+                self._lineage_clone_types = VFBTerms(ids, verbose=self.debug)
+            return self._lineage_clone_types
+
+        # Dynamically add the property to the instance
+        setattr(self.__class__, 'lineage_clones', lineage_clones)
+        setattr(self.__class__, 'lineage_clone_types', lineage_clone_types)
 
     def add_template_properties(self):
         @property

@@ -345,11 +345,13 @@ class VfbTermTest(unittest.TestCase):
     def test_vfbterms_transgene_expression(self):
         term = self.vfb.term('medulla')
         print("got terms ", term)
-        exp = term.transgene_expression
-        self.assertTrue(exp)
-        print(exp)
-        self.assertGreater(len(exp), 10)
-        print(exp.summary)
+        lct = term.lineage_clone_types
+        print(lct.summary)
+        self.assertTrue(lct)
+        self.assertGreater(len(lct), 4)
+        lc = term.lineage_clones
+        print(lc.summary)
+        self.assertGreater(len(lc), 10)
 
 
 
