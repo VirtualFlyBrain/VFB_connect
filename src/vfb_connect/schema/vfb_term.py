@@ -1731,7 +1731,7 @@ class VFBTerm:
                     self._transgene_expression = ExpressionList([])
                 print(f"Transgene expression: {repr(self._transgene_expression)}") if self.debug else None
             return self._transgene_expression
-        
+
         @property
         def innervating(self):
             """
@@ -1739,7 +1739,7 @@ class VFBTerm:
             """
             if self._innervating is None:
                 print("Loading innervating neurons/tracts for the first time...") if self.debug else None
-                self._innervating = self.owl_instances(query=f"'neuron projection bundle' and 'innervates' some '{self.id}'", verbose=self.debug)
+                self._innervating = self.vfb.owl_subclasses(query=f"'neuron projection bundle' and 'innervates' some '{self.id}'", return_dataframe=False, verbose=self.debug)
             return self._innervating
 
         # Dynamically add the property to the instance

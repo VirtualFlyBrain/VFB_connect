@@ -353,6 +353,13 @@ class VfbTermTest(unittest.TestCase):
         print(lc.summary)
         self.assertGreater(len(lc), 10)
 
+    def test_vfbterms_innervating(self):
+        term = self.vfb.term('medulla')
+        print("got terms ", term)
+        lct = term.innervating
+        print(lct.summary)
+        self.assertTrue(lct)
+        self.assertGreater(len(lct), 2)
 
 
 if __name__ == "__main__":
