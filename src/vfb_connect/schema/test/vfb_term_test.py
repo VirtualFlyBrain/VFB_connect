@@ -362,7 +362,6 @@ class VfbTermTest(unittest.TestCase):
         self.assertGreater(len(lct), 2)
 
     def test_vfbterms_transcriptomic_profile(self):
-        self.vfb.reload_lookup_cache(verbose=True)
         print(self.vfb.lookup_id('LC12'))
         term = self.vfb.term('LC12')
         print("got terms ", term)
@@ -379,6 +378,9 @@ class VfbTermTest(unittest.TestCase):
         id = self.vfb.lookup_id('cell')
         print("got id ", id)
         self.assertEqual(id, 'FBbt_00007002')
+        id = self.vfb.lookup_id('part_of')
+        print("got id ", id)
+        self.assertEqual(id, 'BFO_0000050')
 
 if __name__ == "__main__":
     unittest.main()
