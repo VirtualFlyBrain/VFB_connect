@@ -155,7 +155,7 @@ class VfbConnect:
             return key if not return_curie else key.replace('_', ':')
         
         # Direct lookup in the dictionary
-        if key in self.lookup:
+        if key in self.lookup.keys():
             out = self.lookup[key]
             return out if not return_curie else out.replace('_', ':')
         else:
