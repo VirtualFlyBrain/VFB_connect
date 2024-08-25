@@ -318,7 +318,7 @@ class Neo4jConnect:
                 UNWIND a.synonyms AS synonym
                 RETURN DISTINCT a.short_form as id, synonym as name
                 UNION ALL
-                MATCH (a:{term_type})-[:has_reference {{typ:'syn'}}]->(:pub:Individual)
+                MATCH (a:{term_type})-[r:has_reference {{typ:'syn'}}]->(:pub:Individual)
                 UNWIND r.value AS synonym
                 RETURN DISTINCT a.short_form as id, synonym as name
             """
