@@ -1506,20 +1506,23 @@ class VFBTerm:
                 id = id[0]
             print(f"\033[32mINFO:\033[0m Fetching term for {id}") if verbose else None
             # Test for passed xrefs
-            if isinstance(id,str) and ":" in id and not ' ' in id and not '(' in id:
+            if isinstance(id,str) and ":" in id:
                 print(f"\033[32mINFO:\033[0m Checking for xrefs for {id}") if verbose else None
                 dbs = self.vfb.get_dbs()
                 split_id = id.rsplit(":", 1)
-                db = self.vfb.lookup_id(split_id[0])
-                if db in dbs:
-                    xid = self.vfb.xref_2_vfb_id(acc=[split_id[1]], db=db)
-                    xdb = xid.get(split_id[1], [])
-                    if xdb:
-                        for x in xdb:
-                            if x.get('db',None) == db:
-                                id = x.get('vfb_id',None)
-                                print(f"\033[32mINFO:\033[0m Resolved xref {split_id[0]}:{split_id[1]} to {id}")
-                                break
+                if ')' in split_id[1] or '(' in split_id[1] or ' ' in split_id[1]:
+                    print(f"\033[32mINFO:\033[0m Not a valid xref {split_id[1]}") if verbose else None
+                else:
+                    db = self.vfb.lookup_id(split_id[0])
+                    if db in dbs:
+                        xid = self.vfb.xref_2_vfb_id(acc=[split_id[1]], db=db)
+                        xdb = xid.get(split_id[1], [])
+                        if xdb:
+                            for x in xdb:
+                                if x.get('db',None) == db:
+                                    id = x.get('vfb_id',None)
+                                    print(f"\033[32mINFO:\033[0m Resolved xref {split_id[0]}:{split_id[1]} to {id}")
+                                    break
             self.id = id
             self.name = "unresolved"
             json_data = self.vfb.get_TermInfo([id], summary=False)
