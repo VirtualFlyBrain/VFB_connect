@@ -289,7 +289,7 @@ class Neo4jConnect:
             where_clause = f"WHERE EXISTS(a.alternative_term) AND size(a.alternative_term) > 0 AND a.short_form STARTS WITH '{match_string}'"
         else:
             where_clause = "WHERE EXISTS(a.alternative_term) AND size(a.alternative_term) > 0"
-
+        
         query = f"MATCH (a:ObjectProperty) {where_clause} UNWIND a.alternative_term as label RETURN a.short_form as id, label as name"
         q = self.commit_list([query])
         self.process_and_add_results(q, out, verbose)
@@ -319,7 +319,7 @@ class Neo4jConnect:
         """
         query = f"MATCH (a:{term_type}) WHERE EXISTS(a.short_form) {where} AND EXISTS(a.{property_name.split('[')[0]}) RETURN a.short_form as id, a.{property_name} as name ORDER BY id DESC"
         q = self.commit_list([query])
-        out.extend(dict_cursor(q))
+        self.process_and_add_results(q, out, verbose)
 
     def execute_and_process_query_with_synonyms(self, term_type, where, out, verbose):
         """Execute a Cypher query to fetch terms and their synonyms.
@@ -349,15 +349,23 @@ class Neo4jConnect:
         :param out: The list to store fetched terms.
         :param verbose: If `True`, provides verbose output.
         """
+        # Create a dictionary to store existing names and their corresponding IDs
         name_to_id = {item['name']: item['id'] for item in out}
-        existing_names = set(name_to_id.keys())
+
+        # Iterate through the query results
         for result in dict_cursor(query_result):
-            if result['name'] not in existing_names:
+            name = result['name']
+            id = result['id']
+
+            # Check if the name is already in the list and if the current term should take priority
+            if name in name_to_id:
+                existing_id = name_to_id[name]
+                if verbose:
+                    print(f"Skipping {name} with ID {id} as it is already represented by existing term {existing_id}")
+                continue
+            else:
                 out.append(result)
-                existing_names.add(result['name'])
-                name_to_id[result['name']] = result['id']
-            elif verbose and result['id'] != name_to_id[result['name']]:
-                print(f"Skipping duplicate: {result['name']} - {result['id']} in favor of existing {name_to_id[result['name']]}")
+                name_to_id[name] = id
 
     def process_results(self, out, curies):
         """Remove duplicates and prepare the final lookup dictionary.
