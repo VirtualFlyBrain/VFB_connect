@@ -207,10 +207,10 @@ class Neo4jConnect:
         :param limit_type_by_prefix: Optional list of id prefixes for limiting lookup of classes & individuals.
         :param include_individuals: If `True`, individuals are included in the lookup.
         :param limit_properties_by_prefix: Optional list of id prefixes for limiting lookup of properties.
-        :param curies: If `True`, returns CURIEs instead of IDs.
+        :param curies: If `True`, converts IDs to CURIE format by replacing '_' with ':'.
         :param include_synonyms: If `True`, includes synonyms in the lookup.
         :param verbose: If `True`, provides verbose output.
-        :return: A dictionary with names (or synonyms) as keys and their corresponding IDs as values.
+        :return: A dictionary with names (or synonyms) as keys and their corresponding IDs or CURIEs as values.
         """
         try:
             three_months_in_seconds = 3 * 30 * 24 * 60 * 60
@@ -237,7 +237,8 @@ class Neo4jConnect:
         # Step 3: Load the rest of the classes (excluding FBbt)
         self.load_other_classes(out, existing_names, limit_type_by_prefix, include_synonyms, verbose)
 
-        return {item['name']: item['id'] for item in out}
+        # Convert IDs to CURIEs if needed
+        return self.convert_ids(out, curies)
 
     def load_fb_bt_terms(self, out, existing_names, include_synonyms, verbose):
         """Load FBbt terms specifically before other classes.
@@ -317,22 +318,25 @@ class Neo4jConnect:
                 WHERE EXISTS(a.short_form) {where} AND EXISTS(a.synonyms)
                 UNWIND a.synonyms AS synonym
                 RETURN DISTINCT a.short_form as id, synonym as name
+                ORDER BY id DESC
                 UNION ALL
                 MATCH (a:{term_type})-[r:has_reference {{typ:'syn'}}]->(:pub:Individual)
                 UNWIND r.value AS synonym
                 RETURN DISTINCT a.short_form as id, synonym as name
+                ORDER BY id DESC
             """
         else:
-            query = f"MATCH (a:{term_type}) WHERE EXISTS(a.short_form) {where} AND EXISTS(a.{property_name.split('[')[0]}) " \
-                    f"RETURN a.short_form as id, a.{property_name} as name"
+            query = f"""
+                MATCH (a:{term_type}) 
+                WHERE EXISTS(a.short_form) {where} AND EXISTS(a.{property_name.split('[')[0]}) 
+                RETURN a.short_form as id, a.{property_name} as name
+                ORDER BY id DESC
+            """
 
         results = self.commit_list([query])
 
         name_to_id = {item['name']: item['id'] for item in out}
-        dc = dict_cursor(results)
-        if not dc:
-            raise ValueError(f"Lookup failure for: {query}")
-        for result in dc:
+        for result in dict_cursor(results):
             if result['name'] not in existing_names:
                 out.append(result)
                 existing_names.add(result['name'])
@@ -340,6 +344,18 @@ class Neo4jConnect:
             elif verbose and result['id'] != name_to_id[result['name']]:
                 print(f"Skipping duplicate: {result['name']} - {result['id']} in favour of existing {name_to_id[result['name']]}")
 
+    def convert_ids(self, data, curies):
+            """Convert the IDs in the data to CURIE format if required.
+
+            :param data: List of dictionaries containing 'id' and 'name'.
+            :param curies: Boolean flag indicating whether to convert to CURIE format.
+            :return: Dictionary with names as keys and IDs or CURIEs as values.
+            """
+            id_dict = {}
+            for item in data:
+                id_value = item['id'].replace('_', ':') if curies else item['id']
+                id_dict[item['name']] = id_value
+            return id_dict
 
 def dict_cursor(results):
     """Takes JSON results from a neo4J query and turns them into a list of dicts.

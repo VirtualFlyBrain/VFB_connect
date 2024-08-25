@@ -363,13 +363,22 @@ class VfbTermTest(unittest.TestCase):
 
     def test_vfbterms_transcriptomic_profile(self):
         self.vfb.reload_lookup_cache(verbose=True)
+        print(self.vfb.lookup_id('LC12'))
         term = self.vfb.term('LC12')
         print("got terms ", term)
         lct = term.get_transcriptomic_profile()
-        print(lct.summary)
-        self.assertTrue(lct)
         self.assertGreater(len(lct), 2)
 
+    def test_lookups(self):
+        id = self.vfb.lookup_id('LC12')
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00100484')
+        id = self.vfb.lookup_id('overlaps', return_curie=True)
+        print("got id ", id)
+        self.assertEqual(id, 'RO:0002131')
+        id = self.vfb.lookup_id('cell')
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00007002')
 
 if __name__ == "__main__":
     unittest.main()
