@@ -183,8 +183,8 @@ class VfbConnect:
                         matched_key = k
 
                 # Warn if a case substitution or normalization was performed
-                if matched_key != key:
-                    if len(matches) == 1:
+                if matched_key == key:
+                    if len(matches.keys()) < 2:
                         print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
                         out = matches[matched_key]
                     else:
