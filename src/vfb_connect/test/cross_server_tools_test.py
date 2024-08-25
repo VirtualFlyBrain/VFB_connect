@@ -96,6 +96,24 @@ class VfbConnectTest(unittest.TestCase):
         term = vfb.term(test_key, verbose=True)
         self.assertEqual(term.id, "VFB_jrchk00a")
 
+    def test_get_owl_subclasses(self):
+        ofb = self.vc.owl_subclasses(query="RO:0002131 some FBbt:00003679", return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertGreater(len(ofb), 150,
+                           "Unexpectedly small number structures overlap FB")
+        ofbl = self.vc.owl_subclasses(query="'overlaps' some 'fan-shaped body'", query_by_label=True, return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertTrue(set(ofb) == set(ofbl))
+
+    def test_get_owl_instances(self):
+        ofb = self.vc.owl_instances(query="RO:0002131 some FBbt:00003679", return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertGreater(len(ofb), 150,
+                           "Unexpectedly small number structures overlap FB")
+        ofbl = self.vc.owl_instances(query="'overlaps' some 'fan-shaped body'", query_by_label=True, return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertTrue(set(ofb) == set(ofbl))
+
 class VfbTermTests(unittest.TestCase):
 
     def setUp(self):

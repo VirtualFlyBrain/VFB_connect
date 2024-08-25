@@ -810,7 +810,76 @@ class VfbConnect:
         if return_dataframe:
             return pd.DataFrame.from_records(dc)
         return dc
-    
+
+    def owl_subclasses(self, query, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
+        """
+        Get subclasses of a given term.
+
+        Returns a VFBTerms of subclasses of the specified term.
+        If no data is found, returns False.
+
+        :param term: The ID, name, or symbol of a class in the Drosohila Anatomy Ontology (FBbt).
+        :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
+        :param return_id_only: Optional. Return only the subclass IDs if `True`. Default `False`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame with subclasses of the specified term.
+        :rtype: dependant on the options a pandas.DataFrame, list of ids or VFBTerms. Default is VFBTerms
+        """
+        ids = self.oc.get_subclasses(query=query, query_by_label=query_by_label, verbose=verbose)
+        if not ids:
+            ids = []
+        if return_id_only:
+            return ids
+        if return_dataframe:
+            return self.terms(ids, verbose=verbose).get_summaries(return_dataframe=return_dataframe)
+        return self.terms(ids, verbose=verbose)
+
+
+    def owl_superclasses(self, query, query_by_label=True, return_id_only=False, return_dataframe=False, verbose=False):
+        """
+        Get superclasses of a given term.
+
+        Returns a VFBTerms of superclasses of the specified term.
+        If no data is found, returns False.
+
+        :param term: The ID, name, or symbol of a class in the Drosohila Anatomy Ontology (FBbt).
+        :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
+        :param return_id_only: Optional. Return only the superclass IDs if `True`. Default `False`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame with superclasses of the specified term.
+       :rtype: dependant on the options a pandas.DataFrame, list of ids or VFBTerms. Default is VFBTerms
+        """
+        ids = self.oc.get_superclasses(query=query, query_by_label=query_by_label, verbose=verbose)
+        if not ids:
+            ids = []
+        if return_id_only:
+            return ids
+        if return_dataframe:
+            return self.terms(ids, verbose=verbose).get_summaries(return_dataframe=return_dataframe)
+        return self.terms(ids, verbose=verbose)
+
+    def owl_instances(self, query, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
+        """
+        Get instances of a given term.
+
+        Returns a VFBTerms of instances of the specified term.
+        If no data is found, returns False.
+
+        :param term: The ID, name, or symbol of a class in the Drosohila Anatomy Ontology (FBbt).
+        :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
+        :param return_id_only: Optional. Return only the instance IDs if `True`. Default `False`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame with instances of the specified term.
+        :rtype: dependant on the options a pandas.DataFrame, list of ids or VFBTerms. Default is VFBTerms
+        """
+        ids = self.oc.get_instances(query=query, query_by_label=query_by_label, verbose=verbose)
+        if not ids:
+            ids = []
+        if return_id_only:
+            return ids
+        if return_dataframe:
+            return self.terms(ids, verbose=verbose).get_summaries(return_dataframe=return_dataframe)
+        return self.terms(ids, verbose=verbose)
 
 
     def term(self, term, verbose=False):
