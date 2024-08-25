@@ -3102,7 +3102,7 @@ class VFBTerms:
                 skeletons.append(term._skeleton)
             else:
                 print(f"No skeleton found for {term.name} check for a mesh") if verbose else None
-                if not self._mesh or force_reload:
+                if not term._mesh or force_reload:
                     term.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
                 if term._mesh:
                     print(f"Mesh found for {term.name}") if verbose else None
@@ -3118,7 +3118,7 @@ class VFBTerms:
                     skeletons.append(term._mesh)
                 else:
                     print(f"No mesh found for {term.name} check for a volume") if verbose else None
-                    if not self._volume or force_reload:
+                    if not term._volume or force_reload:
                         term.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, allow_multiple=True)
                     if term._volume:
                         if not selected_template:
