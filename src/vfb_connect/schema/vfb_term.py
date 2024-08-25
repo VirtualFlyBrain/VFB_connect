@@ -1679,6 +1679,17 @@ class VFBTerm:
                 self._lineage_clone_types = None
                 self.add_lineage_clone_properties()
 
+            # Set the lineage property if it has a lineage tag
+            if 'lineage_' in ''.join(self.term.core.types):
+                for tag in self.term.core.types:
+                    if 'lineage_' in tag:
+                        lineage = tag.split('_')[1]
+                        id = self.vfb.lookup_id(lineage + ' lineage neuron')
+                        if id:
+                            self.lineage = self.vfb.term(id)
+                            print(f"Lineage term: {self.lineage}") if verbose else None
+                            break
+
 
     @property
     def parents(self):
