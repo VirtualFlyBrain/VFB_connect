@@ -1679,6 +1679,7 @@ class VFBTerm:
 
             if self.has_tag('Anatomy') and self.is_type:
                 self._transgene_expression = None
+                self._innervating = None
                 self.add_anatomy_type_properties()
                 self._lineage_clones = None
                 self._lineage_clone_types = None
@@ -1730,9 +1731,20 @@ class VFBTerm:
                     self._transgene_expression = ExpressionList([])
                 print(f"Transgene expression: {repr(self._transgene_expression)}") if self.debug else None
             return self._transgene_expression
+        
+        @property
+        def innervating(self):
+            """
+            Get the innervating nerves or tracts associated with this term.
+            """
+            if self._innervating is None:
+                print("Loading innervating neurons/tracts for the first time...") if self.debug else None
+                self._innervating = self.owl_instances(query=f"'neuron projection bundle' and 'innervates' some '{self.id}'", verbose=self.debug)
+            return self._innervating
 
         # Dynamically add the property to the instance
         setattr(self.__class__, 'transgene_expression', transgene_expression)
+        setattr(self.__class__, 'innervating', innervating)
 
     def add_lineage_clone_properties(self):
         @property
