@@ -8,6 +8,8 @@ import pandas
 import requests
 import tempfile
 
+from ..neo.neo4j_tools import chunks, Neo4jConnect, dict_cursor, escape_string
+
 import webbrowser
 
 neuron_containing_anatomy_tags = [
@@ -61,6 +63,8 @@ class MinimalEntityInfo:
         self.types = types
         self.unique_facets = unique_facets
         self.symbol = symbol
+        if self.symbol and isinstance(self.symbol, list):
+            self.symbol = self.symbol[0]
         self.name = self.get_name()
 
     def get_name(self):
@@ -246,6 +250,8 @@ class Publication:
             self.PubMed = PubMed
         if DOI:
             self.DOI = DOI
+
+        self.name = self.core.name if hasattr(self, 'core') and hasattr(self.core, 'name') else None
 
     def __repr__(self):
         """
@@ -1020,7 +1026,7 @@ class AnatomyChannelImage:
         return f"AnatomyChannelImage(anatomy={self.anatomy})"
 
 class Expression:
-    def __init__(self, term: str = None, term_name: Optional[str] = None, term_type: Optional[str] = None, type: Optional[str] = None, type_name: Optional[str] = None, reference: Optional[Publication] = None, dataset: Optional['VFBTerm'] = None , expression_extent: Optional[float] = None, expression_level: Optional[float] = None, probability: Optional[float] = None, probability_type: Optional[str] = None):
+    def __init__(self, term: str = None, term_name: Optional[str] = None, term_type: Optional[str] = None, type: Optional[str] = None, type_name: Optional[str] = None, reference: Optional[Union[Publication,List[Publication]]] = None, dataset: Optional['VFBTerm'] = None , expression_extent: Optional[float] = None, expression_level: Optional[float] = None, probability: Optional[float] = None, probability_type: Optional[str] = None):
         """
         Initialize an Expression object representing expression data.
 
@@ -1045,7 +1051,14 @@ class Expression:
         self.term_type = term_type if term_type else None
 
         if reference:
-            if isinstance(reference, dict):
+            if isinstance(reference, list):
+                if all(isinstance(ref, dict) for ref in reference):
+                    self.reference = [Publication(**ref) for ref in reference]
+                elif all(isinstance(ref, Publication) for ref in reference):
+                    self.reference = reference
+                else:
+                    raise ValueError("All elements in the list must be of type Publication or dict")
+            elif isinstance(reference, dict):
                 self.reference = Publication(**reference)
             elif isinstance(reference, Publication):
                 self.reference = reference
@@ -1136,7 +1149,10 @@ class Expression:
             else:
                 result['probability'] = self.probability
         if hasattr(self, 'reference') and self.reference:
-            result['reference'] = self.reference.core.symbol if self.reference.core.symbol else self.reference.core.label
+            if isinstance(self.reference, Publication):
+                result['reference'] = self.reference.name
+            else:
+                result['reference'] = '; '.join([ref.name for ref in self.reference])
         if hasattr(self, 'dataset') and self.dataset:
             result['dataset'] = self.dataset.name
         return result
@@ -1202,7 +1218,10 @@ class Expression:
             else:
                 result += f"{', ' if result else ''}probability={self.probability}"
         if hasattr(self, 'reference') and self.reference:
-            result += f"{', ' if result else ''}reference={self.reference.core.symbol if self.reference.core.symbol else self.reference.core.label}"
+            if isinstance(self.reference, Publication):
+                result += f"{', ' if result else ''}reference={self.reference.name}"
+            else:
+                result += f"{', ' if result else ''}reference={'; '.join([ref.name for ref in self.reference])}"
         if hasattr(self, 'dataset') and self.dataset:
             result += f"{', ' if result else ''}dataset={self.dataset.name}"
         return f"Expression({result})"
@@ -1303,7 +1322,7 @@ class ExpressionList:
         :param return_dataframe: Whether to return the summary as a pandas DataFrame.
         :return: A summary of the expressions, either as a DataFrame or a list of dictionaries.
         """
-        summary = [exp.summary() for exp in self.expressions]
+        summary = [exp.summary for exp in self.expressions]
         if return_dataframe:
             return pandas.DataFrame(summary)
         return summary
@@ -1653,6 +1672,10 @@ class VFBTerm:
                 self._scRNAseq_expression = None
                 self.add_scRNAseq_expression_properties()
 
+            if self.has_tag('Anatomy') and self.is_type:
+                self._transgene_expression = None
+                self.add_anatomy_type_properties()
+
 
     @property
     def parents(self):
@@ -1663,6 +1686,34 @@ class VFBTerm:
             print("Loading parents for the first time...") if self.debug else None
             self._parents = VFBTerms(self._parents_ids) if self._parents_ids else None
         return self._parents
+
+    def add_anatomy_type_properties(self):
+        @property
+        def transgene_expression(self):
+            """
+            Get the transgene expression data associated with this anatomy type term.
+            """
+            if self._transgene_expression is None:
+                print("Loading transgene expression for the first time...") if self.debug else None
+                subclasses = self.vfb.oc.get_subclasses(query=f"'{self.id}'", verbose=self.debug)
+                print("Subclasses: ", subclasses) if self.debug else None
+                overlapping_cells = self.vfb.oc.get_subclasses(query=f"'cell' that 'overlaps' some '{self.id}'", verbose=self.debug)
+                print("Overlapping cells: ", overlapping_cells) if self.debug else None
+                part_of = self.vfb.oc.get_subclasses(query=f"'is part of' some '{self.id}'", verbose=self.debug)
+                print("Part of: ", part_of) if self.debug else None
+                all_anatomy = subclasses + overlapping_cells + part_of + [self.id]
+                print("All anatomy: ", all_anatomy) if self.debug else None
+                result = dict_cursor(self.vfb.nc.commit_list([f"MATCH (ep:Class:Expression_pattern)<-[ar:overlaps|part_of]-(:Individual)-[:INSTANCEOF]->(anat:Class) WHERE anat.short_form in {all_anatomy} WITH DISTINCT collect(DISTINCT ar.pub[0]) as pubs, anat, ep OPTIONAL MATCH (pub:pub) WHERE pub.short_form IN pubs RETURN distinct ep.short_form as term, coalesce(ep.symbol, ep.label) as term_name, anat.short_form as type, coalesce(anat.symbol, anat.label) as type_name, collect(pub) as pubs"]))
+                print("Result: ", result) if self.debug else None
+                if result:
+                    self._transgene_expression = ExpressionList([Expression(term=exp['term'], term_name=exp['term_name'], term_type='transgene', type=exp['type'], type_name=exp['type_name'], reference=[Publication(FlyBase=pub.get('FlyBase',''), PubMed=pub.get('PMID',''), DOI=pub.get('DOI', ''), core=MinimalEntityInfo(short_form=pub['short_form'], label=pub['label'], iri=pub['iri'], types=pub['label'], symbol=','.join(pub['miniref'][0].split(',')[:2])), description=pub['title']) for pub in exp['pubs']]) for exp in result])
+                else:
+                    self._transgene_expression = ExpressionList([])
+                print(f"Transgene expression: {repr(self._transgene_expression)}") if self.debug else None
+            return self._transgene_expression
+
+        # Dynamically add the property to the instance
+        setattr(self.__class__, 'transgene_expression', transgene_expression)
 
     def add_template_properties(self):
         @property
@@ -1942,6 +1993,9 @@ class VFBTerm:
                 results = self.vfb.get_similar_neurons(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
                 results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
                 self._similar_neurons_nblast = [Score(**dict) for dict in results_dict]
+                if not self._similar_neurons_nblast:
+                    print("No similar neurons found!")
+                    self._similar_neurons_nblast = []
             return self._similar_neurons_nblast
 
         # @property
@@ -1972,6 +2026,9 @@ class VFBTerm:
                 results = self.vfb.get_potential_drivers(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
                 results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
                 self._potential_drivers_nblast = [Score(**dict) for dict in results_dict]
+                if not self._potential_drivers_nblast:
+                    print("No potential drivers found!")
+                    self._potential_drivers_nblast = []
             return self._potential_drivers_nblast
 
         @property
@@ -1987,6 +2044,9 @@ class VFBTerm:
                 results = self.vfb.get_potential_drivers(neuron=self.id, similarity_score=method, query_by_label=False, return_dataframe=False)
                 results_dict = [{"score": item['score'], "method": method, "term": item['id']} for item in results]
                 self._potential_drivers_neuronbridge = [Score(**dict) for dict in results_dict]
+                if not self._potential_drivers_neuronbridge:
+                    print("No potential drivers found!")
+                    self._potential_drivers_neuronbridge = []
             return self._potential_drivers_neuronbridge
 
         @property

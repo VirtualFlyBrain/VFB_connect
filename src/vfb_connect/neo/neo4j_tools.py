@@ -252,7 +252,19 @@ class Neo4jConnect:
                         "WITH a.short_form AS id, synonym1 AS synonym " \
                         "RETURN DISTINCT id, synonym AS name" % (l, where)
             q = self.commit_list([lookup_query])
-            out.extend(dict_cursor(q))
+            # Iterate through the results and add only if the label doesn't already exist to avoid duplicate synonyms e.g. cell
+            name_to_id = {item['name']: item['id'] for item in out}
+            print(f"Initial lookup contains {len(name_to_id)} entries") if verbose else None
+            print(f"Result for cell: {name_to_id['cell']}") if verbose else None
+            existing_names = set(name_to_id.keys())
+            for result in dict_cursor(q):
+                if not result['name'] in existing_names:
+                    out.append(result)
+                    existing_names.add(result['name'])
+                    name_to_id[result['name']] = result['id']
+                else:
+                    print(f"Skipping duplicate synonym: {result['name']} - {result['id']} in favour or existing {name_to_id[result['name']]}") if verbose and result['id'] != name_to_id[result['name']] else None
+
 
         if include_individuals:
             where = "AND NOT a:Deprecated AND NOT a.short_form STARTS WITH 'VFBc_' AND NOT a:Person "
@@ -278,7 +290,18 @@ class Neo4jConnect:
                             "WITH a.short_form AS id, synonym1 AS synonym " \
                             "RETURN DISTINCT id, synonym AS name" % (l, where)
                 q = self.commit_list([lookup_query])
-                out.extend(dict_cursor(q))
+                # Iterate through the results and add only if the label doesn't already exist to avoid duplicate synonyms e.g. cell
+                name_to_id = {item['name']: item['id'] for item in out}
+                print(f"Initial lookup contains {len(name_to_id)} entries") if verbose else None
+                print(f"Result for cell: {name_to_id['cell']}") if verbose else None
+                existing_names = set(name_to_id.keys())
+                for result in dict_cursor(q):
+                    if not result['name'] in existing_names:
+                        out.append(result)
+                        existing_names.add(result['name'])
+                        name_to_id[result['name']] = result['id']
+                    else:
+                        print(f"Skipping duplicate synonym: {result['name']} - {result['id']} in favour or existing {name_to_id[result['name']]}") if verbose and result['id'] != name_to_id[result['name']] else None
 
         # All ObjectProperties wanted, irrespective of ID
         if limit_properties_by_prefix:
@@ -317,7 +340,7 @@ class Neo4jConnect:
                 existing_names.add(result['name'])
                 name_to_id[result['name']] = result['id']
             else:
-                print(f"Skipping duplicate object property: {result['name']} - {result['id']} in favour or existing {name_to_id[result['name']]}") if verbose else None
+                print(f"Skipping duplicate object property: {result['name']} - {result['id']} in favour or existing {name_to_id[result['name']]}") if verbose and result['id'] != name_to_id[result['name']] else None
 
         # Removing duplicates while maintaining order
         seen = set()

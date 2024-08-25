@@ -342,6 +342,16 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(isinstance(xref[0], Xref))
         self.assertEqual(len(xref), 1)
 
+    def test_vfbterms_transgene_expression(self):
+        term = self.vfb.term('medulla')
+        print("got terms ", term)
+        exp = term.transgene_expression
+        self.assertTrue(exp)
+        print(exp)
+        self.assertGreater(len(exp), 10)
+        print(exp.summary)
+
+
 
 if __name__ == "__main__":
     unittest.main()
