@@ -114,6 +114,13 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(ofb, "Query failed.")
         self.assertTrue(set(ofb) == set(ofbl))
 
+    def test_cypher_query(self):
+        fu = self.vc.cypher_query("MATCH (n:Class) WHERE n.label = 'fan-shaped body' RETURN n", return_dataframe=False)
+        self.assertTrue(fu)
+        self.assertTrue(len(fu) > 0)
+        self.assertTrue(isinstance(fu[0], dict))
+        self.assertEquals(fu[0]['n']['label'], 'fan-shaped body')
+
 class VfbTermTests(unittest.TestCase):
 
     def setUp(self):

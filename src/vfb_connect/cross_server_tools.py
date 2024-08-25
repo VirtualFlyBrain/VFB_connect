@@ -881,6 +881,20 @@ class VfbConnect:
             return self.terms(ids, verbose=verbose).get_summaries(return_dataframe=return_dataframe)
         return self.terms(ids, verbose=verbose)
 
+    def cypher_query(self, query, return_dataframe=True, verbose=False):
+        """
+        Run a Cypher query.
+
+        :param query: The Cypher query to run.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame or list of results.
+        :rtype: pandas.DataFrame or list of dicts
+        """
+        r = self.nc.commit_list([query])
+        dc = dict_cursor(r)
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
+        return dc
 
     def term(self, term, verbose=False):
         """Get a VFBTerm object for a given term id, name, symbol or synonym.
