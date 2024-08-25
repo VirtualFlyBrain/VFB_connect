@@ -42,7 +42,7 @@ class VfbTermTest(unittest.TestCase):
         self.assertGreater(len(expression), 5)
         print(expression[0].summary)
 
-    def test_scRNAseq_dataets(self):
+    def test_scRNAseq_datasets(self):
         cluster = self.vfb.term("FBlc0006144")
         datasets = cluster.datasets
         print(datasets)

@@ -96,6 +96,31 @@ class VfbConnectTest(unittest.TestCase):
         term = vfb.term(test_key, verbose=True)
         self.assertEqual(term.id, "VFB_jrchk00a")
 
+    def test_get_owl_subclasses(self):
+        ofb = self.vc.owl_subclasses(query="RO:0002131 some FBbt:00003679", return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertGreater(len(ofb), 150,
+                           "Unexpectedly small number structures overlap FB")
+        ofbl = self.vc.owl_subclasses(query="'overlaps' some 'fan-shaped body'", query_by_label=True, return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertTrue(set(ofb) == set(ofbl))
+
+    def test_get_owl_instances(self):
+        ofb = self.vc.owl_instances(query="RO:0002131 some FBbt:00003679", return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertGreater(len(ofb), 150,
+                           "Unexpectedly small number structures overlap FB")
+        ofbl = self.vc.owl_instances(query="'overlaps' some 'fan-shaped body'", query_by_label=True, return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertTrue(set(ofb) == set(ofbl))
+
+    def test_cypher_query(self):
+        fu = self.vc.cypher_query("MATCH (n:Class) WHERE n.label = 'fan-shaped body' RETURN n", return_dataframe=False)
+        self.assertTrue(fu)
+        self.assertTrue(len(fu) > 0)
+        self.assertTrue(isinstance(fu[0], dict))
+        self.assertEquals(fu[0]['n']['label'], 'fan-shaped body')
+
 class VfbTermTests(unittest.TestCase):
 
     def setUp(self):
