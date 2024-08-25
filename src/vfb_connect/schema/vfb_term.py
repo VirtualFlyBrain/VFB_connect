@@ -1626,6 +1626,8 @@ class VFBTerm:
             self.has_neuron_connectivity = self.has_tag('has_neuron_connectivity')
             self.has_region_connectivity = self.has_tag('has_region_connectivity')
 
+            self._gene_function_filters = self.vfb.get_gene_function_filters()
+
             if self.is_template:
                 self._regions_ids = regions
                 self._regions = None  # Initialize as None, will be loaded on first access
@@ -2220,6 +2222,33 @@ class VFBTerm:
         dicts = [{"weight": item['weight'], "partner": item['query_neuron_id'], "partner_name": item['query_neuron_name']} for item in results]
         print("Dict: ", dict) if verbose else None
         return [Partner(**dict) for dict in dicts]
+    
+    def get_transcriptomic_profile(self, gene_type=False, query_by_label=True, return_dataframe=True, verbose=False):
+        """Get gene expression data for a given cell type.
+
+        Returns a DataFrame of gene expression data for clusters of cells annotated as the specified cell type (or subtypes).
+        Optionally restricts to a gene type, which can be retrieved using `get_gene_function_filters`.
+        If no data is found, returns False.
+
+        :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
+        :param gene_type: Optional. A gene function label retrieved using `get_gene_function_filters`.
+        :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame with gene expression data for clusters of cells annotated as the specified cell type.
+        :rtype: pandas.DataFrame or list of dicts
+        :raises KeyError: If the cell_type or gene_type is invalid.
+        """
+        if gene_type:
+            print(f"Getting transcriptomic profile filterd by {gene_type}") if verbose else None
+            if gene_type not in self._gene_function_filters:
+                raise KeyError(f"Gene function '{gene_type}' not found. Please use one of: {', '.join(self._gene_function_filters)}")
+        if self.is_type:
+            cell_type = self.id
+            print(f"Getting transcriptomic profile for {self.name} ({cell_type})") if verbose else None
+        else:
+            cell_type = self.parents[0].id
+            print("Running query against parent type: ", self.parents[0].name)
+        return self.vfb.get_transcriptomic_profile(cell_type=cell_type, gene_type=gene_type, query_by_label=query_by_label, return_dataframe=return_dataframe)
 
     def get_summary(self, return_dataframe=True, verbose=False):
         """

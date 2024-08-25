@@ -361,6 +361,15 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(lct)
         self.assertGreater(len(lct), 2)
 
+    def test_vfbterms_transcriptomic_profile(self):
+        self.vfb.reload_lookup_cache(verbose=True)
+        term = self.vfb.term('LC12')
+        print("got terms ", term)
+        lct = term.get_transcriptomic_profile()
+        print(lct.summary)
+        self.assertTrue(lct)
+        self.assertGreater(len(lct), 2)
+
 
 if __name__ == "__main__":
     unittest.main()
