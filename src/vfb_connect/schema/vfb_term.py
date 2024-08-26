@@ -2985,6 +2985,48 @@ class VFBTerms:
                 print(f"Final sorted result: {sorted_result}")
             return sorted_result
 
+    def get_colours_for(self, property_name='name', verbose=False):
+        from collections.abc import Iterable
+
+        result = set()
+        result_dict = {}
+
+        for term in self.terms:
+            if hasattr(term, property_name):
+                value = getattr(term, property_name)
+                term_id = getattr(term, 'id', None)
+                if verbose:
+                    print(f"Found property '{property_name}' in {term}: {value}")
+
+                if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+                    if verbose:
+                        print(f"Property '{property_name}' is iterable. Adding items to result set: {value}")
+                    result.update(value)
+                    for item in value:
+                        if item not in result_dict:
+                            result_dict[item] = []
+                        result_dict[item].append(term_id)
+                else:
+                    if verbose:
+                        print(f"Property '{property_name}' is not iterable. Adding item to result set: {value}")
+                    result.add(value)
+                    if value not in result_dict:
+                        result_dict[value] = []
+                    result_dict[value].append(term_id)
+            elif verbose:
+                print(f"Property '{property_name}' not found in {term}. Skipping.")
+
+        sorted_result = sorted(result)
+        color_list = self.vfb.generate_lab_colors(len(sorted_result))
+        value_to_color = dict(zip(sorted_result, color_list))
+
+        if verbose:
+            for value, color in value_to_color.items():
+                r, g, b = color
+                print(f"\033[48;2;{r};{g};{b}m  {value}  \033[0m - Color: {color}")
+
+        return color_list
+
     def AND(self, other, verbose=False):
         """
         Perform a logical AND operation on two VFBTerms objects or a VFBTerm object and a VFBTerms object.
