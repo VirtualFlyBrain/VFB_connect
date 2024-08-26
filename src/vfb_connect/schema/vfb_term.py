@@ -3239,7 +3239,7 @@ class VFBTerms:
         for term in self.terms:
             term.load_volume(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 
-    def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, **kwargs):
+    def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, limit=False, **kwargs):
         """
         Plot the 3D representation of any neuron or expression.
 
@@ -3252,6 +3252,10 @@ class VFBTerms:
         skeletons, selected_template = self._get_plot_images(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 
         if skeletons:
+            if limit and len(skeletons) > limit:
+                print(f"\033[32mINFO:\033[0m Limiting to {limit} items out of {len(skeletons)}")
+                skeletons = skeletons[:limit]
+
             print(f"Plotting 3D representation of {len(skeletons)} items")
             if include_template:
                 print(f"Adding template {selected_template} to the plot")
@@ -3263,7 +3267,7 @@ class VFBTerms:
         else:
             print("Nothing found to plot")
 
-    def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, **kwargs):
+    def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, limit=False, **kwargs):
         """
         Plot the 2D representation of any neuron or expression.
 
@@ -3277,6 +3281,10 @@ class VFBTerms:
         skeletons, selected_template = self._get_plot_images(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 
         if skeletons:
+            if limit and len(skeletons) > limit:
+                print(f"\033[32mINFO:\033[0m Limiting to {limit} items out of {len(skeletons)}")
+                skeletons = skeletons[:limit]
+
             print(f"Plotting 2D representation of {len(skeletons)} items")
             if include_template:
                 print(f"Adding template {selected_template} to the plot")
