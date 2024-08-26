@@ -454,18 +454,18 @@ class VfbTermTest(unittest.TestCase):
         self.assertEqual(NT['glutamate secretion, neurotransmission'], ['VFB_jrcv1qnm'])
 
     def test_vfbterms_get_colours_for_terms(self):
-        terms = self.vfb.terms(['IN13A015_T1_R (MANC:81202)','SNta24_MesoLN_R (MANC:45077)'])
+        terms = self.vfb.terms(['IN13A015_T1_R (MANC:81202)','SNta24_MesoLN_R (MANC:45077)','SNta24_MesoLN_L (MANC:157685)','SNta24_MesoLN_L (MANC:22390588623)'])
         print("got terms ", terms)
         cp = terms.get_colours_for('capable_of')
         print(cp)
         self.assertTrue(cp)
-        self.assertEqual(len(cp), 2)
+        self.assertEqual(len(cp), 4)
         tp = terms.get_colours_for('types')
         print(tp)
-        self.assertEqual(len(tp), 2)
+        self.assertEqual(len(tp), 4)
         tp = terms.get_colours_for('types', take_first=True)
         print(tp)
-        self.assertEqual(len(tp), 1)
+        self.assertEqual(len(tp), 4)
 
 if __name__ == "__main__":
     unittest.main()
