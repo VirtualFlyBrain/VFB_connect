@@ -1,5 +1,6 @@
 import unittest
-from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm, Score, Relations, Xref
+import time
+from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm, Score, Relations, Xref, ExpressionList, Expression
 
 class VfbTermTest(unittest.TestCase):
 
@@ -353,7 +354,68 @@ class VfbTermTest(unittest.TestCase):
         print(lc.summary)
         self.assertGreater(len(lc), 10)
 
+    def test_vfbterms_innervating(self):
+        term = self.vfb.term('medulla')
+        print("got terms ", term)
+        lct = term.innervating
+        print(lct.summary)
+        self.assertTrue(lct)
+        self.assertGreater(len(lct), 2)
 
+    def test_vfbterms_transcriptomic_profile(self):
+        print(self.vfb.lookup_id('LC12'))
+        term = self.vfb.term('LC12')
+        print("got terms ", term)
+        lct = term.get_transcriptomic_profile()
+        print(type(lct))
+        self.assertTrue(isinstance(lct, ExpressionList))
+        print(lct.summary)
+        print(len(lct[0]))
+        self.assertGreater(len(lct), 2)
+
+    def test_lookups(self):
+        id = self.vfb.lookup_id('LC12')
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00100484')
+        id = self.vfb.lookup_id('overlaps', return_curie=True)
+        print("got id ", id)
+        self.assertEqual(id, 'RO:0002131')
+        id = self.vfb.lookup_id('cell')
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00007002')
+        id = self.vfb.lookup_id('part_of')
+        print("got id ", id)
+        self.assertEqual(id, 'BFO_0000050')
+
+    def test_vfbterm_cache(self):
+        base = len(self.vfb._term_cache)
+        print(self.vfb._term_cache)
+        
+        # Timing the first call to 'medulla'
+        start_time = time.time()
+        self.vfb.term('medulla')
+        end_time = time.time()
+        print(f"Time taken for vfb.term('medulla'): {end_time - start_time:.4f} seconds")
+        base = len(self.vfb._term_cache)
+        print(base)
+        
+        # Timing the second call to 'medulla'
+        start_time = time.time()
+        self.vfb.term('medulla')
+        end_time = time.time()
+        print(f"Time taken for vfb.term('medulla') again: {end_time - start_time:.4f} seconds")
+        
+        print(base)
+        self.assertEqual(len(self.vfb._term_cache), base)
+        
+        # Timing the call to 'LC12'
+        start_time = time.time()
+        self.vfb.term('LC12')
+        end_time = time.time()
+        self.assertGreater(len(self.vfb._term_cache), base)
+        print(f"Time taken for vfb.term('LC12'): {end_time - start_time:.4f} seconds")
+        base = len(self.vfb._term_cache)
+        print(base)
 
 if __name__ == "__main__":
     unittest.main()

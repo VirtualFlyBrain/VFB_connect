@@ -97,6 +97,8 @@ class VfbConnect:
         with open(multi_query_json, 'r') as f:
             self.queries = json.loads(saxutils.unescape(f.read()))
 
+        self._term_cache = []
+
         print("\033[32mSession Established!\033[0m")
         print("")
         print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.get_TermInfo)\033[0m")

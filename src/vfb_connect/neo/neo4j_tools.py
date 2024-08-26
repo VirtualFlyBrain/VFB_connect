@@ -200,175 +200,208 @@ class Neo4jConnect:
         return [x['k'] for x in d]
 
     def get_lookup(self, cache=None, limit_type_by_prefix=('FBbt', 'VFBexp', 'VFBext'), include_individuals=True,
-               limit_properties_by_prefix=('RO', 'BFO', 'VFBext'), curies=False, include_synonyms=True, verbose=False):
+                   limit_properties_by_prefix=('RO', 'BFO', 'VFBext'), curies=False, include_synonyms=True, verbose=False):
         """Generate a name:ID lookup from a VFB neo4j DB, optionally restricted by a list of prefixes.
 
-        :param use_cache: If `True`, uses a cached lookup. If `False`, generates a new lookup.
-        :param limit_by_prefix:  Optional list of id prefixes for limiting lookup of classes & individuals
-        :param include_individuals: If `True`, individuals included in lookup.
-        :param limit_properties_by_prefix:  Optional list of id prefixes for limiting lookup of properties.
+        :param cache: If a valid cache path is provided, uses a cached lookup. Otherwise, generates a new lookup.
+        :param limit_type_by_prefix: Optional list of id prefixes for limiting lookup of classes & individuals.
+        :param include_individuals: If `True`, individuals are included in the lookup.
+        :param limit_properties_by_prefix: Optional list of id prefixes for limiting lookup of properties.
         :param curies: If `True`, returns CURIEs instead of IDs.
         :param include_synonyms: If `True`, includes synonyms in the lookup.
+        :param verbose: If `True`, provides verbose output.
         :return: A dictionary with names (or synonyms) as keys and their corresponding IDs as values.
         """
         try:
             three_months_in_seconds = 3 * 30 * 24 * 60 * 60
             if cache and os.path.exists(cache) and os.path.getctime(cache) > time.time() - three_months_in_seconds:
-                print("Loading cache lookup from disk...") if verbose else None
+                if verbose:
+                    print("Loading cache lookup from disk...")
                 with open(cache, 'rb') as f:
                     return pickle.load(f)
         except Exception as e:
             print(f"Failed to load cache lookup from disk: {e}")
 
-        # Print the loading message
         print("Caching all terms for faster lookup...")
 
-        where = ''
-        if limit_type_by_prefix:
-            regex_string = '.+|'.join(limit_type_by_prefix) + '.+'
-            where += "AND a.short_form =~ '%s' " % regex_string
-        where += "AND NOT a:Deprecated "
-
         out = []
-        # All Classes wanted, where id starts with prefix in limit_type_by_prefix
-        l = 'Class'
-        print(f"Caching {l} names...")
-        lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) AND EXISTS(a.label) %s RETURN a.short_form as id, a.label as name" % (l, where)
-        q = self.commit_list([lookup_query])
-        out.extend(dict_cursor(q))
-        print(f"Caching {l} symbols...")
-        lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) %s AND exists(a.symbol) " \
-                    "RETURN a.short_form as id, a.symbol[0] as name" % (l, where)
-        q = self.commit_list([lookup_query])
-        out.extend(dict_cursor(q))
+
+        # Step 1: Load Classes
+        self.load_classes(out, limit_type_by_prefix, include_synonyms, verbose)
+
+        # Step 2: Load Individuals
+        if include_individuals:
+            self.load_individuals(out, include_synonyms, verbose)
+
+        # Step 3: Load ObjectProperties
+        self.load_object_properties(out, limit_properties_by_prefix, verbose)
+
+        # Remove duplicates and convert to final output format
+        lookup = self.process_results(out, curies)
+
+        # Save the lookup to a cache file
+        self.save_to_cache(lookup, cache)
+
+        return lookup
+
+    def load_classes(self, out, limit_type_by_prefix, include_synonyms, verbose):
+        """Load Class terms into the output list.
+
+        :param out: The list to store fetched terms.
+        :param limit_type_by_prefix: Optional list of id prefixes for limiting lookup of classes.
+        :param include_synonyms: If `True`, includes synonyms in the lookup.
+        :param verbose: If `True`, provides verbose output.
+        """
+        where_clause = self.construct_where_clause(limit_type_by_prefix, "AND NOT a:Deprecated")
+        self.execute_and_process_query('Class', where_clause, 'label', out, verbose)
+        self.execute_and_process_query('Class', where_clause, 'symbol[0]', out, verbose)
 
         if include_synonyms:
-            print(f"Caching {l} synonyms...")
-            lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) %s AND EXISTS(a.synonyms) OR (a)-[:has_reference {typ:'syn'}]->(:pub:Individual) " \
-                        "UNWIND a.synonyms AS synonym2 " \
-                        "RETURN DISTINCT a.short_form AS id, synonym2 AS name " \
-                        "UNION ALL MATCH (a)-[r:has_reference {typ:'syn'}]->(:pub:Individual) " \
-                        "UNWIND r.value AS synonym1 " \
-                        "WITH a.short_form AS id, synonym1 AS synonym " \
-                        "RETURN DISTINCT id, synonym AS name" % (l, where)
-            q = self.commit_list([lookup_query])
-            # Iterate through the results and add only if the label doesn't already exist to avoid duplicate synonyms e.g. cell
-            name_to_id = {item['name']: item['id'] for item in out}
-            print(f"Initial lookup contains {len(name_to_id)} entries") if verbose else None
-            print(f"Result for cell: {name_to_id['cell']}") if verbose else None
-            existing_names = set(name_to_id.keys())
-            for result in dict_cursor(q):
-                if not result['name'] in existing_names:
-                    out.append(result)
-                    existing_names.add(result['name'])
-                    name_to_id[result['name']] = result['id']
-                else:
-                    print(f"Skipping duplicate synonym: {result['name']} - {result['id']} in favour or existing {name_to_id[result['name']]}") if verbose and result['id'] != name_to_id[result['name']] else None
+            self.execute_and_process_query_with_synonyms('Class', where_clause, out, verbose)
 
+    def load_individuals(self, out, include_synonyms, verbose):
+        """Load Individual terms into the output list.
 
-        if include_individuals:
-            where = "AND NOT a:Deprecated AND NOT a.short_form STARTS WITH 'VFBc_' AND NOT a:Person "
-            # If individuals are wanted, get them
-            l = 'Individual'
-            print(f"Caching {l} names...")
-            lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) AND EXISTS(a.label) %s RETURN a.short_form as id, a.label as name" % (l, where)
-            q = self.commit_list([lookup_query])
-            out.extend(dict_cursor(q))
-            print(f"Caching {l} symbols...")
-            lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) %s AND exists(a.symbol) " \
-                        "RETURN a.short_form as id, a.symbol[0] as name" % (l, where)
-            q = self.commit_list([lookup_query])
-            out.extend(dict_cursor(q))
+        :param out: The list to store fetched terms.
+        :param include_synonyms: If `True`, includes synonyms in the lookup.
+        :param verbose: If `True`, provides verbose output.
+        """
+        where_clause = "AND NOT a:Deprecated AND NOT a.short_form STARTS WITH 'VFBc_' AND NOT a:Person"
+        self.execute_and_process_query('Individual', where_clause, 'label', out, verbose)
+        self.execute_and_process_query('Individual', where_clause, 'symbol[0]', out, verbose)
 
-            if include_synonyms:
-                print(f"Caching {l} synonyms...")
-                lookup_query = "MATCH (a:%s) WHERE EXISTS(a.short_form) %s AND EXISTS(a.synonyms) OR (a)-[:has_reference {typ:'syn'}]->(:pub:Individual) " \
-                            "UNWIND a.synonyms AS synonym2 " \
-                            "RETURN DISTINCT a.short_form AS id, synonym2 AS name " \
-                            "UNION ALL MATCH (a)-[r:has_reference {typ:'syn'}]->(:pub:Individual) " \
-                            "UNWIND r.value AS synonym1 " \
-                            "WITH a.short_form AS id, synonym1 AS synonym " \
-                            "RETURN DISTINCT id, synonym AS name" % (l, where)
-                q = self.commit_list([lookup_query])
-                # Iterate through the results and add only if the label doesn't already exist to avoid duplicate synonyms e.g. cell
-                name_to_id = {item['name']: item['id'] for item in out}
-                print(f"Initial lookup contains {len(name_to_id)} entries") if verbose else None
-                print(f"Result for cell: {name_to_id['cell']}") if verbose else None
-                existing_names = set(name_to_id.keys())
-                for result in dict_cursor(q):
-                    if not result['name'] in existing_names:
-                        out.append(result)
-                        existing_names.add(result['name'])
-                        name_to_id[result['name']] = result['id']
-                    else:
-                        print(f"Skipping duplicate synonym: {result['name']} - {result['id']} in favour or existing {name_to_id[result['name']]}") if verbose and result['id'] != name_to_id[result['name']] else None
+        if include_synonyms:
+            self.execute_and_process_query_with_synonyms('Individual', where_clause, out, verbose)
 
-        # All ObjectProperties wanted, irrespective of ID
+    def load_object_properties(self, out, limit_properties_by_prefix, verbose):
+        """Load ObjectProperties into the output list.
+
+        :param out: The list to store fetched terms.
+        :param limit_properties_by_prefix: Optional list of id prefixes for limiting lookup of properties.
+        :param verbose: If `True`, provides verbose output.
+        """
+        where_clause = self.construct_where_clause(limit_properties_by_prefix)
+        self.execute_and_process_query('ObjectProperty', where_clause, 'label', out, verbose)
+
+        # Handle alternative terms for ObjectProperties
         if limit_properties_by_prefix:
             match_string = "' OR a.short_form STARTS WITH '".join(limit_properties_by_prefix)
-            where = " WHERE a.short_form STARTS WITH '%s' " % match_string
+            where_clause = f"WHERE EXISTS(a.alternative_term) AND size(a.alternative_term) > 0 AND a.short_form STARTS WITH '{match_string}'"
         else:
-            where = ''
-        print(f"Caching ObjectProperties...")
-        property_lookup_query = "MATCH (a:ObjectProperty) " \
-                                + where + \
-                                "RETURN a.short_form as id, a.label as name"
-        q = self.commit_list([property_lookup_query])
-        out.extend(dict_cursor(q))
+            where_clause = "WHERE EXISTS(a.alternative_term) AND size(a.alternative_term) > 0"
+        
+        query = f"MATCH (a:ObjectProperty) {where_clause} UNWIND a.alternative_term as label RETURN a.short_form as id, label as name"
+        q = self.commit_list([query])
+        self.process_and_add_results(q, out, verbose)
 
-        # All alternative terms for ObjectProperties
-        if limit_properties_by_prefix:
-            match_string = "' OR a.short_form STARTS WITH '".join(limit_properties_by_prefix)
-            where = " WHERE exists(a.alternative_term) and size(a.alternative_term) > 0 and a.short_form STARTS WITH '%s' " % match_string
+    def construct_where_clause(self, prefixes, base_clause=""):
+        """Construct the WHERE clause for the query based on term type and prefix limitations.
+
+        :param prefixes: List of id prefixes for limiting lookup.
+        :param base_clause: Additional base condition for the WHERE clause.
+        :return: A string representing the WHERE clause for the query.
+        """
+        if prefixes:
+            regex_string = '.+|'.join(prefixes) + '.+'
+            where = f"{base_clause} AND a.short_form =~ '{regex_string}'"
         else:
-            where = ''
-        print(f"Caching ObjectProperties alternative labels...")
-        property_lookup_query = "MATCH (a:ObjectProperty) " \
-                                + where + \
-                                "UNWIND a.alternative_term as label " + \
-                                "RETURN a.short_form as id, label as name"
-        q = self.commit_list([property_lookup_query])
+            where = base_clause
+        return where
 
-        # Iterate through the results and add only if the label doesn't already exist to avoid duplicate object properties e.g. overlaps
+    def execute_and_process_query(self, term_type, where, property_name, out, verbose):
+        """Execute a Cypher query and process the results.
+
+        :param term_type: The type of terms to fetch (e.g., 'Class', 'Individual', 'ObjectProperty').
+        :param where: The WHERE clause of the query.
+        :param property_name: The property to fetch (e.g., 'label', 'symbol[0]').
+        :param out: The list to store fetched terms.
+        :param verbose: If `True`, provides verbose output.
+        """
+        query = f"MATCH (a:{term_type}) WHERE EXISTS(a.short_form) {where} AND EXISTS(a.{property_name.split('[')[0]}) RETURN a.short_form as id, a.{property_name} as name ORDER BY id DESC"
+        q = self.commit_list([query])
+        self.process_and_add_results(q, out, verbose)
+
+    def execute_and_process_query_with_synonyms(self, term_type, where, out, verbose):
+        """Execute a Cypher query to fetch terms and their synonyms.
+
+        :param term_type: The type of terms to fetch (e.g., 'Class', 'Individual').
+        :param where: The WHERE clause of the query.
+        :param out: The list to store fetched terms.
+        :param verbose: If `True`, provides verbose output.
+        """
+        query = f"""
+            MATCH (a:{term_type}) WHERE EXISTS(a.short_form) {where} AND (EXISTS(a.synonyms) OR (a)-[:has_reference {{typ:'syn'}}]->(:pub:Individual)) 
+            UNWIND a.synonyms AS synonym2 
+            RETURN DISTINCT a.short_form AS id, synonym2 AS name 
+            UNION ALL 
+            MATCH (a:{term_type})-[r:has_reference {{typ:'syn'}}]->(:pub:Individual) 
+            UNWIND r.value AS synonym1 
+            WITH a.short_form AS id, synonym1 AS synonym 
+            RETURN DISTINCT id, synonym AS name
+        """
+        q = self.commit_list([query])
+        self.process_and_add_results(q, out, verbose)
+
+    def process_and_add_results(self, query_result, out, verbose):
+        """Process the results of a query and add to the output list, checking for duplicates.
+
+        :param query_result: Result set from the query.
+        :param out: The list to store fetched terms.
+        :param verbose: If `True`, provides verbose output.
+        """
+        # Create a dictionary to store existing names and their corresponding IDs
         name_to_id = {item['name']: item['id'] for item in out}
-        print(f"Initial lookup contains {len(name_to_id)} entries") if verbose else None
-        print(f"Result for overlaps: {name_to_id['overlaps']}") if verbose else None
-        existing_names = set(name_to_id.keys())
-        for result in dict_cursor(q):
-            if not result['name'] in existing_names:
-                out.append(result)
-                existing_names.add(result['name'])
-                name_to_id[result['name']] = result['id']
-            else:
-                print(f"Skipping duplicate object property: {result['name']} - {result['id']} in favour or existing {name_to_id[result['name']]}") if verbose and result['id'] != name_to_id[result['name']] else None
 
-        # Removing duplicates while maintaining order
+        # Iterate through the query results
+        for result in dict_cursor(query_result):
+            name = result['name']
+            id = result['id']
+
+            # Check if the name is already in the list and if the current term should take priority
+            if name in name_to_id:
+                existing_id = name_to_id[name]
+                if verbose:
+                    print(f"Skipping {name} with ID {id} as it is already represented by existing term {existing_id}")
+                continue
+            else:
+                out.append(result)
+                name_to_id[name] = id
+
+    def process_results(self, out, curies):
+        """Remove duplicates and prepare the final lookup dictionary.
+
+        :param out: List of results to process.
+        :param curies: If `True`, convert IDs to CURIE format.
+        :return: Final lookup dictionary.
+        """
         seen = set()
         unique_out = []
-
         for item in out:
             pair = (item['name'], item['id'])
             if pair not in seen:
                 seen.add(pair)
                 unique_out.append(item)
 
-        # Construct the final lookup dictionary
         if curies:
             lookup = {x['name']: x['id'].replace('_', ':') for x in unique_out}
-            lookup.update({x['id'].replace(':', '_'): x['id'] for x in set(lookup.values())})
+            lookup.update({x['id'].replace(':', '_'): x['id'] for x in unique_out})
         else:
             lookup = {x['name']: x['id'] for x in unique_out}
 
-        # Save the lookup to a cache file
-        try:
-            if cache:
-                with open(cache, 'wb') as f:
-                    pickle.dump(lookup, f)
-        except Exception as e:
-            print(f"Failed to save cache lookup on disk: {e}")
         return lookup
 
+    def save_to_cache(self, lookup, cache):
+        """Save the lookup to a cache file if caching is enabled.
 
+        :param lookup: The lookup dictionary to save.
+        :param cache: The cache file path.
+        """
+        if cache:
+            try:
+                with open(cache, 'wb') as f:
+                    pickle.dump(lookup, f)
+            except Exception as e:
+                print(f"Failed to save cache lookup to disk: {e}")
 
 def dict_cursor(results):
     """Takes JSON results from a neo4J query and turns them into a list of dicts.

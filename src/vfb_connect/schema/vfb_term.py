@@ -220,7 +220,7 @@ class Term:
         webbrowser.open(self.link)
 
 class Publication:
-    def __init__(self, core: MinimalEntityInfo, description: Optional[List[str]] = None, comment: Optional[List[str]] = None, link: Optional[str] = None, icon: Optional[str] = None, FlyBase: Optional[str] = None, PubMed: Optional[str] = None, DOI: Optional[str] = None):
+    def __init__(self, core: MinimalEntityInfo, description: Optional[List[str]] = None, comment: Optional[List[str]] = None, link: Optional[str] = None, icon: Optional[str] = None, FlyBase: Optional[str] = None, PubMed: Optional[str] = None, DOI: Optional[str] = None, verbose=False):
         """
         Initialize a Publication object.
 
@@ -237,6 +237,13 @@ class Publication:
             self.core = MinimalEntityInfo(**core)
         elif isinstance(core, MinimalEntityInfo):
             self.core = core
+        elif isinstance(core, VFBTerm):
+            print(f"Received a VFBTerm object: {core}") if verbose else None
+            if hasattr(core, 'publications') and isinstance(core.publications[0], Publication):
+                self.__dict__.update(core.publications[0].__dict__)
+            else:
+                print(f"Received a VFBTerm object without a publication: {core}") if verbose else None
+                raise ValueError("core must be a MinimalEntityInfo object")
         else:
             raise ValueError("core must be a MinimalEntityInfo object")
         if description:
@@ -291,6 +298,16 @@ class Publication:
             return getattr(self, key)
         else:
             raise KeyError(f"Attribute '{key}' not found in MinimalEntityInfo")
+
+    def __setitem__(self, key, value):
+        """
+        Enable dictionary-like item assignment.
+
+        :param key: The attribute name to set.
+        :param value: The value to set for the given attribute.
+        :raises KeyError: If the attribute does not exist.
+        """
+        setattr(self, key, value)
 
 class Syn:
     def __init__(self, scope: str, label: str, type: Optional[str] = None):
@@ -1026,7 +1043,9 @@ class AnatomyChannelImage:
         return f"AnatomyChannelImage(anatomy={self.anatomy})"
 
 class Expression:
-    def __init__(self, term: str = None, term_name: Optional[str] = None, term_type: Optional[str] = None, type: Optional[str] = None, type_name: Optional[str] = None, reference: Optional[Union[Publication,List[Publication]]] = None, dataset: Optional['VFBTerm'] = None , expression_extent: Optional[float] = None, expression_level: Optional[float] = None, probability: Optional[float] = None, probability_type: Optional[str] = None):
+    def __init__(self, term: str = None, term_name: Optional[str] = None, term_type: Optional[str] = None, type: Optional[str] = None, type_name: Optional[str] = None, 
+                 reference: Optional[Union[Publication,List[Publication],List[str],str]] = None, dataset: Optional['VFBTerm'] = None , expression_extent: Optional[float] = None, expression_level: Optional[float] = None, 
+                 probability: Optional[float] = None, probability_type: Optional[str] = None, function: Optional[List[str]] = None, sex: Optional[str] = None, tissue: Optional[List[str]] = None):
         """
         Initialize an Expression object representing expression data.
 
@@ -1050,11 +1069,17 @@ class Expression:
         self.probability_type = probability_type
         self.term_type = term_type if term_type else None
 
+        self.function = function
+        self.sex = sex
+        self.tissue = tissue
+
         if reference:
             if isinstance(reference, list):
                 if all(isinstance(ref, dict) for ref in reference):
                     self.reference = [Publication(**ref) for ref in reference]
                 elif all(isinstance(ref, Publication) for ref in reference):
+                    self.reference = reference
+                elif all(isinstance(ref, str) for ref in reference):
                     self.reference = reference
                 else:
                     raise ValueError("All elements in the list must be of type Publication or dict")
@@ -1062,6 +1087,8 @@ class Expression:
                 self.reference = Publication(**reference)
             elif isinstance(reference, Publication):
                 self.reference = reference
+            elif isinstance(reference, str):
+                self.reference = [reference]
             else:
                 raise ValueError("reference must be a Publication object")
 
@@ -1136,6 +1163,10 @@ class Expression:
             result[self.term_type if self.term_type else 'term'] = self.name if hasattr(self, 'name') else self.term.name
         if hasattr(self, 'type_name') and self.type_name:
             result['cell_type'] = self.type_name if hasattr(self, 'type_name') else self.gene.name
+        if hasattr(self, 'sex') and self.sex:
+            result['sample_sex'] = self.sex
+        if hasattr(self, 'tissue') and self.tissue:
+            result['sample_tissue'] = self.tissue
         if hasattr(self, 'expression_extent') and self.expression_extent:
             result['extent'] = self.expression_extent
         if hasattr(self, 'expression_level') and self.expression_level:
@@ -1151,8 +1182,10 @@ class Expression:
         if hasattr(self, 'reference') and self.reference:
             if isinstance(self.reference, Publication):
                 result['reference'] = self.reference.name
-            else:
+            elif isinstance(self.reference, list) and all(isinstance(ref, Publication) for ref in self.reference):
                 result['reference'] = '; '.join([ref.name for ref in self.reference])
+            else:
+                result['reference'] = '; '.join(self.reference)
         if hasattr(self, 'dataset') and self.dataset:
             result['dataset'] = self.dataset.name
         return result
@@ -1205,6 +1238,12 @@ class Expression:
             result += f"{self.term.name}"
         if hasattr(self, 'type_name') and self.type_name:
             result += f"{', ' if result else ''}cell_type={self.type_name}"
+        if hasattr(self, 'sex') and self.sex:
+            result += f"{', ' if result else ''}sample_sex={self.sex}"
+        if hasattr(self, 'tissue') and self.tissue:
+            result += f"{', ' if result else ''}sample_tissue={self.tissue}"
+        if hasattr(self, 'function') and self.function:
+            result += f"{', ' if result else ''}function={self.function}"
         if hasattr(self, 'expression_extent') and self.expression_extent:
             result += f"{', ' if result else ''}extent={self.expression_extent}"
         if hasattr(self, 'expression_level') and self.expression_level:
@@ -1220,8 +1259,10 @@ class Expression:
         if hasattr(self, 'reference') and self.reference:
             if isinstance(self.reference, Publication):
                 result += f"{', ' if result else ''}reference={self.reference.name}"
-            else:
+            elif isinstance(self.reference, list) and all(isinstance(ref, Publication) for ref in self.reference):
                 result += f"{', ' if result else ''}reference={'; '.join([ref.name for ref in self.reference])}"
+            else:
+                result += f"{', ' if result else ''}reference={'; '.join(self.reference)}"
         if hasattr(self, 'dataset') and self.dataset:
             result += f"{', ' if result else ''}dataset={self.dataset.name}"
         return f"Expression({result})"
@@ -1525,6 +1566,12 @@ class VFBTerm:
                                     break
             self.id = id
             self.name = "unresolved"
+            if self.vfb._term_cache and isinstance(self.vfb._term_cache, VFBTerms) and id in self.vfb._term_cache.get_ids():
+                print(f"\033[32mINFO:\033[0m Term found in cache for {id}") if verbose else None
+                term_object = self.vfb._term_cache.get(id)
+                if term_object:
+                    self.__dict__.update(term_object.__dict__)
+                    return
             json_data = self.vfb.get_TermInfo([id], summary=False)
             print("Got JSON data: ", json_data) if verbose else None
             if json_data is None:
@@ -1626,6 +1673,8 @@ class VFBTerm:
             self.has_neuron_connectivity = self.has_tag('has_neuron_connectivity')
             self.has_region_connectivity = self.has_tag('has_region_connectivity')
 
+            self._gene_function_filters = self.vfb.get_gene_function_filters()
+
             if self.is_template:
                 self._regions_ids = regions
                 self._regions = None  # Initialize as None, will be loaded on first access
@@ -1679,6 +1728,7 @@ class VFBTerm:
 
             if self.has_tag('Anatomy') and self.is_type:
                 self._transgene_expression = None
+                self._innervating = None
                 self.add_anatomy_type_properties()
                 self._lineage_clones = None
                 self._lineage_clone_types = None
@@ -1695,6 +1745,10 @@ class VFBTerm:
                             print(f"Lineage term: {self.lineage}") if verbose else None
                             break
 
+            if isinstance(self.vfb._term_cache, VFBTerms):
+                self.vfb._term_cache.append(self)
+            else:
+                self.vfb._term_cache = VFBTerms(self)
 
     @property
     def parents(self):
@@ -1731,8 +1785,19 @@ class VFBTerm:
                 print(f"Transgene expression: {repr(self._transgene_expression)}") if self.debug else None
             return self._transgene_expression
 
+        @property
+        def innervating(self):
+            """
+            Get the innervating nerves or tracts associated with this term.
+            """
+            if self._innervating is None:
+                print("Loading innervating neurons/tracts for the first time...") if self.debug else None
+                self._innervating = self.vfb.owl_subclasses(query=f"'neuron projection bundle' and 'innervates' some '{self.id}'", return_dataframe=False, verbose=self.debug)
+            return self._innervating
+
         # Dynamically add the property to the instance
         setattr(self.__class__, 'transgene_expression', transgene_expression)
+        setattr(self.__class__, 'innervating', innervating)
 
     def add_lineage_clone_properties(self):
         @property
@@ -2208,6 +2273,41 @@ class VFBTerm:
         dicts = [{"weight": item['weight'], "partner": item['query_neuron_id'], "partner_name": item['query_neuron_name']} for item in results]
         print("Dict: ", dict) if verbose else None
         return [Partner(**dict) for dict in dicts]
+    
+    def get_transcriptomic_profile(self, gene_type=False, query_by_label=True, return_dataframe=False, verbose=False):
+        """Get gene expression data for a given cell type.
+
+        Returns a DataFrame of gene expression data for clusters of cells annotated as the specified cell type (or subtypes).
+        Optionally restricts to a gene type, which can be retrieved using `get_gene_function_filters`.
+        If no data is found, returns False.
+
+        :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
+        :param gene_type: Optional. A gene function label retrieved using `get_gene_function_filters`.
+        :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame with gene expression data for clusters of cells annotated as the specified cell type.
+        :rtype: pandas.DataFrame or list of dicts
+        :raises KeyError: If the cell_type or gene_type is invalid.
+        """
+        if gene_type:
+            print(f"Getting transcriptomic profile filterd by {gene_type}") if verbose else None
+            if gene_type not in self._gene_function_filters:
+                raise KeyError(f"Gene function '{gene_type}' not found. Please use one of: {', '.join(self._gene_function_filters)}")
+        if self.is_type:
+            cell_type = self.id
+            print(f"Getting transcriptomic profile for {self.name} ({cell_type})") if verbose else None
+        else:
+            cell_type = self.parents[0].id
+            print("Running query against parent type: ", self.parents[0].name)
+        result = self.vfb.get_transcriptomic_profile(cell_type=cell_type, gene_type=gene_type, query_by_label=query_by_label, return_dataframe=False)
+        print("Result: ", result) if verbose else None
+        expression_list = ExpressionList([Expression(term=exp['gene_id'], term_name=exp['gene'], term_type='gene', type=exp['cell_type_id'], type_name=exp['cell_type'], 
+                                                     expression_extent=exp['extent'], expression_level=exp['level'], sex=exp['sample_sex'], tissue=exp['sample_tissue'], 
+                                                     reference=exp['ref'], function=exp['function']) for exp in result])
+        print("Expression list: ", expression_list) if verbose else None
+        if return_dataframe:
+            return expression_list.get_summary(return_dataframe=True)
+        return expression_list
 
     def get_summary(self, return_dataframe=True, verbose=False):
         """
@@ -2651,6 +2751,11 @@ class VFBTerms:
         from vfb_connect import vfb
         self.vfb = vfb
         self._summary = None
+
+        if isinstance(terms, VFBTerm):
+            self.terms = [terms]
+            return
+
         # Check if terms is a list of VFBTerm objects
         if isinstance(terms, list) and all(isinstance(term, VFBTerm) for term in terms):
             self.terms = terms
@@ -2686,8 +2791,7 @@ class VFBTerms:
             self.terms = terms.terms
             return
 
-        else:
-            raise ValueError("Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame.")
+        raise ValueError(f"Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame. Got {type(terms)}")
 
     @property
     def summary(self):
@@ -2705,6 +2809,12 @@ class VFBTerms:
         if isinstance(index, slice):
             # If the index is a slice, return a new VFBTerms object with the sliced terms
             return VFBTerms(self.terms[index])
+        elif isinstance(index, str):
+            # If the index is a string, return the term with the matching ID
+            for term in self.terms:
+                if term.id == index:
+                    return term
+            raise KeyError(f"Term with ID {index} not found.")
         else:
             # Otherwise, return the specific item from the list
             return self.terms[index]
@@ -2723,8 +2833,11 @@ class VFBTerms:
         :param verbose: Print additional information if True.
         """
         if isinstance(vfb_term, VFBTerm):
-            self.terms.append(vfb_term)
-            print("Appended ", vfb_term.name) if verbose else None
+            if vfb_term.id not in self.get_ids():
+                self.terms.append(vfb_term)
+                print("Appended ", vfb_term.name) if verbose else None
+            else:
+                print(f"Term with ID {vfb_term.id} already exists in the list. Not appending.") if verbose else None
             return
         if isinstance(vfb_term, VFBTerms):
             self.terms = self.terms + vfb_term.terms
@@ -3497,11 +3610,53 @@ def create_vfbterm_from_json(json_data, verbose=False):
 
         publications = None
         if 'pubs' in data:
-            publications = []
+            publications = [] if not publications else publications
             for pub in data['pubs']:
                 publication = Publication(**pub)
                 publications.append(publication)
             print(f"Loaded {len(publications)} publications") if verbose else None
+
+        if 'def_pubs' in data:
+            publications = [] if not publications else publications
+            for pub in data['def_pubs']:
+                publication = Publication(**pub)
+                if hasattr(publication, 'comment'):
+                    publication['comment'].append('Definition reference')
+                else:
+                    publication['comment'] = ['Definition reference']
+                publications.append(publication)
+            print(f"Loaded {len(publications)} definition publications") if verbose else None
+
+        if 'pub_syn' in data:
+            publications = [] if not publications else publications
+            for pub in data['pub_syn']:
+                publication = Publication(**pub['pub'])
+                if hasattr(publication, 'comment'):
+                    publication['comment'].append('Synonym reference')
+                else:
+                    publication['comment'] = ['Synonym reference']
+                publications.append(publication)
+            print(f"Loaded {len(publications)} synonym publications") if verbose else None
+
+        if 'pub_specific_content' in data:
+            publications = [] if not publications else publications
+            p_core = MinimalEntityInfo(
+                iri=term.core.iri,
+                short_form=term.core.short_form,
+                label=term.core.label,
+                unique_facets=term.core.unique_facets,
+                types=term.core.types,
+                symbol=term.core.symbol
+            )
+            pub = Publication(
+                core=p_core,
+                description=[data['pub_specific_content'].get('title', '')],
+                FlyBase=data['pub_specific_content'].get('FlyBase', ''),
+                DOI=data['pub_specific_content'].get('DOI', ''),
+                PubMed=data['pub_specific_content'].get('PubMed', ''),
+                )
+            publications.append(pub)
+            print(f"Loaded {len(publications)} publication specific data") if verbose else None
 
         license = None
         if 'license' in data and len(data['license']) > 0:
