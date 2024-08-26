@@ -26,7 +26,7 @@ setup(name='vfb_connect',  # Required
       # This should be a valid email address corresponding to the author listed
       # above.
       author_email='dosumis@gmail.com',  # Optional
-      install_requires=['requests', 'pandas', 'jsonpath_rw','pysolr','navis','numpy','neuprint-python','python-catmaid','matplotlib','colormath','tqdm'],
+      install_requires=['requests', 'pandas', 'jsonpath_rw', 'pysolr', 'navis', 'flybrains', 'numpy', 'neuprint-python', 'python-catmaid', 'matplotlib', 'colormath', 'tqdm', 'vispy'],
       data_files=[('json_schema', ['src/vfb_connect/resources/VFB_TermInfo_queries.json','src/vfb_connect/resources/VFB_results_single_input.json','src/vfb_connect/resources/VFB_results_multi_input.json'])],
       classifiers=[  # Optional
           # How mature is this project? Common values are

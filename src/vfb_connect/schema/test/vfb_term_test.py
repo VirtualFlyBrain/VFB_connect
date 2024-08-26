@@ -56,7 +56,7 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(len(terms) > 0)
         self.assertTrue(isinstance(terms, VFBTerms))
         try:
-            terms.plot3d(template='JRC2018Unisex', verbose=True)
+            terms.plot3d(template='JRC2018Unisex', verbose=True, limit = 2)
         except Exception as e:
             print("plot3d expectedly failed with ", e)
         self.assertTrue([True for term in terms if hasattr(term, 'skeleton') or hasattr(term, 'mesh') or hasattr(term, 'volume')])
@@ -387,10 +387,26 @@ class VfbTermTest(unittest.TestCase):
         print("got id ", id)
         self.assertEqual(id, 'BFO_0000050')
 
+    def test_lookups_matching(self):
+        id = self.vfb.lookup_id(' LC12' ,verbose=True)
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00100484')
+        id = self.vfb.lookup_id('LC_12')
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00100484')
+        id = self.vfb.lookup_id('LC_12 ')
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00100484')
+        id = self.vfb.lookup_id('LC 12 ')
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00100484')
+
     def test_vfbterm_cache(self):
         base = len(self.vfb._term_cache)
         print(self.vfb._term_cache)
-        
+
+        self.vfb._use_cache=True
+
         # Timing the first call to 'medulla'
         start_time = time.time()
         self.vfb.term('medulla')
@@ -398,24 +414,58 @@ class VfbTermTest(unittest.TestCase):
         print(f"Time taken for vfb.term('medulla'): {end_time - start_time:.4f} seconds")
         base = len(self.vfb._term_cache)
         print(base)
-        
+
         # Timing the second call to 'medulla'
         start_time = time.time()
         self.vfb.term('medulla')
         end_time = time.time()
         print(f"Time taken for vfb.term('medulla') again: {end_time - start_time:.4f} seconds")
-        
+
         print(base)
         self.assertEqual(len(self.vfb._term_cache), base)
-        
+
         # Timing the call to 'LC12'
         start_time = time.time()
         self.vfb.term('LC12')
         end_time = time.time()
-        self.assertGreater(len(self.vfb._term_cache), base)
         print(f"Time taken for vfb.term('LC12'): {end_time - start_time:.4f} seconds")
+        print(self.vfb._term_cache)
+        self.assertGreater(len(self.vfb._term_cache), base)
         base = len(self.vfb._term_cache)
         print(base)
+
+        self.vfb._use_cache=False
+
+    def test_vfbterms_get_all(self):
+        terms = self.vfb.terms(['IN13A015_T1_R (MANC:81202)','SNta24_MesoLN_R (MANC:45077)'])
+        print("got terms ", terms)
+        self.assertTrue(terms)
+        self.assertTrue(isinstance(terms, VFBTerms))
+        self.assertEqual(len(terms), 2)
+        NT = terms.get_all('capable_of')
+        print(NT)
+        self.assertEqual(len(NT), 2)
+        fail = terms.get_all('magic_term')
+        print(fail)
+        self.assertFalse(fail)
+        self.assertEqual(len(fail), 0)
+        NT = terms.get_all('capable_of', return_dict=True)
+        print(NT)
+        self.assertEqual(NT['glutamate secretion, neurotransmission'], ['VFB_jrcv1qnm'])
+
+    def test_vfbterms_get_colours_for_terms(self):
+        terms = self.vfb.terms(['IN13A015_T1_R (MANC:81202)','SNta24_MesoLN_R (MANC:45077)'])
+        print("got terms ", terms)
+        cp = terms.get_colours_for('capable_of')
+        print(cp)
+        self.assertTrue(cp)
+        self.assertEqual(len(cp), 2)
+        tp = terms.get_colours_for('types')
+        print(tp)
+        self.assertEqual(len(tp), 2)
+        tp = terms.get_colours_for('types', take_first=True)
+        print(tp)
+        self.assertEqual(len(tp), 1)
 
 if __name__ == "__main__":
     unittest.main()

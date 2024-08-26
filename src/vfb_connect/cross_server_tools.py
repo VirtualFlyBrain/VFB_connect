@@ -98,6 +98,7 @@ class VfbConnect:
             self.queries = json.loads(saxutils.unescape(f.read()))
 
         self._term_cache = []
+        self._use_cache = True
 
         print("\033[32mSession Established!\033[0m")
         print("")
@@ -164,6 +165,8 @@ class VfbConnect:
             print(f"No direct match found for {key}")
 
         if allow_subsitutions:
+            matched_key = ''
+            out = ''
             # Case-insensitive and character-insensitive lookup
             normalized_key = key.lower().replace('_', '').replace('-', '').replace(' ', '').replace(':','')
             print(f"Normalized key: {normalized_key}") if verbose else None
@@ -181,11 +184,11 @@ class VfbConnect:
             if matches:
                 for k, v in matches.items():
                     print(f"Matched: {k} -> {v}") if verbose else None
-                    if k == key:
+                    if not matched_key:
                         matched_key = k
 
                 # Warn if a case substitution or normalization was performed
-                if matched_key == key:
+                if matched_key:
                     if len(matches.keys()) < 2:
                         print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
                         out = matches[matched_key]

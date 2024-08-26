@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from typing import List, Optional, Union
+from typing import Iterable, List, Optional, Union
 import navis
 import numpy as np
 import pandas
@@ -1566,7 +1566,7 @@ class VFBTerm:
                                     break
             self.id = id
             self.name = "unresolved"
-            if self.vfb._term_cache and isinstance(self.vfb._term_cache, VFBTerms) and id in self.vfb._term_cache.get_ids():
+            if self.vfb._use_cache and self.vfb._term_cache and isinstance(self.vfb._term_cache, VFBTerms) and id in self.vfb._term_cache.get_ids():
                 print(f"\033[32mINFO:\033[0m Term found in cache for {id}") if verbose else None
                 term_object = self.vfb._term_cache.get(id)
                 if term_object:
@@ -1631,6 +1631,7 @@ class VFBTerm:
             self._summary = None
             self.name = self.term.core.name
             self.id = self.term.core.short_form
+            self.types = self.term.core.unique_facets
             self.description = self.term.description
             self.url = self.term.link
 
@@ -1745,10 +1746,14 @@ class VFBTerm:
                             print(f"Lineage term: {self.lineage}") if verbose else None
                             break
 
-            if isinstance(self.vfb._term_cache, VFBTerms):
-                self.vfb._term_cache.append(self)
-            else:
-                self.vfb._term_cache = VFBTerms(self)
+            if self.vfb._use_cache:
+                if isinstance(self.vfb._term_cache, VFBTerms):
+                    print("Adding term to cache...") if verbose else None
+                    self.vfb._term_cache.append(self)
+                else:
+                    print("Creating new cache...") if verbose else None
+                    self.vfb._term_cache = VFBTerms(self)
+            self._load_complete = True
 
     @property
     def parents(self):
@@ -2211,6 +2216,28 @@ class VFBTerm:
             print("VFBTerm only has one item")
             return VFBTerms([self])
         return self
+
+    def __setattr__(self, name, value):
+        # Set the attribute using the parent class's method
+        super().__setattr__(name, value)
+
+        # If use_cache is enabled, update the cache with the latest attribute changes
+        if hasattr(self,'_load_complete') and self.vfb._use_cache and self._load_complete:
+            print(f"Updating cache due to change in attribute '{name}'...") if self.debug else None
+            self.update_cache()
+
+    def update_cache(self):
+        # Logic to update the cache with the current object state
+        if self.vfb._use_cache:
+            if isinstance(self.vfb._term_cache, VFBTerms):
+                existing_term = self.vfb._term_cache.get(self.id)
+                if existing_term:
+                    existing_term.__dict__.update(self.__dict__)
+                else:
+                    self.vfb._term_cache.append(self)
+            else:
+                self.vfb._term_cache = VFBTerms()
+                self.vfb._term_cache.append(self)
 
     def get(self, key, default=None):
         """
@@ -2938,6 +2965,114 @@ class VFBTerms:
         # Compare the sets of IDs for equality
         return set(self.get_ids()) == set(other.get_ids())
 
+    def get_all(self, property_name='name', verbose=False, return_dict=False):
+        """
+        Get all values for a given property name.
+
+        :param property_name: The property name to get values for.
+        :param verbose: If set to True, print debug information.
+        :param return_dict: If set to True, return a dictionary with values as keys and term IDs as lists.
+        :return: A unique sorted list of values for the property or a dictionary.
+        """
+        result = set()  # Use a set to ensure uniqueness of values
+        result_dict = {}  # Dictionary to map values to term IDs
+
+        for term in self.terms:
+            if hasattr(term, property_name):
+                value = getattr(term, property_name)
+                term_id = getattr(term, 'id', None)  # Assuming 'id' is the attribute holding the term ID
+                if verbose:
+                    print(f"Found property '{property_name}' in {term}: {value}")
+
+                if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+                    if verbose:
+                        print(f"Property '{property_name}' is iterable. Adding items to result set: {value}")
+                    result.update(value)
+                    for item in value:
+                        if item not in result_dict:
+                            result_dict[item] = []
+                        result_dict[item].append(term_id)
+                else:
+                    if verbose:
+                        print(f"Property '{property_name}' is not iterable. Adding item to result set: {value}")
+                    result.add(value)
+                    if value not in result_dict:
+                        result_dict[value] = []
+                    result_dict[value].append(term_id)
+            elif verbose:
+                print(f"Property '{property_name}' not found in {term}. Skipping.")
+
+        if return_dict:
+            if verbose:
+                print(f"Returning result as a dictionary: {result_dict}")
+            return result_dict
+        else:
+            sorted_result = sorted(result)
+            if verbose:
+                print(f"Final sorted result: {sorted_result}")
+            return sorted_result
+
+    def get_colours_for(self, property_name='name', verbose=False, take_first=False):
+        """
+        Get a list of colours for a given property name.
+
+        :param property_name: The property name to get colours for.
+        :param verbose: If set to True, print debug information.
+        :param take_first: If set to True, take the first value from an iterable property.
+        :return: A list of colours for the property values.
+        """
+        from collections.abc import Iterable
+
+        result = set()
+        result_dict = {}
+
+        for term in self.terms:
+            if hasattr(term, property_name):
+                value = getattr(term, property_name)
+                term_id = getattr(term, 'id', None)
+                if verbose:
+                    print(f"Found property '{property_name}' in {term}: {value}")
+
+                if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+                    if take_first:
+                        first_value = next(iter(value), None)
+                        if first_value is not None:
+                            result.add(first_value)
+                            if first_value not in result_dict:
+                                result_dict[first_value] = []
+                            result_dict[first_value].append(term_id)
+                            if verbose:
+                                print(f"Using first value: {first_value}")
+                    else:
+                        combined_value = ' and '.join(value)
+                        result.add(combined_value)
+                        if combined_value not in result_dict:
+                            result_dict[combined_value] = []
+                        result_dict[combined_value].append(term_id)
+                        if verbose:
+                            print(f"Combined property '{property_name}': {combined_value}")
+                else:
+                    if verbose:
+                        print(f"Property '{property_name}' is not iterable. Adding item to result set: {value}")
+                    result.add(value)
+                    if value not in result_dict:
+                        result_dict[value] = []
+                    result_dict[value].append(term_id)
+            elif verbose:
+                print(f"Property '{property_name}' not found in {term}. Skipping.")
+
+        sorted_result = sorted(result)
+        color_list = self.vfb.generate_lab_colors(len(sorted_result))
+        value_to_color = dict(zip(sorted_result, color_list))
+
+        # Print each label and its associated color
+        print('Colour mapping:')
+        for value, color in value_to_color.items():
+            r, g, b = color
+            print(f"\033[48;2;{r};{g};{b}m  {value}  \033[0m")
+
+        return color_list
+
     def AND(self, other, verbose=False):
         """
         Perform a logical AND operation on two VFBTerms objects or a VFBTerm object and a VFBTerms object.
@@ -2959,7 +3094,7 @@ class VFBTerms:
             remaining_terms = VFBTerms([term for term in self.terms if term.id == other.id])
             return remaining_terms
         raise TypeError("Unsupported operand type(s) for AND: 'VFBTerms' and '{}'".format(type(other).__name__))
-    
+
     def OR(self, other, verbose=False):
         """
         Perform a logical OR operation on two VFBTerms objects or a VFBTerm object and a VFBTerms object.
@@ -3127,7 +3262,7 @@ class VFBTerms:
         for term in self.terms:
             term.load_volume(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 
-    def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, **kwargs):
+    def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, limit=False, **kwargs):
         """
         Plot the 3D representation of any neuron or expression.
 
@@ -3140,6 +3275,10 @@ class VFBTerms:
         skeletons, selected_template = self._get_plot_images(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 
         if skeletons:
+            if limit and len(skeletons) > limit:
+                print(f"\033[32mINFO:\033[0m Limiting to {limit} items out of {len(skeletons)}")
+                skeletons = skeletons[:limit]
+
             print(f"Plotting 3D representation of {len(skeletons)} items")
             if include_template:
                 print(f"Adding template {selected_template} to the plot")
@@ -3151,7 +3290,7 @@ class VFBTerms:
         else:
             print("Nothing found to plot")
 
-    def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, **kwargs):
+    def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, limit=False, **kwargs):
         """
         Plot the 2D representation of any neuron or expression.
 
@@ -3165,6 +3304,10 @@ class VFBTerms:
         skeletons, selected_template = self._get_plot_images(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
 
         if skeletons:
+            if limit and len(skeletons) > limit:
+                print(f"\033[32mINFO:\033[0m Limiting to {limit} items out of {len(skeletons)}")
+                skeletons = skeletons[:limit]
+
             print(f"Plotting 2D representation of {len(skeletons)} items")
             if include_template:
                 print(f"Adding template {selected_template} to the plot")
