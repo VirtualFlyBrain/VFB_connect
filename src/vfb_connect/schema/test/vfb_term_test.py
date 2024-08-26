@@ -417,5 +417,19 @@ class VfbTermTest(unittest.TestCase):
         base = len(self.vfb._term_cache)
         print(base)
 
+    def test_vfbterms_get_all(self):
+        terms = self.vfb.terms(['IN13A015_T1_R (MANC:81202)','SNta24_MesoLN_R (MANC:45077)'])
+        print("got terms ", terms)
+        self.assertTrue(terms)
+        self.assertTrue(isinstance(terms, VFBTerms))
+        self.assertEqual(len(terms), 2)
+        NT = terms.get_all('capable_of')
+        print(NT)
+        self.assertEqual(len(NT), 2)
+        fail = terms.get_all('magic_term')
+        print(fail)
+        self.assertFalse(fail)
+        self.assertEqual(len(fail), 0)
+
 if __name__ == "__main__":
     unittest.main()

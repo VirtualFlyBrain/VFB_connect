@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from typing import List, Optional, Union
+from typing import Iterable, List, Optional, Union
 import navis
 import numpy as np
 import pandas
@@ -2937,6 +2937,40 @@ class VFBTerms:
 
         # Compare the sets of IDs for equality
         return set(self.get_ids()) == set(other.get_ids())
+
+    def get_all(self, property_name='name', verbose=False):
+        """
+        Get all values for a given property name.
+        Note: will return empty list if property is not found in any term.
+
+        :param property_name: The property name to get values for.
+        :param verbose: If set to True, print debug information.
+        :return: A unique sorted list of values for the property.
+        """
+        result = set()  # Use a set to ensure uniqueness
+
+        for term in self.terms:
+            if hasattr(term, property_name):
+                value = getattr(term, property_name)
+                if verbose:
+                    print(f"Found property '{property_name}' in {term}: {value}")
+
+                if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+                    if verbose:
+                        print(f"Property '{property_name}' is iterable. Adding items to result set: {value}")
+                    result.update(value)  # Add elements from the iterable to the set
+                else:
+                    if verbose:
+                        print(f"Property '{property_name}' is not iterable. Adding item to result set: {value}")
+                    result.add(value)  # Add the single non-iterable value to the set
+            elif verbose:
+                print(f"Property '{property_name}' not found in {term}. Skipping.")
+
+        sorted_result = sorted(result)
+        if verbose:
+            print(f"Final sorted result: {sorted_result}")
+
+        return sorted_result
 
     def AND(self, other, verbose=False):
         """
