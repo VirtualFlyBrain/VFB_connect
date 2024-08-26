@@ -1631,6 +1631,7 @@ class VFBTerm:
             self._summary = None
             self.name = self.term.core.name
             self.id = self.term.core.short_form
+            self.types = self.term.core.unique_facets
             self.description = self.term.description
             self.url = self.term.link
 

@@ -441,6 +441,12 @@ class VfbTermTest(unittest.TestCase):
         print(cp)
         self.assertTrue(cp)
         self.assertEqual(len(cp), 2)
+        tp = terms.get_colours_for('types')
+        print(tp)
+        self.assertEqual(len(tp), 2)
+        tp = terms.get_colours_for('types', take_first=True)
+        print(tp)
+        self.assertEqual(len(tp), 1)
 
 if __name__ == "__main__":
     unittest.main()
