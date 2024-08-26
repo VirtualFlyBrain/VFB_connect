@@ -1569,7 +1569,9 @@ class VFBTerm:
             if self.vfb._term_cache and isinstance(self.vfb._term_cache, VFBTerms) and id in self.vfb._term_cache.get_ids():
                 print(f"\033[32mINFO:\033[0m Term found in cache for {id}") if verbose else None
                 term_object = self.vfb._term_cache.get(id)
-                self.__dict__.update(term_object.__dict__)
+                if term_object:
+                    self.__dict__.update(term_object.__dict__)
+                    return
             json_data = self.vfb.get_TermInfo([id], summary=False)
             print("Got JSON data: ", json_data) if verbose else None
             if json_data is None:
