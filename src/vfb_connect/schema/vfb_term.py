@@ -3019,13 +3019,14 @@ class VFBTerms:
         :param property_name: The property name to get colours for.
         :param verbose: If set to True, print debug information.
         :param take_first: If set to True, take the first value from an iterable property.
-        :return: A list of colours for the property values.
+        :return: A dictionary mapping each term ID to its assigned color.
         """
         from collections.abc import Iterable
 
         result = set()
         result_dict = {}
 
+        # Gather unique property values and associate terms with these values
         for term in self.terms:
             if hasattr(term, property_name):
                 value = getattr(term, property_name)
@@ -3065,9 +3066,16 @@ class VFBTerms:
         color_list = self.vfb.generate_lab_colors(len(sorted_result))
         value_to_color = dict(zip(sorted_result, color_list))
 
-        # Print each label and its associated color
-        print('Colour mapping:')
-        for value, color in value_to_color.items():
+        # Map each term to its respective color based on its property value
+        term_to_color = {}
+        for value, term_ids in result_dict.items():
+            color = value_to_color[value]
+            for term_id in term_ids:
+                term_to_color[term_id] = color
+
+        # Print each term and its associated color
+        print('Term Colour Mapping:')
+        for term_id, color in term_to_color.items():
             r, g, b = color
 
             # Calculate perceived luminance
@@ -3079,9 +3087,10 @@ class VFBTerms:
             else:
                 text_color = "255;255;255"  # White text for dark backgrounds
 
-            print(f"\033[48;2;{r};{g};{b}m\033[38;2;{text_color}m  {value}  \033[0m")
+            print(f"\033[48;2;{r};{g};{b}m\033[38;2;{text_color}m  Term ID: {term_id}, Value: {value}  \033[0m")
 
-        return color_list
+        return term_to_color
+
 
     def AND(self, other, verbose=False):
         """
