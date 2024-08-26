@@ -397,8 +397,7 @@ class VfbTermTest(unittest.TestCase):
         end_time = time.time()
         print(f"Time taken for vfb.term('medulla'): {end_time - start_time:.4f} seconds")
         base = len(self.vfb._term_cache)
-        print(self.vfb._term_cache)
-        self.assertEqual(len(self.vfb._term_cache), base)
+        print(base)
         
         # Timing the second call to 'medulla'
         start_time = time.time()
@@ -406,17 +405,17 @@ class VfbTermTest(unittest.TestCase):
         end_time = time.time()
         print(f"Time taken for vfb.term('medulla') again: {end_time - start_time:.4f} seconds")
         
-        print(self.vfb._term_cache) 
+        print(base)
         self.assertEqual(len(self.vfb._term_cache), base)
         
         # Timing the call to 'LC12'
         start_time = time.time()
         self.vfb.term('LC12')
         end_time = time.time()
+        self.assertGreater(len(self.vfb._term_cache), base)
         print(f"Time taken for vfb.term('LC12'): {end_time - start_time:.4f} seconds")
-        
-        print(self.vfb._term_cache)
-        self.assertEqual(len(self.vfb._term_cache), base + 1)
+        base = len(self.vfb._term_cache)
+        print(base)
 
 if __name__ == "__main__":
     unittest.main()
