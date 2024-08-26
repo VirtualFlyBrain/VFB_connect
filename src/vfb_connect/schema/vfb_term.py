@@ -2414,7 +2414,7 @@ class VFBTerm:
                         skeleton.id = self.id
                     if len(self._skeleton) > 1:
                         if not allow_multiple:
-                            print("Multiple skeletons found for", self.name, "Please run \033[35mZZZZ.load_skelton(template='XXXX')\033[0m to load the correct neuron skeleton.")
+                            print("Multiple skeletons found for", self.name, "Please run \033[35mZZZZ.load_skeleton(template='XXXX')\033[0m to load the correct neuron skeleton.")
                             print("Available templates:", [ci.image.template_anatomy.name for ci in self.channel_images])
                             self._skeleton = None
                     elif len(self._skeleton) == 1:
@@ -3069,7 +3069,17 @@ class VFBTerms:
         print('Colour mapping:')
         for value, color in value_to_color.items():
             r, g, b = color
-            print(f"\033[48;2;{r};{g};{b}m  {value}  \033[0m")
+
+            # Calculate perceived luminance
+            luminance = 0.299 * r + 0.587 * g + 0.114 * b
+
+            # Choose text color based on luminance
+            if luminance > 186:  # Threshold can be adjusted based on preference
+                text_color = "0;0;0"  # Black text for light backgrounds
+            else:
+                text_color = "255;255;255"  # White text for dark backgrounds
+
+            print(f"\033[48;2;{r};{g};{b}m\033[38;2;{text_color}m  {value}  \033[0m")
 
         return color_list
 
