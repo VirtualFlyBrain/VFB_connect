@@ -430,6 +430,9 @@ class VfbTermTest(unittest.TestCase):
         print(fail)
         self.assertFalse(fail)
         self.assertEqual(len(fail), 0)
+        NT = terms.get_all('capable_of', return_dict=True)
+        print(NT)
+        self.assertEqual(NT['glutamate secretion, neurotransmission'], ['VFB_jrcv1qnm'])
 
 if __name__ == "__main__":
     unittest.main()

@@ -2938,39 +2938,52 @@ class VFBTerms:
         # Compare the sets of IDs for equality
         return set(self.get_ids()) == set(other.get_ids())
 
-    def get_all(self, property_name='name', verbose=False):
+    def get_all(self, property_name='name', verbose=False, return_dict=False):
         """
         Get all values for a given property name.
-        Note: will return empty list if property is not found in any term.
 
         :param property_name: The property name to get values for.
         :param verbose: If set to True, print debug information.
-        :return: A unique sorted list of values for the property.
+        :param return_dict: If set to True, return a dictionary with values as keys and term IDs as lists.
+        :return: A unique sorted list of values for the property or a dictionary.
         """
-        result = set()  # Use a set to ensure uniqueness
+        result = set()  # Use a set to ensure uniqueness of values
+        result_dict = {}  # Dictionary to map values to term IDs
 
         for term in self.terms:
             if hasattr(term, property_name):
                 value = getattr(term, property_name)
+                term_id = getattr(term, 'id', None)  # Assuming 'id' is the attribute holding the term ID
                 if verbose:
                     print(f"Found property '{property_name}' in {term}: {value}")
 
                 if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
                     if verbose:
                         print(f"Property '{property_name}' is iterable. Adding items to result set: {value}")
-                    result.update(value)  # Add elements from the iterable to the set
+                    result.update(value)
+                    for item in value:
+                        if item not in result_dict:
+                            result_dict[item] = []
+                        result_dict[item].append(term_id)
                 else:
                     if verbose:
                         print(f"Property '{property_name}' is not iterable. Adding item to result set: {value}")
-                    result.add(value)  # Add the single non-iterable value to the set
+                    result.add(value)
+                    if value not in result_dict:
+                        result_dict[value] = []
+                    result_dict[value].append(term_id)
             elif verbose:
                 print(f"Property '{property_name}' not found in {term}. Skipping.")
 
-        sorted_result = sorted(result)
-        if verbose:
-            print(f"Final sorted result: {sorted_result}")
-
-        return sorted_result
+        if return_dict:
+            if verbose:
+                print(f"Returning result as a dictionary: {result_dict}")
+            return result_dict
+        else:
+            sorted_result = sorted(result)
+            if verbose:
+                print(f"Final sorted result: {sorted_result}")
+            return sorted_result
 
     def AND(self, other, verbose=False):
         """
