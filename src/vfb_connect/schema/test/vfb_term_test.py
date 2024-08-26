@@ -387,6 +387,20 @@ class VfbTermTest(unittest.TestCase):
         print("got id ", id)
         self.assertEqual(id, 'BFO_0000050')
 
+    def test_lookups_matching(self):
+        id = self.vfb.lookup_id(' LC12' ,verbose=True)
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00100484')
+        id = self.vfb.lookup_id('LC_12')
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00100484')
+        id = self.vfb.lookup_id('LC_12 ')
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00100484')
+        id = self.vfb.lookup_id('LC 12 ')
+        print("got id ", id)
+        self.assertEqual(id, 'FBbt_00100484')
+
     def test_vfbterm_cache(self):
         base = len(self.vfb._term_cache)
         print(self.vfb._term_cache)
