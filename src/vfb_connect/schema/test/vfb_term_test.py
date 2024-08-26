@@ -1,5 +1,6 @@
 import unittest
-from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm, Score, Relations, Xref
+import time
+from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm, Score, Relations, Xref, ExpressionList, Expression
 
 class VfbTermTest(unittest.TestCase):
 
@@ -366,6 +367,10 @@ class VfbTermTest(unittest.TestCase):
         term = self.vfb.term('LC12')
         print("got terms ", term)
         lct = term.get_transcriptomic_profile()
+        print(type(lct))
+        self.assertTrue(isinstance(lct, ExpressionList))
+        print(lct.summary)
+        print(len(lct[0]))
         self.assertGreater(len(lct), 2)
 
     def test_lookups(self):
@@ -381,6 +386,37 @@ class VfbTermTest(unittest.TestCase):
         id = self.vfb.lookup_id('part_of')
         print("got id ", id)
         self.assertEqual(id, 'BFO_0000050')
+
+    def test_vfbterm_cache(self):
+        print(self.vfb._term_cache)
+        self.assertEqual(len(self.vfb._term_cache), 0)
+        
+        # Timing the first call to 'medulla'
+        start_time = time.time()
+        self.vfb.term('medulla')
+        end_time = time.time()
+        print(f"Time taken for vfb.term('medulla'): {end_time - start_time:.4f} seconds")
+        
+        print(self.vfb._term_cache)
+        self.assertEqual(len(self.vfb._term_cache), 1)
+        
+        # Timing the second call to 'medulla'
+        start_time = time.time()
+        self.vfb.term('medulla')
+        end_time = time.time()
+        print(f"Time taken for vfb.term('medulla') again: {end_time - start_time:.4f} seconds")
+        
+        print(self.vfb._term_cache) 
+        self.assertEqual(len(self.vfb._term_cache), 1)
+        
+        # Timing the call to 'LC12'
+        start_time = time.time()
+        self.vfb.term('LC12')
+        end_time = time.time()
+        print(f"Time taken for vfb.term('LC12'): {end_time - start_time:.4f} seconds")
+        
+        print(self.vfb._term_cache)
+        self.assertEqual(len(self.vfb._term_cache), 2)
 
 if __name__ == "__main__":
     unittest.main()
