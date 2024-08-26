@@ -404,7 +404,9 @@ class VfbTermTest(unittest.TestCase):
     def test_vfbterm_cache(self):
         base = len(self.vfb._term_cache)
         print(self.vfb._term_cache)
-        
+
+        self.vfb._use_cache=True
+
         # Timing the first call to 'medulla'
         start_time = time.time()
         self.vfb.term('medulla')
@@ -412,24 +414,27 @@ class VfbTermTest(unittest.TestCase):
         print(f"Time taken for vfb.term('medulla'): {end_time - start_time:.4f} seconds")
         base = len(self.vfb._term_cache)
         print(base)
-        
+
         # Timing the second call to 'medulla'
         start_time = time.time()
         self.vfb.term('medulla')
         end_time = time.time()
         print(f"Time taken for vfb.term('medulla') again: {end_time - start_time:.4f} seconds")
-        
+
         print(base)
         self.assertEqual(len(self.vfb._term_cache), base)
-        
+
         # Timing the call to 'LC12'
         start_time = time.time()
         self.vfb.term('LC12')
         end_time = time.time()
-        self.assertGreater(len(self.vfb._term_cache), base)
         print(f"Time taken for vfb.term('LC12'): {end_time - start_time:.4f} seconds")
+        print(self.vfb._term_cache)
+        self.assertGreater(len(self.vfb._term_cache), base)
         base = len(self.vfb._term_cache)
         print(base)
+
+        self.vfb._use_cache=False
 
     def test_vfbterms_get_all(self):
         terms = self.vfb.terms(['IN13A015_T1_R (MANC:81202)','SNta24_MesoLN_R (MANC:45077)'])

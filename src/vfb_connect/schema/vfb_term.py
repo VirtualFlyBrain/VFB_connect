@@ -1521,7 +1521,7 @@ class Partner:
         return f"Partner(weight={self.weight}, partner={self.name})"
 
 class VFBTerm:
-    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[Relations] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, dataset: Optional[List[str]] = None, synonyms: Optional[Synonym] = None, use_cache=False, verbose=False):
+    def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[Relations] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, dataset: Optional[List[str]] = None, synonyms: Optional[Synonym] = None, verbose=False):
         """
         Initialize a VFBTerm object representing a Virtual Fly Brain term.
 
@@ -1566,7 +1566,7 @@ class VFBTerm:
                                     break
             self.id = id
             self.name = "unresolved"
-            if use_cache and self.vfb._term_cache and isinstance(self.vfb._term_cache, VFBTerms) and id in self.vfb._term_cache.get_ids():
+            if self.vfb._use_cache and self.vfb._term_cache and isinstance(self.vfb._term_cache, VFBTerms) and id in self.vfb._term_cache.get_ids():
                 print(f"\033[32mINFO:\033[0m Term found in cache for {id}") if verbose else None
                 term_object = self.vfb._term_cache.get(id)
                 if term_object:
@@ -1746,10 +1746,12 @@ class VFBTerm:
                             print(f"Lineage term: {self.lineage}") if verbose else None
                             break
 
-            if use_cache:
+            if self.vfb._use_cache:
                 if isinstance(self.vfb._term_cache, VFBTerms):
+                    print("Adding term to cache...") if verbose else None
                     self.vfb._term_cache.append(self)
                 else:
+                    print("Creating new cache...") if verbose else None
                     self.vfb._term_cache = VFBTerms(self)
 
     @property
