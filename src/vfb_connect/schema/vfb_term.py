@@ -2987,27 +2987,27 @@ class VFBTerms:
 
     def get_colours_for(self, property_name='name', verbose=False, take_first=False):
         """
-        Get all values for a given property name and associate them with unique colors.
-        If take_first is True, only the first value found is used for each term.
+        Get a list of colours for a given property name.
 
-        :param property_name: The property name to get values for.
+        :param property_name: The property name to get colours for.
         :param verbose: If set to True, print debug information.
-        :param take_first: If set to True, use only the first value found.
-        :return: A list of colors associated with each unique value or combination.
+        :param take_first: If set to True, take the first value from an iterable property.
+        :return: A list of colours for the property values.
         """
-        result = set()  # Use a set to ensure uniqueness of values
-        result_dict = {}  # Dictionary to map values to term IDs
+        from collections.abc import Iterable
+
+        result = set()
+        result_dict = {}
 
         for term in self.terms:
             if hasattr(term, property_name):
                 value = getattr(term, property_name)
-                term_id = getattr(term, 'id', None)  # Assuming 'id' is the attribute holding the term ID
+                term_id = getattr(term, 'id', None)
                 if verbose:
                     print(f"Found property '{property_name}' in {term}: {value}")
 
                 if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
                     if take_first:
-                        # Use only the first value found
                         first_value = next(iter(value), None)
                         if first_value is not None:
                             result.add(first_value)
@@ -3017,7 +3017,6 @@ class VFBTerms:
                             if verbose:
                                 print(f"Using first value: {first_value}")
                     else:
-                        # Combine multiple values with ' and '
                         combined_value = ' and '.join(value)
                         result.add(combined_value)
                         if combined_value not in result_dict:
@@ -3026,7 +3025,6 @@ class VFBTerms:
                         if verbose:
                             print(f"Combined property '{property_name}': {combined_value}")
                 else:
-                    # If the value is not iterable, just add it
                     if verbose:
                         print(f"Property '{property_name}' is not iterable. Adding item to result set: {value}")
                     result.add(value)
@@ -3036,13 +3034,8 @@ class VFBTerms:
             elif verbose:
                 print(f"Property '{property_name}' not found in {term}. Skipping.")
 
-        # Generate a sorted list of unique values
         sorted_result = sorted(result)
-
-        # Generate colors using the self.vfb.generate_lab_colors(x) method
         color_list = self.vfb.generate_lab_colors(len(sorted_result))
-
-        # Map each sorted result to a color
         value_to_color = dict(zip(sorted_result, color_list))
 
         # Print each label and its associated color
@@ -3051,7 +3044,6 @@ class VFBTerms:
             r, g, b = color
             print(f"\033[48;2;{r};{g};{b}m  {value}  \033[0m")
 
-        # Return the list of colors
         return color_list
 
     def AND(self, other, verbose=False):
