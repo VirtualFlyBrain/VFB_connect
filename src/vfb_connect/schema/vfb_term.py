@@ -1753,6 +1753,7 @@ class VFBTerm:
                 else:
                     print("Creating new cache...") if verbose else None
                     self.vfb._term_cache = VFBTerms(self)
+            self._load_complete = True
 
     @property
     def parents(self):
@@ -2215,6 +2216,28 @@ class VFBTerm:
             print("VFBTerm only has one item")
             return VFBTerms([self])
         return self
+
+    def __setattr__(self, name, value):
+        # Set the attribute using the parent class's method
+        super().__setattr__(name, value)
+
+        # If use_cache is enabled, update the cache with the latest attribute changes
+        if hasattr(self,'_load_complete') and self.vfb._use_cache and self._load_complete:
+            print(f"Updating cache due to change in attribute '{name}'...") if self.debug else None
+            self.update_cache()
+
+    def update_cache(self):
+        # Logic to update the cache with the current object state
+        if self.vfb._use_cache:
+            if isinstance(self.vfb._term_cache, VFBTerms):
+                existing_term = self.vfb._term_cache.get(self.id)
+                if existing_term:
+                    existing_term.__dict__.update(self.__dict__)
+                else:
+                    self.vfb._term_cache.append(self)
+            else:
+                self.vfb._term_cache = VFBTerms()
+                self.vfb._term_cache.append(self)
 
     def get(self, key, default=None):
         """
