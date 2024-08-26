@@ -98,7 +98,7 @@ class VfbConnect:
             self.queries = json.loads(saxutils.unescape(f.read()))
 
         self._term_cache = []
-        self._use_cache = False
+        self._use_cache = True
 
         print("\033[32mSession Established!\033[0m")
         print("")

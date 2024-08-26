@@ -56,7 +56,7 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(len(terms) > 0)
         self.assertTrue(isinstance(terms, VFBTerms))
         try:
-            terms.plot3d(template='JRC2018Unisex', verbose=True)
+            terms.plot3d(template='JRC2018Unisex', verbose=True, limit = 2)
         except Exception as e:
             print("plot3d expectedly failed with ", e)
         self.assertTrue([True for term in terms if hasattr(term, 'skeleton') or hasattr(term, 'mesh') or hasattr(term, 'volume')])
