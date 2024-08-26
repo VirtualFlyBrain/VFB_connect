@@ -387,6 +387,14 @@ class VfbTermTest(unittest.TestCase):
         print("got id ", id)
         self.assertEqual(id, 'BFO_0000050')
 
+    def test_lookup_names(self):
+        name = self.vfb.lookup_name('FBbt_00100484')
+        print("got name ", name)
+        self.assertEqual(name, 'Lcn12')
+        name = self.vfb.lookup_name(["RO_0002292", "RO_0002120"])
+        print("got name ", name)
+        self.assertEqual(name, ['expresses', 'synapsed to'])
+
     def test_lookups_matching(self):
         id = self.vfb.lookup_id(' LC12' ,verbose=True)
         print("got id ", id)

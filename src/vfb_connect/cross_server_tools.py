@@ -125,6 +125,17 @@ class VfbConnect:
             print("No cache file found.")
         self.lookup = self.nc.get_lookup(cache=self.cache_file, verbose=verbose)
 
+    def lookup_name(self, ids):
+        """Lookup the name for a given ID using the internal lookup table.
+
+        :param ids: A single ID or list of IDs to look up.
+        :return: The name associated with the ID.
+        :rtype: str
+        """
+        if isinstance(ids, list):
+            return [self.lookup_name(id) for id in ids]
+        return {v: k for k, v in self.lookup.items()}[ids]
+
     def lookup_id(self, key, return_curie=False, allow_subsitutions=True, subsitution_stages=['adult', 'larval', 'pupal'], verbose=False):
         """Lookup the ID for a given key (label or symbol) using the internal lookup table.
 
