@@ -2265,6 +2265,73 @@ class VFBTerm:
         """
         return hash(self.id)
 
+    def __str__(self):
+        """
+        Get the string representation of the term.
+        """
+        return self.name
+
+    def __lt__(self, other):
+        """
+        Check if one term is less than another.
+        """
+        if isinstance(other, VFBTerm):
+            return self.name < other.name
+        return False
+
+    def __gt__(self, other):
+        """
+        Check if one term is greater than another.
+        """
+        if isinstance(other, VFBTerm):
+            return self.name > other.name
+        return False
+
+    def __le__(self, other):
+        """
+        Check if one term is less than or equal to another.
+        """
+        if isinstance(other, VFBTerm):
+            return self.name <= other.name
+        return False
+
+    def __ge__(self, other):
+        """
+        Check if one term is greater than or equal to another.
+        """
+        if isinstance(other, VFBTerm):
+            return self.name >= other.name
+        return False
+
+    def __ne__(self, other):
+        """
+        Check if two terms are not equal.
+        """
+        return not self.__eq__(other)
+
+    def __contains__(self, item):
+        """
+        Check if an item is in the term.
+        """
+        return item in self.__dict__.keys()
+
+    def __eq__(self, value: object) -> bool:
+        """
+        Check if two terms are equal.
+        """
+        if isinstance(value, VFBTerm):
+            return self.id == value.id
+        if isinstance(value, str):
+            if self.id == value:
+                return True
+            if self.name == value:
+                return True
+            if self.core.label == value:
+                return True
+            if self.core.symbol == value:
+                return True
+        return False
+
     def __add__(self, other):
         if isinstance(other, VFBTerms):
             combined_terms = [self.term] + other.terms
