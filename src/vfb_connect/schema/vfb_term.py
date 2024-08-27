@@ -3001,7 +3001,7 @@ class VFBTerms:
         if isinstance(item, VFBTerm):
             return item.id in self.get_ids()
         if isinstance(item, str):
-            if item in self.get_ids()
+            if item in self.get_ids():
                 return True
             if item in self.get_names():
                 return True
