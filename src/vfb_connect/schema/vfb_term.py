@@ -3011,6 +3011,70 @@ class VFBTerms:
 
         # Compare the sets of IDs for equality
         return set(self.get_ids()) == set(other.get_ids())
+    
+    def __lt__(self, other):
+        """
+        Compare two VFBTerms objects based on their term IDs.
+
+        :param other: The other VFBTerms object to compare.
+        :return: True if the current VFBTerms object is less than the other, False otherwise.
+        """
+        if not isinstance(other, VFBTerms):
+            if isinstance(other, list) and all(isinstance(term, VFBTerm) for term in other):
+                return sorted(self.get_ids()) < sorted([term.id for term in other])
+            if isinstance(other, list) and all(isinstance(term, str) for term in other):
+                return sorted(self.get_ids()) < sorted(other)
+            return NotImplemented
+        # Compare based on sorted IDs
+        return sorted(self.get_ids()) < sorted(other.get_ids())
+
+    def __le__(self, other):
+        """
+        Compare two VFBTerms objects based on their term IDs.
+
+        :param other: The other VFBTerms object to compare.
+        :return: True if the current VFBTerms object is less than or equal to the other, False otherwise.
+        """
+        if not isinstance(other, VFBTerms):
+            if isinstance(other, list) and all(isinstance(term, VFBTerm) for term in other):
+                return sorted(self.get_ids()) <= sorted([term.id for term in other])
+            if isinstance(other, list) and all(isinstance(term, str) for term in other):
+                return sorted(self.get_ids()) <= sorted(other)
+            return NotImplemented
+        # Compare based on sorted IDs
+        return sorted(self.get_ids()) <= sorted(other.get_ids())
+    
+    def __gt__(self, other):
+        """
+        Compare two VFBTerms objects based on their term IDs.
+
+        :param other: The other VFBTerms object to compare.
+        :return: True if the current VFBTerms object is greater than the other, False otherwise.
+        """
+        if not isinstance(other, VFBTerms):
+            if isinstance(other, list) and all(isinstance(term, VFBTerm) for term in other):
+                return sorted(self.get_ids()) > sorted([term.id for term in other])
+            if isinstance(other, list) and all(isinstance(term, str) for term in other):
+                return sorted(self.get_ids()) > sorted(other)
+            return NotImplemented
+        # Compare based on sorted IDs
+        return sorted(self.get_ids()) > sorted(other.get_ids())
+    
+    def __ge__(self, other):
+        """
+        Compare two VFBTerms objects based on their term IDs.
+
+        :param other: The other VFBTerms object to compare.
+        :return: True if the current VFBTerms object is greater than or equal to the other, False otherwise.
+        """
+        if not isinstance(other, VFBTerms):
+            if isinstance(other, list) and all(isinstance(term, VFBTerm) for term in other):
+                return sorted(self.get_ids()) >= sorted([term.id for term in other])
+            if isinstance(other, list) and all(isinstance(term, str) for term in other):
+                return sorted(self.get_ids()) >= sorted(other)
+            return NotImplemented
+        # Compare based on sorted IDs
+        return sorted(self.get_ids()) >= sorted(other.get_ids())
 
     def get_all(self, property_name='name', verbose=False, return_dict=False):
         """

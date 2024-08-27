@@ -474,6 +474,9 @@ class VfbTermTest(unittest.TestCase):
         tp = terms.get_colours_for('types', take_first=True)
         print(tp)
         self.assertEqual(len(tp), 4)
+        tp = terms.get_colours_for('parents', take_first=True)
+        print(tp)
+        self.assertEqual(len(tp), 4)
 
 if __name__ == "__main__":
     unittest.main()
