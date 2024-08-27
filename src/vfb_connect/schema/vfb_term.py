@@ -2972,7 +2972,7 @@ class VFBTerms:
 
     def __len__(self):
         return len(self.terms)
-    
+
     def __eq__(self, other):
         """
         Compare two VFBTerms objects for equality.
@@ -2982,11 +2982,31 @@ class VFBTerms:
         :return: True if the two VFBTerms objects are equal, False otherwise.
         """
         if not isinstance(other, VFBTerms):
+            if isinstance(other, list) and all(isinstance(term, VFBTerm) for term in other):
+                return set(self.get_ids()) == set([term.id for term in other])
+            if isinstance(other, list) and all(isinstance(term, str) for term in other):
+                if set(self.get_ids()) == set(other):
+                    return True
+                if set(self.get_names()) == set(other):
+                    return True
             return False
 
         # Compare the sets of IDs for equality
         return set(self.get_ids()) == set(other.get_ids())
-    
+
+    def __contains__(self, item):
+        """
+        Check if a term is in the VFBTerms object.
+        """
+        if isinstance(item, VFBTerm):
+            return item.id in self.get_ids()
+        if isinstance(item, str):
+            if item in self.get_ids()
+                return True
+            if item in self.get_names():
+                return True
+        return False
+
     def __hash__(self):
         """
         Return a hash value based on the set of term IDs.
@@ -2996,6 +3016,18 @@ class VFBTerms:
         """
         # Use a frozenset of IDs for hashing since frozenset is hashable and immutable
         return hash(frozenset(self.get_ids()))
+
+    def __str__(self) -> str:
+        """
+        Return a string representation of the VFBTerms object.
+        """
+        return f"VFBTerms({self.get_names()})"
+    
+    def __ne__(self, value: object) -> bool:
+        """
+        Compare two VFBTerms objects for inequality.
+        """
+        return not self.__eq__(value)
 
     def __add__(self, other):
         """
