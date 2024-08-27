@@ -475,7 +475,7 @@ class VfbTermTest(unittest.TestCase):
         tp = terms.get_colours_for('types', take_first=True)
         print(tp)
         self.assertEqual(len(tp), 4)
-        tp = terms.get_colours_for('parents', take_first=True, verbose=True)
+        tp = terms.get_colours_for('parents', take_first=False, verbose=True)
         print(tp)
         self.assertEqual(len(tp), 4)
 

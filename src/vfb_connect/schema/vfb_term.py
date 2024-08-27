@@ -3307,7 +3307,12 @@ class VFBTerms:
                         if verbose and value is not None:
                             print(f"Using first value: {value}")
                     else:
-                        value = ' and '.join(value)  # Combine all values
+                        if isinstance(value, list) and all(isinstance(item, str) for item in value):
+                            value = ' and '.join(value)  # Combine all values
+                        if isinstance(value, VFBTerms):
+                            value = ' and '.join(value.get_names())
+                        else:
+                            value = ' and '.join([str(item) for item in value])
 
                 # Add the value to the result set for unique values
                 if value is not None:
