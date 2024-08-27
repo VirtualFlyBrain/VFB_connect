@@ -99,6 +99,7 @@ class VfbConnect:
 
         self._term_cache = []
         self._use_cache = True
+        self._load_limit = False
 
         print("\033[32mSession Established!\033[0m")
         print("")

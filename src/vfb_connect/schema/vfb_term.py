@@ -2474,6 +2474,7 @@ class VFBTerm:
             Whether to allow multiple skeletons to be loaded.
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if self.has_tag('Neuron'):
             if template:
                 if query_by_label:
@@ -2484,11 +2485,16 @@ class VFBTerm:
                 print("Loading skeleton for ", self.name, " aligned to ", template) if verbose else None
                 skeletons = [ci.image.get_skeleton() for ci in self.channel_images if ci.image.template_anatomy.short_form == selected_template] if self.channel_images else None
                 if skeletons:
-                    self._skeleton = skeletons[0] if skeletons else None
+                    self._skeleton = skeletons[0]
+                    self._skeleton_template = selected_template
             else:
                 print("Loading skeletons for ", self.name) if verbose else None
                 print("Processinng channel images: ", self.channel_images) if verbose else None
-                self._skeleton = [ci.image.get_skeleton() for ci in self.channel_images] if self.channel_images else None
+                if self.channel_images:
+                    self._skeleton = [ci.image.get_skeleton() for ci in self.channel_images]
+                    self._skeleton_template = self.channel_images[0].image.template_anatomy.short_form
+                else:
+                    self._skeleton = None
             if self._skeleton:
                 if isinstance(self._skeleton, list):
                     self._skeleton = [item for item in self._skeleton if item is not None]
@@ -2530,6 +2536,7 @@ class VFBTerm:
             Whether to allow multiple meshes to be loaded.
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -2583,6 +2590,7 @@ class VFBTerm:
             Whether to allow multiple volumes to be loaded.
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -2616,6 +2624,36 @@ class VFBTerm:
                 self._volume.name = self.name
                 self._volume.label = self.name
                 self._volume.id = self.id
+
+    def load_skeleton_synaptic_connections(self, template=None, verbose=False):
+        """
+        Load the synaptic connections for the neuron's skeleton.
+        """
+        if not self._skeleton:
+            print(f"No skeleton loaded yet for {self.name} so loading...") if verbose else None
+            template = self.get_default_template(template=template)
+            self.load_skeleton(template=template, verbose=verbose)
+        if self._skeleton:
+            print(f"Loading synaptic connections for {self.name}...") if verbose else None
+            xrefs = self.xrefs
+
+
+    def get_default_template(self, template=None):
+        """
+        Get the default template for the term.
+        """
+        if template:
+            return template
+        else:
+            templates = [ci.image.template_anatomy.short_form for ci in self.channel_images] if self.channel_images else None
+            if templates:
+                if 'VFB_00101567' in templates:
+                    template = 'VFB_00101567' #Default to JRC2018Unisex if available
+                    print("Defaulting to JRC2018Unisex template")
+                if 'VFB_00200000' in templates:
+                    template = 'VFB_00200000' #Default to JRC2018UnisexVNC if available
+                    print("Defaulting to JRC2018UnisexVNC template")
+        return None
 
     def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, **kwargs):
         """
@@ -2881,27 +2919,36 @@ class VFBTerms:
         # Check if terms is a list of strings (IDs)
         if isinstance(terms, list) and all(isinstance(term, str) for term in terms):
             self.terms = VFBTerms([])
+            count = 0
             for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms"):
+                if self.vfb._load_limit:
+                    if count >= self.vfb._load_limit:
+                        print(f"Reached load limit of {self.vfb._load_limit}. Stopping.")
+                        break
                 vfb_term = VFBTerm(id=term, verbose=verbose)
                 if hasattr(vfb_term, 'term'):
                     self.terms.append(vfb_term)
+                    count += 1
                 else:
                     print(f"\033[33mWarning:\033[0m Term with ID {term} not found") if verbose else None
             return
 
         # Check if terms is a DataFrame
         if isinstance(terms, pandas.core.frame.DataFrame):
-            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(terms['id'].values, threshold=10, desc="Loading terms")] if 'id' in terms.columns else []
+            term_list = terms[:self.vfb._load_limit] if self.vfb._load_limit else terms
+            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(term_list['id'].values, threshold=10, desc="Loading terms")] if 'id' in terms.columns else []
             return
 
         # Check if terms is a numpy array
         if isinstance(terms, np.ndarray):
-            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")] if len(terms) > 0 and isinstance(terms[0], str) else []
+            term_list = terms[:self.vfb._load_limit] if self.vfb._load_limit else terms
+            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(term_list, threshold=10, desc="Loading terms")] if len(terms) > 0 and isinstance(terms[0], str) else []
             return
 
         # Check if terms is a list of dictionaries
         if isinstance(terms, list) and all(isinstance(term, dict) for term in terms):
-            self.terms = [VFBTerm(id=term['id'], verbose=verbose) for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")]
+            term_list = terms[:self.vfb._load_limit] if self.vfb._load_limit else terms
+            self.terms = [VFBTerm(id=term['id'], verbose=verbose) for term in self.tqdm_with_threshold(term_list, threshold=10, desc="Loading terms")]
             return
 
         if isinstance(terms, VFBTerms):
