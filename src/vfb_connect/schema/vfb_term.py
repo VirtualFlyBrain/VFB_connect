@@ -3075,6 +3075,14 @@ class VFBTerms:
             return NotImplemented
         # Compare based on sorted IDs
         return sorted(self.get_ids()) >= sorted(other.get_ids())
+    
+    def __iter__(self):
+        """
+        Make VFBTerms iterable by returning an iterator over the 'terms' list.
+
+        :return: Iterator over the list of terms.
+        """
+        return iter(self.terms)
 
     def get_all(self, property_name='name', verbose=False, return_dict=False):
         """
@@ -3147,6 +3155,7 @@ class VFBTerms:
 
                 # If the property value is iterable, handle based on take_first flag
                 if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+                    print(f"Property '{property_name}' is iterable. Processing items: {value}") if verbose else None
                     if take_first:
                         value = next(iter(value), None)  # Take the first value
                         if verbose and value is not None:
