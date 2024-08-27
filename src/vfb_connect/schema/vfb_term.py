@@ -2706,7 +2706,7 @@ class VFBTerm:
         print("Opening ", self.url) if verbose else None
         webbrowser.open(self.url)
 
-    def plot_partners(self, partners: List[Partner], include_self=True, template=None, verbose=False):
+    def plot_partners(self, partners: List[Partner], include_self=True, template=None, include_template=False, verbose=False, **kwargs):
         """Plot a network of neuron partners.
 
         :param partners: List of Partner objects to plot, usually the output from the downstream_partners or upstream_partners methods.
@@ -2735,12 +2735,12 @@ class VFBTerm:
                     colours[i]= colours[i] + (alpha,)
                 alphas.append(alpha)
             print("Colours: ", colours) if verbose else None
-            VFBTerms(neurons).plot3d(verbose=verbose, template=template, colors=colours)
+            VFBTerms(neurons).plot3d(verbose=verbose, template=template, include_template=include_template, colors=colours, **kwargs)
 
         else:
             print(f"No partners found for {self.name}") if verbose else None
 
-    def plot_similar(self, similar: List[Score], template=None, include_template=False, verbose=False):
+    def plot_similar(self, similar: List[Score], template=None, include_template=False, verbose=False, **kwargs):
         """Plot a network of similar neurons or potential drivers.
 
         :param similar: List of Score objects to plot, usually the output from the similar_neurons_nblast or potential_drivers methods.
@@ -2767,7 +2767,7 @@ class VFBTerm:
                     colours[i]= colours[i] + (alpha,)
                 alphas.append(alpha)
             print("Colours: ", colours) if verbose else None
-            VFBTerms(neurons).plot3d(verbose=verbose, template=template, include_template=include_template, colors=colours)
+            VFBTerms(neurons).plot3d(verbose=verbose, template=template, include_template=include_template, colors=colours, **kwargs)
 
         else:
             print(f"No similar neurons found for {self.name}") if verbose else None
