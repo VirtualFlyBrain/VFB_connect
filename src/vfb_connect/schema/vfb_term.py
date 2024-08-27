@@ -2246,7 +2246,24 @@ class VFBTerm:
         return getattr(self, key, default)
 
     def __len__(self):
+        """
+        Get the length of the term.
+        """
         return 1
+
+    def __eq__(self, other):
+        """
+        Check if two terms are equal.
+        """
+        if isinstance(other, VFBTerm):
+            return self.id == other.id
+        return False
+
+    def __hash__(self):
+        """
+        Get the hash of the term.
+        """
+        return hash(self.id)
 
     def __add__(self, other):
         if isinstance(other, VFBTerms):
@@ -2888,6 +2905,30 @@ class VFBTerms:
 
     def __len__(self):
         return len(self.terms)
+    
+    def __eq__(self, other):
+        """
+        Compare two VFBTerms objects for equality.
+        Two VFBTerms objects are considered equal if they contain the same set of term IDs.
+
+        :param other: The other VFBTerms object to compare.
+        :return: True if the two VFBTerms objects are equal, False otherwise.
+        """
+        if not isinstance(other, VFBTerms):
+            return False
+
+        # Compare the sets of IDs for equality
+        return set(self.get_ids()) == set(other.get_ids())
+    
+    def __hash__(self):
+        """
+        Return a hash value based on the set of term IDs.
+        This makes the VFBTerms object hashable and suitable for use in sets and as dictionary keys.
+
+        :return: Hash value.
+        """
+        # Use a frozenset of IDs for hashing since frozenset is hashable and immutable
+        return hash(frozenset(self.get_ids()))
 
     def __add__(self, other):
         """
