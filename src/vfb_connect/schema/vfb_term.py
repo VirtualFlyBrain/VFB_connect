@@ -2414,7 +2414,7 @@ class VFBTerm:
                         skeleton.id = self.id
                     if len(self._skeleton) > 1:
                         if not allow_multiple:
-                            print("Multiple skeletons found for", self.name, "Please run \033[35mZZZZ.load_skelton(template='XXXX')\033[0m to load the correct neuron skeleton.")
+                            print("Multiple skeletons found for", self.name, "Please run \033[35mZZZZ.load_skeleton(template='XXXX')\033[0m to load the correct neuron skeleton.")
                             print("Available templates:", [ci.image.template_anatomy.name for ci in self.channel_images])
                             self._skeleton = None
                     elif len(self._skeleton) == 1:
@@ -3019,59 +3019,70 @@ class VFBTerms:
         :param property_name: The property name to get colours for.
         :param verbose: If set to True, print debug information.
         :param take_first: If set to True, take the first value from an iterable property.
-        :return: A list of colours for the property values.
+        :return: A list of colours for each term, corresponding to their associated labels.
         """
         from collections.abc import Iterable
 
-        result = set()
-        result_dict = {}
+        result = set()  # To store unique property values
+        term_colors_mapped = []  # List to store the color for each term
 
+        # First pass: Collect unique property values and associate terms with these values
         for term in self.terms:
             if hasattr(term, property_name):
                 value = getattr(term, property_name)
-                term_id = getattr(term, 'id', None)
+
                 if verbose:
                     print(f"Found property '{property_name}' in {term}: {value}")
 
+                # If the property value is iterable, handle based on take_first flag
                 if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
                     if take_first:
-                        first_value = next(iter(value), None)
-                        if first_value is not None:
-                            result.add(first_value)
-                            if first_value not in result_dict:
-                                result_dict[first_value] = []
-                            result_dict[first_value].append(term_id)
-                            if verbose:
-                                print(f"Using first value: {first_value}")
+                        value = next(iter(value), None)  # Take the first value
+                        if verbose and value is not None:
+                            print(f"Using first value: {value}")
                     else:
-                        combined_value = ' and '.join(value)
-                        result.add(combined_value)
-                        if combined_value not in result_dict:
-                            result_dict[combined_value] = []
-                        result_dict[combined_value].append(term_id)
-                        if verbose:
-                            print(f"Combined property '{property_name}': {combined_value}")
-                else:
-                    if verbose:
-                        print(f"Property '{property_name}' is not iterable. Adding item to result set: {value}")
-                    result.add(value)
-                    if value not in result_dict:
-                        result_dict[value] = []
-                    result_dict[value].append(term_id)
-            elif verbose:
-                print(f"Property '{property_name}' not found in {term}. Skipping.")
+                        value = ' and '.join(value)  # Combine all values
 
+                # Add the value to the result set for unique values
+                if value is not None:
+                    result.add(value)
+
+                # Append the value to term_colors_mapped for color mapping
+                term_colors_mapped.append(value)
+            else:
+                if verbose:
+                    print(f"Property '{property_name}' not found in {term}. Skipping.")
+                term_colors_mapped.append(None)  # Append None for terms without the property
+
+        # Generate colors for unique property values
         sorted_result = sorted(result)
         color_list = self.vfb.generate_lab_colors(len(sorted_result))
         value_to_color = dict(zip(sorted_result, color_list))
+
+        # Map each term's property value to its corresponding color
+        term_colors_mapped = [
+            value_to_color.get(val, (0, 0, 0))  # Use the default color (black) if the value is None
+            for val in term_colors_mapped
+        ]
 
         # Print each label and its associated color
         print('Colour mapping:')
         for value, color in value_to_color.items():
             r, g, b = color
-            print(f"\033[48;2;{r};{g};{b}m  {value}  \033[0m")
 
-        return color_list
+            # Calculate perceived luminance
+            luminance = 0.299 * r + 0.587 * g + 0.114 * b
+
+            # Choose text color based on luminance
+            if luminance > 186:  # Threshold can be adjusted based on preference
+                text_color = "0;0;0"  # Black text for light backgrounds
+            else:
+                text_color = "255;255;255"  # White text for dark backgrounds
+
+            print(f"\033[48;2;{r};{g};{b}m\033[38;2;{text_color}m  {value}  \033[0m")
+
+        return term_colors_mapped  # Return the list of colors corresponding to each term
+
 
     def AND(self, other, verbose=False):
         """

@@ -102,7 +102,7 @@ class VfbConnect:
 
         print("\033[32mSession Established!\033[0m")
         print("")
-        print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.get_TermInfo)\033[0m")
+        print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.terms)\033[0m")
 
     def __dir__(self):
         return [attr for attr in list(self.__dict__.keys()) if not attr.startswith('_')] + [attr for attr in dir(self.__class__) if not attr.startswith('_') and not attr.startswith('add_')]
@@ -124,6 +124,17 @@ class VfbConnect:
         else:
             print("No cache file found.")
         self.lookup = self.nc.get_lookup(cache=self.cache_file, verbose=verbose)
+
+    def lookup_name(self, ids):
+        """Lookup the name for a given ID using the internal lookup table.
+
+        :param ids: A single ID or list of IDs to look up.
+        :return: The name associated with the ID.
+        :rtype: str
+        """
+        if isinstance(ids, list):
+            return [self.lookup_name(id) for id in ids]
+        return {v: k for k, v in self.lookup.items()}[ids]
 
     def lookup_id(self, key, return_curie=False, allow_subsitutions=True, subsitution_stages=['adult', 'larval', 'pupal'], verbose=False):
         """Lookup the ID for a given key (label or symbol) using the internal lookup table.
