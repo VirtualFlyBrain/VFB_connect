@@ -468,6 +468,10 @@ class Xref:
             self.link_text = link_text
         if homepage:
             self.homepage = homepage
+        self.site_id = self.core.short_form if hasattr(self.core, 'short_form') else self.core.iri if hasattr(self.core, 'iri') else None
+        self.id = self.site_id + ':' + self.accession if hasattr(self, 'accession') else self.site_id
+        self.site_name = self.core.symbol if hasattr(self.core, 'symbol') else self.core.label if hasattr(self.core, 'label') else self.site_id
+        self.name = self.link_text if hasattr(self, 'link_text') and self.link_text else self.site_name
 
     def get(self, key, default=None):
         """
@@ -1661,6 +1665,12 @@ class VFBTerm:
 
             if xrefs:
                 self.xrefs = xrefs
+                for xref in xrefs:
+                    if xref.is_data_source:
+                        self.data_source = xref.site_name
+                        self.xref_id = xref.id
+                        self.xref_url = xref.link if hasattr(xref, 'link') and xref.link else xref.homepage
+                        self.xref_name = xref.name
 
             if synonyms:
                 self.synonyms = synonyms

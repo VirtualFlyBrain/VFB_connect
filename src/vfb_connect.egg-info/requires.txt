@@ -3,9 +3,12 @@ pandas
 jsonpath_rw
 pysolr
 navis
+flybrains
 numpy
 neuprint-python
 python-catmaid
-matplotlib
+matplotlib>3.9
 colormath
 tqdm
+vispy
+ipywidgets

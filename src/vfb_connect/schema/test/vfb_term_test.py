@@ -488,5 +488,14 @@ class VfbTermTest(unittest.TestCase):
         print(term.get_summary(return_dataframe=False))
         self.assertTrue(term.has_image)
 
+    def test_vfbterm_xref(self):
+        term = self.vfb.term('VFB_jrcv1ngs')
+        print("got term ", term)
+        print(term.xrefs)
+        self.assertTrue(term.xref_id)
+        print(dir(term))
+        print(term.xref_id)
+        self.assertEqual(self.vfb.xref_2_vfb_id(term.xref_id, return_just_ids=True)[0], term.id)
+
 if __name__ == "__main__":
     unittest.main()
