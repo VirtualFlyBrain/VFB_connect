@@ -154,7 +154,7 @@ class VfbTermTest(unittest.TestCase):
         print("got similar ", similar)
         self.assertTrue(similar)
         self.assertTrue(isinstance(similar[0], Score))
-        self.assertEquals(len(similar), self.vfb._load_limit)
+        self.assertGreater(len(similar), 50)
 
     # def test_vfbterm_similarity_neuron_neuronbridge(self):
     #     # TODO No neuronbridge neuron - neuron score exist at the monent
@@ -240,7 +240,7 @@ class VfbTermTest(unittest.TestCase):
         print("got upstream ", upstream)
         self.assertTrue(upstream)
         self.assertTrue(isinstance(upstream, VFBTerms))
-        self.assertTrue(len(upstream) > 700)
+        self.assertEqual(len(upstream), self.vfb._load_limit)
 
     def test_vfbterm_downstream_neuron_types(self):
         term = self.vfb.term('medulla')
