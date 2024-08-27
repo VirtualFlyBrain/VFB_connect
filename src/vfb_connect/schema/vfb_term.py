@@ -2706,7 +2706,7 @@ class VFBTerm:
         print("Opening ", self.url) if verbose else None
         webbrowser.open(self.url)
 
-    def plot_partners(self, partners: List[Partner], include_self=True, template=None, verbose=False):
+    def plot_partners(self, partners: List[Partner], min_weight=False, include_self=True, template=None, include_template=False, verbose=False, **kwargs):
         """Plot a network of neuron partners.
 
         :param partners: List of Partner objects to plot, usually the output from the downstream_partners or upstream_partners methods.
@@ -2714,6 +2714,9 @@ class VFBTerm:
         :param template: Template short form to match for image display.
         :param verbose: Print additional information if True.
         """
+        if min_weight:
+            print(f"Filtering partners with weight greater than {min_weight}") if verbose else None
+            partners = [partner for partner in partners if partner.weight > min_weight]
         if partners and len(partners) > 0:
             neurons = [self] if include_self else []
             neurons = neurons + [partner.partner for partner in partners]
@@ -2735,18 +2738,21 @@ class VFBTerm:
                     colours[i]= colours[i] + (alpha,)
                 alphas.append(alpha)
             print("Colours: ", colours) if verbose else None
-            VFBTerms(neurons).plot3d(verbose=verbose, template=template, colors=colours)
+            VFBTerms(neurons).plot3d(verbose=verbose, template=template, include_template=include_template, colors=colours, **kwargs)
 
         else:
             print(f"No partners found for {self.name}") if verbose else None
 
-    def plot_similar(self, similar: List[Score], template=None, include_template=False, verbose=False):
+    def plot_similar(self, similar: List[Score], min_weight=False, template=None, include_template=False, verbose=False, **kwargs):
         """Plot a network of similar neurons or potential drivers.
 
         :param similar: List of Score objects to plot, usually the output from the similar_neurons_nblast or potential_drivers methods.
         :param template: Template short form to match for image display.
         :param verbose: Print additional information if True.
         """
+        if min_weight:
+            print(f"Filtering similar neurons with score greater than {min_weight}") if verbose else None
+            similar = [score for score in similar if score.score > min_weight]
         if similar and len(similar) > 0:
             neurons = [self] + [score.term for score in similar]
             print(f"Plotting {len(neurons)} neurons") if verbose else None
@@ -2767,7 +2773,7 @@ class VFBTerm:
                     colours[i]= colours[i] + (alpha,)
                 alphas.append(alpha)
             print("Colours: ", colours) if verbose else None
-            VFBTerms(neurons).plot3d(verbose=verbose, template=template, include_template=include_template, colors=colours)
+            VFBTerms(neurons).plot3d(verbose=verbose, template=template, include_template=include_template, colors=colours, **kwargs)
 
         else:
             print(f"No similar neurons found for {self.name}") if verbose else None
