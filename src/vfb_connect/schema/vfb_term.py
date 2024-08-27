@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from types import NoneType
 from typing import Iterable, List, Optional, Union
 import navis
 import numpy as np
@@ -168,7 +169,13 @@ class Term:
             raise ValueError("core must be a MinimalEntityInfo object")
         self.description = ", ".join(description) if description else ""
         self.comment = ", ".join(comment) if comment else ""
-        self.link = link if link else "https://n2t.net/vfb:" + self.core.short_form
+        self.link = (
+            link
+            if link
+            else "https://n2t.net/vfb:" + str(self.core.short_form)
+            if hasattr(self.core, 'short_form') and self.core.short_form is not None
+            else ""
+        )
         self.icon = icon if icon else ""
 
     def get(self, key, default=None):
@@ -1890,6 +1897,12 @@ class VFBTerm:
                 print("Loading instances for dataset: ", self.name) if self.debug else None
                 print(f"Loading {self.counts['images'] if self.counts and 'images' in self.counts.keys() else ''} instances for dataset: {self.name}...")
                 self._instances = VFBTerms(self.vfb.get_instances_by_dataset(dataset=self.id, return_id_only=True))
+            elif self.has_tag('API'):
+                print("Loading instances for API: ", self.name) if self.debug else None
+                self._instances = VFBTerms([r['id'] for r in self.vfb.cypher_query(query="MATCH (a:API {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)])
+            elif self.has_tag('Site'):
+                print("Loading instances for site: ", self.name) if self.debug else None
+                self._instances = VFBTerms([r['id'] for r in self.vfb.cypher_query(query="MATCH (a:Site {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)])
             if self._instances and len(self._instances) > 0:
                 self.has_image = True
         return self._instances
@@ -2918,7 +2931,7 @@ class VFBTerms:
 
         # Check if terms is a list of strings (IDs)
         if isinstance(terms, list) and all(isinstance(term, str) for term in terms):
-            self.terms = VFBTerms([])
+            self.terms = []
             count = 0
             for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms"):
                 if self.vfb._load_limit:
@@ -2931,6 +2944,10 @@ class VFBTerms:
                     count += 1
                 else:
                     print(f"\033[33mWarning:\033[0m Term with ID {term} not found") if verbose else None
+            return
+
+        if isinstance(terms, list) and all(isinstance(term, NoneType) for term in terms):
+            self.terms = []
             return
 
         # Check if terms is a DataFrame
@@ -2955,7 +2972,7 @@ class VFBTerms:
             self.terms = terms.terms
             return
 
-        raise ValueError(f"Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame. Got {type(terms)}")
+        raise ValueError(f"Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame. Got {type(terms)} : {terms}")
 
     @property
     def summary(self):

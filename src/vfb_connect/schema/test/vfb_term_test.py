@@ -479,5 +479,12 @@ class VfbTermTest(unittest.TestCase):
         print(tp)
         self.assertEqual(len(tp), 4)
 
+    def test_vfbterm_site(self):
+        term = self.vfb.term('fafb_catmaid_api')
+        print("got term ", term)
+        print(term.instances)
+        print(dir(term))
+        print(term.get_summary(return_dataframe=False))
+
 if __name__ == "__main__":
     unittest.main()
