@@ -2682,6 +2682,9 @@ class VFBTerm:
         """
         Plot the 3D representation of any neuron, expression or regions.
 
+        This is calling the navis.plot3d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
+
         Parameters
         ----------
         template : str
@@ -2756,6 +2759,9 @@ class VFBTerm:
     def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
         """
         Plot the 2D representation of any neuron, expression or regions.
+
+        This is calling the navis.plot2d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
 
         Parameters
         ----------
@@ -3575,6 +3581,9 @@ class VFBTerms:
         """
         Plot the 3D representation of any neuron or expression.
 
+        This is calling the navis.plot3d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
+
         :param template: The short form of the template to plot 3D representations in.
         :param verbose: Print additional information if True.
         :param query_by_label: Query by label if True.
@@ -3602,6 +3611,9 @@ class VFBTerms:
     def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, limit=False, **kwargs):
         """
         Plot the 2D representation of any neuron or expression.
+
+        This is calling the navis.plot3d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
 
         :param template: The short form of the template to plot 2D representations in.
         :param verbose: Print additional information if True.

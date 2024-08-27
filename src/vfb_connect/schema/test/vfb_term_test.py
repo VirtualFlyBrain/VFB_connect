@@ -335,7 +335,7 @@ class VfbTermTest(unittest.TestCase):
         # self.assertTrue(neurons == terms2)
 
     def test_vfbterms_xrefs(self):
-        terms = self.vfb.terms(['catmaid_l1em:17545695', 'Neuprint web interface - hemibrain:v1.1:2039100722'])
+        terms = self.vfb.terms(['catmaid_l1em:17545695', 'neuprint_JRC_Hemibrain_1point1:2039100722'])
         print("got terms ", terms)
         self.assertEqual(len(terms), 2)
         xref = terms[0].xrefs
