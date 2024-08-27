@@ -3309,7 +3309,7 @@ class VFBTerms:
                     else:
                         if isinstance(value, list) and all(isinstance(item, str) for item in value):
                             value = ' and '.join(value)  # Combine all values
-                        if isinstance(value, VFBTerms):
+                        elif isinstance(value, VFBTerms):
                             value = ' and '.join(value.get_names())
                         else:
                             value = ' and '.join([str(item) for item in value])
