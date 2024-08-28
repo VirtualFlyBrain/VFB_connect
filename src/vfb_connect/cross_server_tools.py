@@ -321,9 +321,12 @@ class VfbConnect:
             out = self.neo_query_wrapper._get_anatomical_individual_TermInfo_by_type(class_expression,
                                                                                      summary=summary, return_dataframe=False, limit=limit, verbose=verbose)
         else:
-            terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
+            terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label, verbose=verbose)
             if return_id_only:
                 return terms
+            if limit:
+                print(f"Limiting to {limit} terms out of {len(terms)}")
+                terms = terms[:limit]
             out = self.get_TermInfo(terms, summary=summary, return_dataframe=False, limit=limit, verbose=verbose)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(out)
