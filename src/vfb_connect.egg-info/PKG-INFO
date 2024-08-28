@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: vfb_connect
-Version: 2.1.16.dev10+370abac.dirty
+Version: 2.1.17.dev14+6a529a1.dirty
 Summary: Wrapper for querying VirtualFlyBrain servers.
 Home-page: https://github.com/VirtualFlyBrain/VFB_connect
 Author: David Osumi-Sutherland
@@ -24,6 +24,7 @@ Requires-Dist: numpy
 Requires-Dist: neuprint-python
 Requires-Dist: python-catmaid
 Requires-Dist: matplotlib>3.9
+Requires-Dist: seaborn>0.13
 Requires-Dist: colormath
 Requires-Dist: tqdm
 Requires-Dist: vispy
