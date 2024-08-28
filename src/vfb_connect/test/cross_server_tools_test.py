@@ -121,6 +121,13 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(isinstance(fu[0], dict))
         self.assertEqual(fu[0]['n']['label'], 'fan-shaped body')
 
+    def test_nt_receptors_in_downstream_neurons(self):
+        fu = self.vc.get_nt_receptors_in_downstream_neurons(upstream_type='Dm8', downstream_type='Dm9', weight=10)
+        print(fu)
+        self.assertTrue(len(fu) > 9)
+        bar = self.vc.get_nt_receptors_in_downstream_neurons(upstream_type='Dm8', downstream_type='Dm9', weight=10, return_dataframe=False)
+        print(bar)
+        self.assertTrue(len(bar) > 9)
 class VfbTermTests(unittest.TestCase):
 
     def setUp(self):
