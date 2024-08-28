@@ -2634,7 +2634,8 @@ class VFBTerm:
         """
         Load the synaptic connections for the neuron's skeleton.
         """
-        if not self._skeleton:
+        template = self.get_default_template(template=template)
+        if not self._skeleton or self._skeleton_template != template:
             print(f"No skeleton loaded yet for {self.name} so loading...") if verbose else None
             template = self.get_default_template(template=template)
             self.load_skeleton(template=template, verbose=verbose)
@@ -2695,7 +2696,7 @@ class VFBTerm:
             else:
                 selected_template = template
         if self.has_tag('Individual'):
-            if not self._skeleton or force_reload:
+            if not self._skeleton or force_reload or self._skeleton_template != selected_template:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
@@ -2771,7 +2772,7 @@ class VFBTerm:
             else:
                 selected_template = template
         if self.has_tag('Individual'):
-            if not self._skeleton or force_reload:
+            if not self._skeleton or force_reload or self._skeleton_template != selected_template:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
