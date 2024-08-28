@@ -165,9 +165,10 @@ class VfbConnect:
             if any(key.startswith(db) for db in dbs):
                 split_key = key.rsplit(':', 1)
                 print(f"Split xref: {split_key}") if verbose else None
-                id = self.xref_2_vfb_id(acc=split_key[1], db=split_key[0], return_just_ids=True)
-                if id and len(id) == 1:
-                    return id[0]
+                if len(split_key) == 2:
+                    id = self.xref_2_vfb_id(acc=split_key[1], db=split_key[0], return_just_ids=True)
+                    if id and len(id) == 1:
+                        return id[0]
 
 
         # Direct lookup: Check if the key is already a valid ID
