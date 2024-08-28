@@ -2699,7 +2699,7 @@ class VFBTerm:
             if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
                 if include_template:
-                    combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
+                    combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self
                     combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                     return
                 self._skeleton.plot3d(**kwargs)
