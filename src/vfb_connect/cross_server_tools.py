@@ -160,6 +160,16 @@ class VfbConnect:
         if isinstance(key, list):
             return [self.lookup_id(k, return_curie=return_curie, allow_subsitutions=allow_subsitutions, subsitution_stages=subsitution_stages) for k in key]
         
+        if isinstance(key, str):
+            dbs = self.get_dbs()
+            if any(key.startswith(db) for db in dbs):
+                split_key = key.rsplit(':', 1)
+                print(f"Split xref: {split_key}") if verbose else None
+                id = self.xref_2_vfb_id(acc=split_key[1], db=split_key[0], return_just_ids=True)
+                if id and len(id) == 1:
+                    return id[0]
+
+
         # Direct lookup: Check if the key is already a valid ID
         if key in self.lookup.values():
             return key if not return_curie else key.replace('_', ':')
@@ -675,18 +685,21 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db, summary=summary, return_dataframe=False)
 
-    def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False, return_just_ids=False, verbose=False):
+    def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False, return_just_ids=True, verbose=False):
         """Map a list external DB IDs to VFB IDs
 
         :param acc: An iterable (e.g. a list) of external IDs (e.g. neuprint bodyIDs). Can be in the form of 'db:acc' or just 'acc'.
         :param db: optional specify the VFB id (short_form) of an external DB to map to. (use get_dbs to find options)
         :param id_type: optionally specify an external id_type
         :param reverse_return: Boolean: Optional (see return)
-        :param verbose: Optional. If `True`, prints the running query and found terms. Default `False`. 
+        :param return_just_ids: Boolean: Optional (see return)
+        :param verbose: Optional. If `True`, prints the running query and found terms. Default `False`.
         :return: if `reverse_return` is False:
             dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
             Return if `reverse_return` is `True`:
             dict { VFB_id : [{ db: <db> : acc : <acc> }
+            if `return_just_ids` is `True`:
+            return just the VFB_ids in a list
         """
         if isinstance(acc, str):
             if ':' in acc and db == '':
