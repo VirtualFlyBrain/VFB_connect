@@ -2686,6 +2686,7 @@ class VFBTerm:
             Additional keyword arguments to pass to the plot
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -2762,6 +2763,7 @@ class VFBTerm:
             Additional keyword arguments to pass to the plot
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -2850,6 +2852,7 @@ class VFBTerm:
         :param template: Template short form to match for image display.
         :param verbose: Print additional information if True.
         """
+        template = self.get_default_template(template=template)
         if min_weight:
             print(f"Filtering partners with weight greater than {min_weight}") if verbose else None
             partners = [partner for partner in partners if partner.weight > min_weight]
