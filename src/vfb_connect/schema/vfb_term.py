@@ -2640,7 +2640,10 @@ class VFBTerm:
             self.load_skeleton(template=template, verbose=verbose)
         if self._skeleton:
             print(f"Loading synaptic connections for {self.name}...") if verbose else None
-            xrefs = self.xrefs
+            xref = self.xref
+            # TODO: Load synaptic connections
+            # see https://github.com/navis-org/navis/blob/1eead062710af6adabc9e9c40196ad7be029cb52/navis/interfaces/neuprint.py#L491
+        print("FEATURE NOT YET IMPLEMENTED")
 
 
     def get_default_template(self, template=None):
