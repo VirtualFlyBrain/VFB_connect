@@ -161,7 +161,7 @@ class VfbConnect:
             return [self.lookup_id(k, return_curie=return_curie, allow_subsitutions=allow_subsitutions, subsitution_stages=subsitution_stages) for k in key]
         
         if isinstance(key, str):
-            dbs = self.get_dbs()
+            dbs = self.neo_query_wrapper.get_dbs()
             if any(key.startswith(db) for db in dbs):
                 split_key = key.rsplit(':', 1)
                 print(f"Split xref: {split_key}") if verbose else None
