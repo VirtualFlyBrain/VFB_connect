@@ -119,7 +119,7 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(fu)
         self.assertTrue(len(fu) > 0)
         self.assertTrue(isinstance(fu[0], dict))
-        self.assertEquals(fu[0]['n']['label'], 'fan-shaped body')
+        self.assertEqual(fu[0]['n']['label'], 'fan-shaped body')
 
 class VfbTermTests(unittest.TestCase):
 
