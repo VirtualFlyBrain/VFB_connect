@@ -977,6 +977,42 @@ class VfbConnect:
             return pd.DataFrame.from_records(dc)
         return dc
 
+    def get_nt_predictions(self, term):
+        """
+        Find predicted neurotransmitter(s) for a single neuron or all neurons of a given type.
+        :param term: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt) or the ID or name of an individual neuron in VFB.
+        :return: A DataFrame.
+        :rtype: pandas.DataFrame
+        """
+        input_id = self.lookup_id(term)
+        # check input type
+        type_results = self.cypher_query(
+            query="MATCH (n:Neuron {short_form:'%s'}) RETURN labels(n) AS labels" % input_id)
+        input_labels = type_results.labels[0]
+
+        def get_instance_predicted_nts(nt_search_ids):
+            results = self.cypher_query(query="""
+            MATCH (i:Individual:Neuron)-[c:capable_of]->(nt) 
+            WHERE EXISTS(c.confidence_value) 
+            AND i.short_form IN %s
+            RETURN i.label AS individual, i.short_form AS individual_id, labels(i) AS instance_labels, 
+            nt.label AS predicted_nt, c.confidence_value[0] AS confidence
+            """ % nt_search_ids)
+            results['all_nts'] = results['instance_labels'].apply(
+                lambda x: [l for l in x if l in NT_NTR_pairs.keys()])
+            results = results.drop('instance_labels', axis=1)
+            return results
+
+        if 'Individual' in input_labels:
+            output = get_instance_predicted_nts([input_id])
+            return output
+
+        elif 'Class' in input_labels:
+            instances = self.get_instances(input_id, query_by_label=False)
+            instance_ids = instances['id'].to_list()
+            output = get_instance_predicted_nts(instance_ids)
+            return output
+
     def get_nt_receptors_in_downstream_neurons(self, upstream_type, downstream_type='neuron', weight=0 , return_dataframe=True, verbose=False):
         """
         Get neurotransmitter receptors in downstream neurons of a given neuron type.
