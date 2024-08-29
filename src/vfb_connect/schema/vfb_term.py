@@ -25,6 +25,7 @@ neuron_containing_anatomy_tags = [
         ]
 
 NEUPRINT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZmYndvcmtzaG9wLm5ldXJvZmx5MjAyMEBnbWFpbC5jb20iLCJsZXZlbCI6Im5vYXV0aCIsImltYWdlLXVybCI6Imh0dHBzOi8vbGg2Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWXFDN21NRXd3TlEvQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQU1adXVjbU5zaXhXZDRhM0VyTTQ0ODBMa2IzNDdvUlpfUS9zOTYtYy9waG90by5qcGc_c3o9NTA_c3o9NTAiLCJleHAiOjE3OTQwOTE4ODd9.ceg4mrj2o-aOhK0NHNGmBacg8R34PBPoLBwhCo4uOCQ'
+CATMAID_TOKEN = None
 
 def is_notebook():
     """Check if the environment is a Jupyter notebook."""
@@ -2661,6 +2662,9 @@ class VFBTerm:
         """
         Load the synaptic connections for the neuron's skeleton.
         """
+        import flybrains
+        import navis
+        from navis import transforms
         template = self.get_default_template(template=template)
         if not self._skeleton or self._skeleton_template != template:
             print(f"No skeleton loaded yet for {self.name} so loading...") if verbose else None
@@ -2671,21 +2675,50 @@ class VFBTerm:
             if 'catmaid' in self.xref_url:
                 print("Loading synaptic connections from CATMAID...") if verbose else None
                 skid = int(self.xref_id.split(':')[-1])
+                db = self.xref_id.split(':')[0]
                 print("CATMAID skeleton ID: ", skid) if verbose else None
-                server = self.xref_url.split('://')[-1].split('/')[0]
+                server = "https://" + self.xref_url.split('://')[-1].split('/')[0]
                 print("CATMAID Server: ", server) if verbose else None
                 pid = self._extract_url_parameter(self.xref_url, parameter='pid', verbose=verbose)
-                # from navis.interfaces. import fetch_synapses
-                # self._skeleton._set_connectors()
-                print("FEATURE NOT YET IMPLEMENTED")
-                return
+                import pymaid
+                catmaid = pymaid.connect_catmaid(server=server, project_id=pid, api_token=CATMAID_TOKEN, max_threads=10)
+                connectors = pymaid.get_connectors([skid],remote_instance=catmaid)
+                print("Connectors: ", connectors) if verbose else None
+                # Check available transforms
+                available_transforms = transforms.registry.summary()
+                print("Available transforms: ", available_transforms) if verbose else None
+                target = None
+                source = None
+                name = db.split('_')[-1].upper()
+                if not 'L1EM' in name:
+                    if name in available_transforms.source.to_list():
+                        source = name
+                    if name.lower() in available_transforms.source.to_list():
+                        source = name.lower()
+                    if self.vfb.lookup_name(self._skeleton_template) in available_transforms.target.to_list():
+                        target = self._skeleton_template
+                    if not target or not source:
+                        print("falling back to manual transforms...") if verbose else None
+                        if 'fafb' in name.lower():
+                            source = 'FAFB14'
+                            target = 'JRC2018U'
+                        elif 'fanc' in name.lower():
+                            source = 'FANC'
+                            target = 'JRC2018U'
+                        else:
+                            print("No transform available for ", db)
+                    print("Transforming from ", source, " to ", target) if verbose else None
+                    aligned_connectors = navis.xform_brain(connectors, source=source, target=target)
+                else:
+                    aligned_connectors = connectors
+                print("FULL FEATURE NOT YET IMPLEMENTED")
+                return aligned_connectors
+
             if 'neuprint' in self.xref_url:
                 print("Loading synaptic connections from neuprint...") if verbose else None
                 from navis.interfaces.neuprint import fetch_synapses, Client
-                import navis
-                import flybrains
-                import navis.interfaces.neuprint as np
-                from navis import transforms
+                
+                
                 bodyId = int(self.xref_id.split(':')[-1])
                 db = self.xref_id.split(':')[0]
                 print("Neuprint bodyId: ", bodyId) if verbose else None
@@ -2696,10 +2729,9 @@ class VFBTerm:
                 client = Client(server=server, dataset=ds, token=NEUPRINT_TOKEN)
                 connectors = fetch_synapses(bodyId, client=client)
                 print("Connectors: ", connectors) if verbose else None
-                jrc2018unisexvnc = flybrains.JRCVNC2018U
-                # Check available transforms for JRC2018UnisexVNC
+                # Check available transforms
                 available_transforms = transforms.registry.summary()
-                print("Available transforms: ", available_transforms.source.to_list())
+                print("Available transforms: ", available_transforms) if verbose else None
                 target = None
                 source = None
                 if '%3A' in ds:
@@ -2712,7 +2744,7 @@ class VFBTerm:
                 if self.vfb.lookup_name(self._skeleton_template) in available_transforms.target.to_list():
                     target = self._skeleton_template
                 if not target or not source:
-                    print("falling back to manual transforms...")
+                    print("falling back to manual transforms...") if verbose else None
                     if 'manc' in name.lower():
                         source = 'MANC'
                         target = 'JRCVNC2018U'
@@ -2745,13 +2777,14 @@ class VFBTerm:
                         print("Adding 'id' column to aligned_connectors") if verbose else None
                         aligned_connectors['id'] = vfb_ids
                     print("Aligned Connectors after: ", aligned_connectors) if verbose else None
+                    print("FULL FEATURE NOT YET IMPLEMENTED")
+                    return aligned_connectors
                     self._skeleton._set_connectors(aligned_connectors)
                     print("Connectors set for ", self.name) if verbose else None
                     print(self._skeleton.connectors) if verbose else None
                     return
 
-                print("FEATURE NOT YET IMPLEMENTED")
-                return
+                
 
             # TODO: Load synaptic connections
             # see https://github.com/navis-org/navis/blob/1eead062710af6adabc9e9c40196ad7be029cb52/navis/interfaces/neuprint.py#L491

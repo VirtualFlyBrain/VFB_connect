@@ -500,13 +500,15 @@ class VfbTermTest(unittest.TestCase):
     def test_load_synapes(self):
         term = self.vfb.term('VFB_jrchk6dr')
         print("got term ", term)
-        term.load_skeleton(template='JRC2018Unisex', verbose=True)
-        print(term.load_skeleton_synaptic_connections(verbose=True))
-        self.assertGreater(len(term._skeleton.connectors),10)
-        # term = self.vfb.term('VFB_00102gjr')
-        # print("got term ", term)
-        # print(term.load_skeleton_synaptic_connections(verbose=True))
-        # self.assertGreater(len(term.synapses),10)
+        term.load_skeleton(template='JRC2018Unisex')
+        con = term.load_skeleton_synaptic_connections().to_dict('records')
+        print(con[0])
+        self.assertGreater(len(con),10)
+        term = self.vfb.term('VFB_00102gjr')
+        print("got term ", term)
+        con = term.load_skeleton_synaptic_connections().to_dict('records')
+        print(con[0])
+        self.assertGreater(len(con),10)
 
 if __name__ == "__main__":
     unittest.main()

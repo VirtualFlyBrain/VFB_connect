@@ -725,7 +725,7 @@ class VfbConnect:
                 else:
                     new_acc.append(xref)
             acc = new_acc
-        result = self.neo_query_wrapper.xref_2_vfb_id(acc=acc, db=db, id_type=id_type, reverse_return=reverse_return, verbose=verbose)
+        result = self.neo_query_wrapper.xref_2_vfb_id(acc=acc, db=db, id_type=id_type, reverse_return=reverse_return, verbose=False)
         if return_just_ids & reverse_return:
             print(f"Returning just IDs: {result}") if verbose else None
             return [x.key for x in result]
