@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-from types import NoneType
 from typing import Iterable, List, Optional, Union
 import navis
 import numpy as np
@@ -2951,7 +2950,7 @@ class VFBTerms:
                     print(f"\033[33mWarning:\033[0m Term with ID {term} not found") if verbose else None
             return
 
-        if isinstance(terms, list) and all(isinstance(term, NoneType) for term in terms):
+        if isinstance(terms, list) and all(isinstance(term, type(None)) for term in terms):
             self.terms = []
             return
 
