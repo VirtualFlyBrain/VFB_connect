@@ -977,7 +977,7 @@ class VfbConnect:
             return pd.DataFrame.from_records(dc)
         return dc
 
-    def get_nt_predictions(self, term):
+    def get_nt_predictions(self, term, verbose=False):
         """
         Find predicted neurotransmitter(s) for a single neuron or all neurons of a given type.
         :param term: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt) or the ID or name of an individual neuron in VFB.
@@ -990,7 +990,7 @@ class VfbConnect:
             query="MATCH (n:Neuron {short_form:'%s'}) RETURN labels(n) AS labels" % input_id)
         input_labels = type_results.labels[0]
 
-        def get_instance_predicted_nts(nt_search_ids):
+        def get_instance_predicted_nts(nt_search_ids, verbose=False):
             results = self.cypher_query(query="""
             MATCH (i:Individual:Neuron)-[c:capable_of]->(nt) 
             WHERE EXISTS(c.confidence_value) 
@@ -998,20 +998,27 @@ class VfbConnect:
             RETURN i.label AS individual, i.short_form AS individual_id, labels(i) AS instance_labels, 
             nt.label AS predicted_nt, c.confidence_value[0] AS confidence
             """ % nt_search_ids)
-            results['all_nts'] = results['instance_labels'].apply(
-                lambda x: [l for l in x if l in NT_NTR_pairs.keys()])
-            results = results.drop('instance_labels', axis=1)
-            return results
+            if results.empty:
+                print(f"No predicted neurotransmitters found for {nt_search_ids}.") if verbose else None
+                return False
+            else:
+                results['all_nts'] = results['instance_labels'].apply(
+                    lambda x: [l for l in x if l in NT_NTR_pairs.keys()])
+                results = results.drop('instance_labels', axis=1)
+                return results
 
         if 'Individual' in input_labels:
-            output = get_instance_predicted_nts([input_id])
-            return output
-
+            output = get_instance_predicted_nts([input_id], verbose=verbose)
         elif 'Class' in input_labels:
             instances = self.get_instances(input_id, query_by_label=False)
             instance_ids = instances['id'].to_list()
-            output = get_instance_predicted_nts(instance_ids)
+            output = get_instance_predicted_nts(instance_ids, verbose=verbose)
+
+        if output:
             return output
+        else:
+            print(f"No predicted neurotransmitters found for {term}.")
+            return False
 
     def get_nt_receptors_in_downstream_neurons(self, upstream_type, downstream_type='neuron', weight=0 , return_dataframe=True, verbose=False):
         """
