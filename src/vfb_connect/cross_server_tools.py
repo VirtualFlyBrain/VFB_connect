@@ -39,6 +39,9 @@ def dequote(string):
     else:
         return string
 
+NT_NTR_pairs = {'Cholinergic': 'Acetylcholine_receptor', 'Dopaminergic': 'Dopamine_receptor',  
+    'GABAergic': 'GABA_receptor', 'Glutamatergic':'Glutamate_receptor', 'GABAergic':'GABA_receptor', 
+    'Histaminergic':'Histamine_receptor', 'Octopaminergic':'Octopamine_receptor', 'Tyraminergic':'Tyramine_receptor'}
 
 class VfbConnect:
     """API wrapper class for Virtual Fly Brain (VFB) connectivity. 
@@ -160,6 +163,17 @@ class VfbConnect:
         if isinstance(key, list):
             return [self.lookup_id(k, return_curie=return_curie, allow_subsitutions=allow_subsitutions, subsitution_stages=subsitution_stages) for k in key]
         
+        if isinstance(key, str):
+            dbs = self.neo_query_wrapper.get_dbs()
+            if any(key.startswith(db) for db in dbs):
+                split_key = key.rsplit(':', 1)
+                print(f"Split xref: {split_key}") if verbose else None
+                if len(split_key) == 2:
+                    id = self.xref_2_vfb_id(acc=split_key[1], db=split_key[0], return_just_ids=True)
+                    if id and len(id) == 1:
+                        return id[0]
+
+
         # Direct lookup: Check if the key is already a valid ID
         if key in self.lookup.values():
             return key if not return_curie else key.replace('_', ':')
@@ -310,9 +324,12 @@ class VfbConnect:
             out = self.neo_query_wrapper._get_anatomical_individual_TermInfo_by_type(class_expression,
                                                                                      summary=summary, return_dataframe=False, limit=limit, verbose=verbose)
         else:
-            terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label)
+            terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label, verbose=verbose)
             if return_id_only:
                 return terms
+            if limit:
+                print(f"Limiting to {limit} terms out of {len(terms)}")
+                terms = terms[:limit]
             out = self.get_TermInfo(terms, summary=summary, return_dataframe=False, limit=limit, verbose=verbose)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(out)
@@ -675,20 +692,49 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db, summary=summary, return_dataframe=False)
 
-    def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
+    def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False, return_just_ids=True, verbose=False):
         """Map a list external DB IDs to VFB IDs
 
-        :param acc: An iterable (e.g. a list) of external IDs (e.g. neuprint bodyIDs).
+        :param acc: An iterable (e.g. a list) of external IDs (e.g. neuprint bodyIDs). Can be in the form of 'db:acc' or just 'acc'.
         :param db: optional specify the VFB id (short_form) of an external DB to map to. (use get_dbs to find options)
         :param id_type: optionally specify an external id_type
         :param reverse_return: Boolean: Optional (see return)
+        :param return_just_ids: Boolean: Optional (see return)
+        :param verbose: Optional. If `True`, prints the running query and found terms. Default `False`.
         :return: if `reverse_return` is False:
             dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
             Return if `reverse_return` is `True`:
             dict { VFB_id : [{ db: <db> : acc : <acc> }
+            if `return_just_ids` is `True`:
+            return just the VFB_ids in a list
         """
-        return self.neo_query_wrapper.xref_2_vfb_id(acc=acc, db=db, id_type=id_type, reverse_return=reverse_return)
-    
+        if isinstance(acc, str):
+            if ':' in acc and db == '':
+                db, acc = acc.split(':')
+            acc = [acc]
+        elif isinstance(acc, list) and all(isinstance(x, str) for x in acc):
+            new_acc = []
+            for xref in acc:
+                if ':' in xref:
+                    if db == '':
+                        db, temp_acc = xref.split(':')
+                        new_acc.append(temp_acc)
+                    else:
+                        new_acc.append(xref.split(':')[-1])
+            acc = new_acc
+        result = self.neo_query_wrapper.xref_2_vfb_id(acc=acc, db=db, id_type=id_type, reverse_return=reverse_return, verbose=verbose)
+        if return_just_ids & reverse_return:
+            return [x.key for x in result]
+        if return_just_ids and not reverse_return:
+            id_list = []
+            for id in acc:
+                id_list.append(result[id][0]['vfb_id']) # This takes the first match only
+                if len(result[id]) > 1:
+                    print(f"Multiple matches found for {id}: {result[id]}")
+                    print(f"Using {result[id][0]['vfb_id']}")
+            return id_list
+        return result
+
     @batch_query
     def get_images_by_filename(self, filenames: iter, dataset=None, summary=True, return_dataframe=True):
         """Get images by filename.
@@ -828,7 +874,7 @@ class VfbConnect:
             return pd.DataFrame.from_records(dc)
         return dc
 
-    def owl_subclasses(self, query, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
+    def owl_subclasses(self, query, query_by_label=True, return_id_only=False, return_dataframe=False, limit=False, verbose=False):
         """
         Get subclasses of a given term.
 
@@ -838,13 +884,19 @@ class VfbConnect:
         :param term: The ID, name, or symbol of a class in the Drosohila Anatomy Ontology (FBbt).
         :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
         :param return_id_only: Optional. Return only the subclass IDs if `True`. Default `False`.
-        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
-        :return: A DataFrame with subclasses of the specified term.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `False`.
+        :param limit: Optional. Limit the number of instances returned. Default `False`.
+        :param verbose: Optional. If `True`, prints the running query and found terms. Default `False`.
+        :return: A VFBTerms or DataFrame with subclasses of the specified term.
         :rtype: dependant on the options a pandas.DataFrame, list of ids or VFBTerms. Default is VFBTerms
         """
         ids = self.oc.get_subclasses(query=query, query_by_label=query_by_label, verbose=verbose)
         if not ids:
             ids = []
+        else:
+            if limit:
+                print(f"Limiting to {limit} instances out of {len(ids)}")
+                ids = ids[:limit]
         if return_id_only:
             return ids
         if return_dataframe:
@@ -852,7 +904,7 @@ class VfbConnect:
         return self.terms(ids, verbose=verbose)
 
 
-    def owl_superclasses(self, query, query_by_label=True, return_id_only=False, return_dataframe=False, verbose=False):
+    def owl_superclasses(self, query, query_by_label=True, return_id_only=False, return_dataframe=False, limit=False, verbose=False):
         """
         Get superclasses of a given term.
 
@@ -862,20 +914,26 @@ class VfbConnect:
         :param term: The ID, name, or symbol of a class in the Drosohila Anatomy Ontology (FBbt).
         :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
         :param return_id_only: Optional. Return only the superclass IDs if `True`. Default `False`.
-        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
-        :return: A DataFrame with superclasses of the specified term.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `False`.
+        :param limit: Optional. Limit the number of instances returned. Default `False`.
+        :param verbose: Optional. If `True`, prints the running query and found terms. Default `False`.
+        :return: A VFBTerms or DataFrame with superclasses of the specified term.
        :rtype: dependant on the options a pandas.DataFrame, list of ids or VFBTerms. Default is VFBTerms
         """
         ids = self.oc.get_superclasses(query=query, query_by_label=query_by_label, verbose=verbose)
         if not ids:
             ids = []
+        else:
+            if limit:
+                print(f"Limiting to {limit} instances out of {len(ids)}")
+                ids = ids[:limit]
         if return_id_only:
             return ids
         if return_dataframe:
             return self.terms(ids, verbose=verbose).get_summaries(return_dataframe=return_dataframe)
         return self.terms(ids, verbose=verbose)
 
-    def owl_instances(self, query, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
+    def owl_instances(self, query, query_by_label=True, return_id_only=False, return_dataframe=False, limit=False, verbose=False):
         """
         Get instances of a given term.
 
@@ -885,13 +943,19 @@ class VfbConnect:
         :param term: The ID, name, or symbol of a class in the Drosohila Anatomy Ontology (FBbt).
         :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
         :param return_id_only: Optional. Return only the instance IDs if `True`. Default `False`.
-        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
-        :return: A DataFrame with instances of the specified term.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns VFBTerms. Default `False`.
+        :param limit: Optional. Limit the number of instances returned. Default `False`.
+        :param verbose: Optional. If `True`, prints the running query and found terms. Default `False`.
+        :return: A VFBTerms or DataFrame with instances of the specified query.
         :rtype: dependant on the options a pandas.DataFrame, list of ids or VFBTerms. Default is VFBTerms
         """
         ids = self.oc.get_instances(query=query, query_by_label=query_by_label, verbose=verbose)
         if not ids:
             ids = []
+        else:
+            if limit:
+                print(f"Limiting to {limit} instances out of {len(ids)}")
+                ids = ids[:limit]
         if return_id_only:
             return ids
         if return_dataframe:
@@ -913,6 +977,44 @@ class VfbConnect:
             return pd.DataFrame.from_records(dc)
         return dc
 
+    def get_nt_receptors_in_downstream_neurons(self, upstream_type, downstream_type='neuron', weight=0 , return_dataframe=True, verbose=False):
+        """
+        Get neurotransmitter receptors in downstream neurons of a given neuron type.
+
+        Returns a DataFrame of neurotransmitter receptors in downstream neurons of a specified neuron type.
+        If no data is found, returns False.
+
+        :param upstream_type: The ID, name, or symbol of a class in the Drosohila Anatomy Ontology (FBbt).
+        :param downstream_type: Optional. The type of downstream neurons to search for. Default is 'neuron'.
+        :param weight: Optional. Limit returned neurons to those connected by >= weight synapses. Default is 0.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame with neurotransmitter receptors in downstream neurons of the specified neuron type.
+        :rtype: pandas.DataFrame or list of dicts
+        """
+        upstream_type = self.lookup_id(upstream_type)
+        downstream_type = self.lookup_id(downstream_type)
+        downstream = self.get_connected_neurons_by_type(upstream_type=upstream_type, downstream_type=downstream_type, weight=weight)
+        downstream_classes = downstream['downstream_class'].drop_duplicates().to_list()
+
+        cell_type_short_form = self.lookup_id(upstream_type)
+
+        results = self.cypher_query(query="MATCH (n:Neuron {short_form:'%s'}) RETURN labels(n) AS labels" % cell_type_short_form)
+        nt = [r for r in results.labels[0] if r in NT_NTR_pairs.keys()]
+        print(nt) if verbose else None
+        if nt:
+            ntr = [NT_NTR_pairs[n] for n in nt]
+        else:
+            raise ValueError(f"No neurotransmitters for {upstream_type}")
+
+        dataframes = []
+        for c in downstream_classes:
+            for n in ntr:
+                dataframes.append(self.get_transcriptomic_profile(c, gene_type=n))
+        receptor_expression = pd.concat(dataframes, ignore_index=True)
+        if not return_dataframe:
+            return receptor_expression.to_dict('records')
+        return receptor_expression
+
     def term(self, term, verbose=False):
         """Get a VFBTerm object for a given term id, name, symbol or synonym.
 
@@ -927,7 +1029,7 @@ class VfbConnect:
             term = term[0]
         print(term) if verbose else None
         return VFBTerm(term, verbose=verbose)
-    
+
     def terms(self, terms, verbose=False):
         """Get a list of VFBTerm objects for a given list of term id, name, symbol or synonym.
 

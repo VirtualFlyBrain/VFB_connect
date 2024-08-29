@@ -127,7 +127,7 @@ class VfbTermTest(unittest.TestCase):
         print("got subparts ", subparts)
         self.assertTrue(subparts)
         self.assertTrue(isinstance(subparts, VFBTerms))
-        self.assertEquals(len(subparts), self.vfb._load_limit)
+        self.assertEqual(len(subparts), self.vfb._load_limit)
 
     def test_vfbterm_subtypes(self):
         term = self.vfb.term('FBt')
@@ -136,7 +136,7 @@ class VfbTermTest(unittest.TestCase):
         print("got subtypes ", subtypes)
         self.assertTrue(subtypes)
         self.assertTrue(isinstance(subtypes, VFBTerms))
-        self.assertEquals(len(subtypes), self.vfb._load_limit)
+        self.assertEqual(len(subtypes), self.vfb._load_limit)
 
     def test_vfbterm_children(self):
         term = self.vfb.term('medulla')
@@ -145,7 +145,7 @@ class VfbTermTest(unittest.TestCase):
         print("got children ", children)
         self.assertTrue(children)
         self.assertTrue(isinstance(children, VFBTerms))
-        self.assertEquals(len(children), self.vfb._load_limit)
+        self.assertEqual(len(children), self.vfb._load_limit)
 
     def test_vfbterm_similarity_neuron_nblast(self):
         term = self.vfb.term('VGlut-F-000118')
@@ -195,7 +195,7 @@ class VfbTermTest(unittest.TestCase):
         print("got downstream ", downstream)
         self.assertTrue(downstream)
         self.assertTrue(isinstance(downstream, VFBTerms))
-        self.assertEquals(len(downstream), self.vfb._load_limit)
+        self.assertEqual(len(downstream), self.vfb._load_limit)
 
     def test_vfbterm_upstream_types(self):
         term = self.vfb.term('medulla')
@@ -204,7 +204,7 @@ class VfbTermTest(unittest.TestCase):
         print("got upstream ", upstream)
         self.assertTrue(upstream)
         self.assertTrue(isinstance(upstream, VFBTerms))
-        self.assertEquals(len(upstream), self.vfb._load_limit)
+        self.assertEqual(len(upstream), self.vfb._load_limit)
 
     def test_vfbterm_overlaps_types(self):
         term = self.vfb.term('medulla')
@@ -213,7 +213,7 @@ class VfbTermTest(unittest.TestCase):
         print("got overlaps ", overlaps)
         self.assertTrue(overlaps)
         self.assertTrue(isinstance(overlaps, VFBTerms))
-        self.assertEquals(len(overlaps), self.vfb._load_limit)
+        self.assertEqual(len(overlaps), self.vfb._load_limit)
 
     def test_vfbterm_overlaps_instances(self):
         term = self.vfb.term('medulla')
@@ -222,7 +222,7 @@ class VfbTermTest(unittest.TestCase):
         print("got overlaps ", overlaps)
         self.assertTrue(overlaps)
         self.assertTrue(isinstance(overlaps, VFBTerms))
-        self.assertEquals(len(overlaps), self.vfb._load_limit)
+        self.assertEqual(len(overlaps), self.vfb._load_limit)
 
     def test_vfbterm_downstream_neurons(self):
         term = self.vfb.term('medulla')
@@ -231,7 +231,7 @@ class VfbTermTest(unittest.TestCase):
         print("got downstream ", downstream)
         self.assertTrue(downstream)
         self.assertTrue(isinstance(downstream, VFBTerms))
-        self.assertEquals(len(downstream), self.vfb._load_limit)
+        self.assertEqual(len(downstream), self.vfb._load_limit)
 
     def test_vfbterm_upstream_neurons(self):
         term = self.vfb.term('medulla')
@@ -249,7 +249,7 @@ class VfbTermTest(unittest.TestCase):
         print("got downstream types ", downstream_types)
         self.assertTrue(downstream_types)
         self.assertTrue(isinstance(downstream_types, VFBTerms))
-        self.assertEquals(len(downstream_types), self.vfb._load_limit)
+        self.assertEqual(len(downstream_types), self.vfb._load_limit)
 
     def test_vfbterm_neuron_types_with_synaptic_terminals_here(self):
         term = self.vfb.term('medulla')
@@ -258,7 +258,7 @@ class VfbTermTest(unittest.TestCase):
         print("got synaptic terminals types ", synaptic_terminals_types)
         self.assertTrue(synaptic_terminals_types)
         self.assertTrue(isinstance(synaptic_terminals_types, VFBTerms))
-        self.assertEquals(len(synaptic_terminals_types), self.vfb._load_limit)
+        self.assertEqual(len(synaptic_terminals_types), self.vfb._load_limit)
 
     def test_vfbterm_neurons_with_synaptic_terminals_here(self):
         term = self.vfb.term('medulla')
@@ -267,7 +267,7 @@ class VfbTermTest(unittest.TestCase):
         print("got synaptic terminals neurons ", synaptic_terminals_neurons)
         self.assertTrue(synaptic_terminals_neurons)
         self.assertTrue(isinstance(synaptic_terminals_neurons, VFBTerms))
-        self.assertEquals(len(synaptic_terminals_neurons), self.vfb._load_limit)
+        self.assertEqual(len(synaptic_terminals_neurons), self.vfb._load_limit)
 
     def test_vfbterm_downstream_neuron_types_from_ind(self):
         term = self.vfb.term('ME on JRC2018Unisex adult brain')
@@ -276,7 +276,7 @@ class VfbTermTest(unittest.TestCase):
         print("got downstream types ", downstream_types)
         self.assertTrue(downstream_types)
         self.assertTrue(isinstance(downstream_types, VFBTerms))
-        self.assertEquals(len(downstream_types), self.vfb._load_limit)
+        self.assertEqual(len(downstream_types), self.vfb._load_limit)
 
     def test_vfbterm_scRNAseq_Clusters(self):
         term = self.vfb.term('scRNAseq_2018_Davie_FULL_seq_clustering_dopaminergic_PAM_neurons')
@@ -335,7 +335,7 @@ class VfbTermTest(unittest.TestCase):
         # self.assertTrue(neurons == terms2)
 
     def test_vfbterms_xrefs(self):
-        terms = self.vfb.terms(['catmaid_l1em:17545695', 'Neuprint web interface - hemibrain:v1.1:2039100722'])
+        terms = self.vfb.terms(['catmaid_l1em:17545695', 'neuprint_JRC_Hemibrain_1point1:2039100722'])
         print("got terms ", terms)
         self.assertEqual(len(terms), 2)
         xref = terms[0].xrefs
@@ -475,9 +475,27 @@ class VfbTermTest(unittest.TestCase):
         tp = terms.get_colours_for('types', take_first=True)
         print(tp)
         self.assertEqual(len(tp), 4)
-        tp = terms.get_colours_for('parents', take_first=True, verbose=True)
+        tp = terms.get_colours_for('parents', take_first=False, verbose=True)
         print(tp)
         self.assertEqual(len(tp), 4)
+
+    def test_vfbterm_site(self):
+        term = self.vfb.term('fafb_catmaid_api')
+        print("got term ", term)
+        print(term.instances)
+        self.assertEqual(len(term.instances), 10)
+        print(dir(term))
+        print(term.get_summary(return_dataframe=False))
+        self.assertTrue(term.has_image)
+
+    def test_vfbterm_xref(self):
+        term = self.vfb.term('VFB_jrcv1ngs')
+        print("got term ", term)
+        print(term.xrefs)
+        self.assertTrue(term.xref_id)
+        print(dir(term))
+        print(term.xref_id)
+        self.assertEqual(self.vfb.xref_2_vfb_id(term.xref_id, return_just_ids=True)[0], term.id)
 
 if __name__ == "__main__":
     unittest.main()

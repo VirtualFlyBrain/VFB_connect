@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from types import NoneType
 from typing import Iterable, List, Optional, Union
 import navis
 import numpy as np
@@ -168,7 +169,13 @@ class Term:
             raise ValueError("core must be a MinimalEntityInfo object")
         self.description = ", ".join(description) if description else ""
         self.comment = ", ".join(comment) if comment else ""
-        self.link = link if link else "https://n2t.net/vfb:" + self.core.short_form
+        self.link = (
+            link
+            if link
+            else "https://n2t.net/vfb:" + str(self.core.short_form)
+            if hasattr(self.core, 'short_form') and self.core.short_form is not None
+            else ""
+        )
         self.icon = icon if icon else ""
 
     def get(self, key, default=None):
@@ -461,6 +468,10 @@ class Xref:
             self.link_text = link_text
         if homepage:
             self.homepage = homepage
+        self.site_id = self.core.short_form if hasattr(self.core, 'short_form') else self.core.iri if hasattr(self.core, 'iri') else None
+        self.id = self.site_id + ':' + self.accession if hasattr(self, 'accession') else self.site_id
+        self.site_name = self.core.symbol if hasattr(self.core, 'symbol') else self.core.label if hasattr(self.core, 'label') else self.site_id
+        self.name = self.link_text if hasattr(self, 'link_text') and self.link_text else self.site_name
 
     def get(self, key, default=None):
         """
@@ -1546,24 +1557,6 @@ class VFBTerm:
             if isinstance(id, list):
                 id = id[0]
             print(f"\033[32mINFO:\033[0m Fetching term for {id}") if verbose else None
-            # Test for passed xrefs
-            if isinstance(id,str) and ":" in id:
-                print(f"\033[32mINFO:\033[0m Checking for xrefs for {id}") if verbose else None
-                dbs = self.vfb.get_dbs()
-                split_id = id.rsplit(":", 1)
-                if ')' in split_id[1] or '(' in split_id[1] or ' ' in split_id[1]:
-                    print(f"\033[32mINFO:\033[0m Not a valid xref {split_id[1]}") if verbose else None
-                else:
-                    db = self.vfb.lookup_id(split_id[0])
-                    if db in dbs:
-                        xid = self.vfb.xref_2_vfb_id(acc=[split_id[1]], db=db)
-                        xdb = xid.get(split_id[1], [])
-                        if xdb:
-                            for x in xdb:
-                                if x.get('db',None) == db:
-                                    id = x.get('vfb_id',None)
-                                    print(f"\033[32mINFO:\033[0m Resolved xref {split_id[0]}:{split_id[1]} to {id}")
-                                    break
             self.id = id
             self.name = "unresolved"
             if self.vfb._use_cache and self.vfb._term_cache and isinstance(self.vfb._term_cache, VFBTerms) and id in self.vfb._term_cache.get_ids():
@@ -1654,6 +1647,12 @@ class VFBTerm:
 
             if xrefs:
                 self.xrefs = xrefs
+                for xref in xrefs:
+                    if xref.is_data_source:
+                        self.data_source = xref.site_name
+                        self.xref_id = xref.id
+                        self.xref_url = xref.link if hasattr(xref, 'link') and xref.link else xref.homepage
+                        self.xref_name = xref.name
 
             if synonyms:
                 self.synonyms = synonyms
@@ -1890,6 +1889,12 @@ class VFBTerm:
                 print("Loading instances for dataset: ", self.name) if self.debug else None
                 print(f"Loading {self.counts['images'] if self.counts and 'images' in self.counts.keys() else ''} instances for dataset: {self.name}...")
                 self._instances = VFBTerms(self.vfb.get_instances_by_dataset(dataset=self.id, return_id_only=True))
+            elif self.has_tag('API'):
+                print("Loading instances for API: ", self.name) if self.debug else None
+                self._instances = VFBTerms([r['id'] for r in self.vfb.cypher_query(query="MATCH (a:API {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)])
+            elif self.has_tag('Site'):
+                print("Loading instances for site: ", self.name) if self.debug else None
+                self._instances = VFBTerms([r['id'] for r in self.vfb.cypher_query(query="MATCH (a:Site {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)])
             if self._instances and len(self._instances) > 0:
                 self.has_image = True
         return self._instances
@@ -2629,13 +2634,17 @@ class VFBTerm:
         """
         Load the synaptic connections for the neuron's skeleton.
         """
-        if not self._skeleton:
+        template = self.get_default_template(template=template)
+        if not self._skeleton or self._skeleton_template != template:
             print(f"No skeleton loaded yet for {self.name} so loading...") if verbose else None
             template = self.get_default_template(template=template)
             self.load_skeleton(template=template, verbose=verbose)
         if self._skeleton:
             print(f"Loading synaptic connections for {self.name}...") if verbose else None
-            xrefs = self.xrefs
+            xref = self.xref
+            # TODO: Load synaptic connections
+            # see https://github.com/navis-org/navis/blob/1eead062710af6adabc9e9c40196ad7be029cb52/navis/interfaces/neuprint.py#L491
+        print("FEATURE NOT YET IMPLEMENTED")
 
 
     def get_default_template(self, template=None):
@@ -2659,6 +2668,9 @@ class VFBTerm:
         """
         Plot the 3D representation of any neuron, expression or regions.
 
+        This is calling the navis.plot3d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
+
         Parameters
         ----------
         template : str
@@ -2675,6 +2687,7 @@ class VFBTerm:
             Additional keyword arguments to pass to the plot
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -2683,12 +2696,12 @@ class VFBTerm:
             else:
                 selected_template = template
         if self.has_tag('Individual'):
-            if not self._skeleton or force_reload:
+            if not self._skeleton or force_reload or self._skeleton_template != selected_template:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
                 if include_template:
-                    combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
+                    combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self
                     combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                     return
                 self._skeleton.plot3d(**kwargs)
@@ -2734,6 +2747,9 @@ class VFBTerm:
         """
         Plot the 2D representation of any neuron, expression or regions.
 
+        This is calling the navis.plot2d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
+
         Parameters
         ----------
         template : str
@@ -2748,6 +2764,7 @@ class VFBTerm:
             Additional keyword arguments to pass to the plot
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -2755,7 +2772,7 @@ class VFBTerm:
             else:
                 selected_template = template
         if self.has_tag('Individual'):
-            if not self._skeleton or force_reload:
+            if not self._skeleton or force_reload or self._skeleton_template != selected_template:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
@@ -2836,6 +2853,7 @@ class VFBTerm:
         :param template: Template short form to match for image display.
         :param verbose: Print additional information if True.
         """
+        template = self.get_default_template(template=template)
         if min_weight:
             print(f"Filtering partners with weight greater than {min_weight}") if verbose else None
             partners = [partner for partner in partners if partner.weight > min_weight]
@@ -2918,7 +2936,7 @@ class VFBTerms:
 
         # Check if terms is a list of strings (IDs)
         if isinstance(terms, list) and all(isinstance(term, str) for term in terms):
-            self.terms = VFBTerms([])
+            self.terms = []
             count = 0
             for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms"):
                 if self.vfb._load_limit:
@@ -2931,6 +2949,10 @@ class VFBTerms:
                     count += 1
                 else:
                     print(f"\033[33mWarning:\033[0m Term with ID {term} not found") if verbose else None
+            return
+
+        if isinstance(terms, list) and all(isinstance(term, NoneType) for term in terms):
+            self.terms = []
             return
 
         # Check if terms is a DataFrame
@@ -2955,7 +2977,7 @@ class VFBTerms:
             self.terms = terms.terms
             return
 
-        raise ValueError(f"Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame. Got {type(terms)}")
+        raise ValueError(f"Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame. Got {type(terms)} : {terms}")
 
     @property
     def summary(self):
@@ -3307,7 +3329,12 @@ class VFBTerms:
                         if verbose and value is not None:
                             print(f"Using first value: {value}")
                     else:
-                        value = ' and '.join(value)  # Combine all values
+                        if isinstance(value, list) and all(isinstance(item, str) for item in value):
+                            value = ' and '.join(value)  # Combine all values
+                        elif isinstance(value, VFBTerms):
+                            value = ' and '.join(value.get_names())
+                        else:
+                            value = ' and '.join([str(item) for item in value])
 
                 # Add the value to the result set for unique values
                 if value is not None:
@@ -3543,6 +3570,9 @@ class VFBTerms:
         """
         Plot the 3D representation of any neuron or expression.
 
+        This is calling the navis.plot3d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
+
         :param template: The short form of the template to plot 3D representations in.
         :param verbose: Print additional information if True.
         :param query_by_label: Query by label if True.
@@ -3570,6 +3600,9 @@ class VFBTerms:
     def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, limit=False, **kwargs):
         """
         Plot the 2D representation of any neuron or expression.
+
+        This is calling the navis.plot3d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
 
         :param template: The short form of the template to plot 2D representations in.
         :param verbose: Print additional information if True.
