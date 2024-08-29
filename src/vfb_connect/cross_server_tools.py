@@ -712,22 +712,27 @@ class VfbConnect:
             if ':' in acc and db == '':
                 db, acc = acc.split(':')
             acc = [acc]
-        elif isinstance(acc, list) and all(isinstance(x, str) for x in acc):
+        elif isinstance(acc, list) and all(isinstance(x, int) for x in acc):
+            acc = [str(x) for x in acc]
+            print(f"Converted to strings: {acc}") if verbose else None
+        if isinstance(acc, list) and all(isinstance(x, str) for x in acc):
             new_acc = []
             for xref in acc:
                 if ':' in xref:
                     if db == '':
                         db, temp_acc = xref.split(':')
                         new_acc.append(temp_acc)
-                    else:
-                        new_acc.append(xref.split(':')[-1])
+                else:
+                    new_acc.append(xref)
             acc = new_acc
         result = self.neo_query_wrapper.xref_2_vfb_id(acc=acc, db=db, id_type=id_type, reverse_return=reverse_return, verbose=verbose)
         if return_just_ids & reverse_return:
+            print(f"Returning just IDs: {result}") if verbose else None
             return [x.key for x in result]
         if return_just_ids and not reverse_return:
             id_list = []
             for id in acc:
+                print(f"Looking up {id} in {result}") if verbose else None
                 id_list.append(result[id][0]['vfb_id']) # This takes the first match only
                 if len(result[id]) > 1:
                     print(f"Multiple matches found for {id}: {result[id]}")

@@ -497,5 +497,16 @@ class VfbTermTest(unittest.TestCase):
         print(term.xref_id)
         self.assertEqual(self.vfb.xref_2_vfb_id(term.xref_id, return_just_ids=True)[0], term.id)
 
+    def test_load_synapes(self):
+        term = self.vfb.term('VFB_jrchk6dr')
+        print("got term ", term)
+        term.load_skeleton(template='JRC2018Unisex', verbose=True)
+        print(term.load_skeleton_synaptic_connections(verbose=True))
+        self.assertGreater(len(term._skeleton.connectors),10)
+        # term = self.vfb.term('VFB_00102gjr')
+        # print("got term ", term)
+        # print(term.load_skeleton_synaptic_connections(verbose=True))
+        # self.assertGreater(len(term.synapses),10)
+
 if __name__ == "__main__":
     unittest.main()
