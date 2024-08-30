@@ -998,7 +998,7 @@ class VfbConnect:
             WHERE EXISTS(c.confidence_value) 
             AND i.short_form IN %s
             RETURN i.label AS individual, i.short_form AS individual_id, labels(i) AS instance_labels, 
-            nt.label AS predicted_nt, c.confidence_value[0] AS confidence
+            nt.label AS predicted_nt, c.confidence_value[0] AS confidence, c.database_cross_reference AS references
             """ % nt_search_ids)
             if results.empty:
                 print(f"No predicted neurotransmitters found for {nt_search_ids}.") if verbose else None
