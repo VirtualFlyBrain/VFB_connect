@@ -2700,11 +2700,15 @@ class VFBTerm:
                     if not target or not source:
                         print("falling back to manual transforms...") if verbose else None
                         if 'fafb' in name.lower():
-                            source = 'FAFB14'
+                            source = 'FAFB'
                             target = 'JRC2018U'
+                            JRC2018U = flybrains.JRC2018U
+                            FAFB14 = flybrains.FAFB
                         elif 'fanc' in name.lower():
                             source = 'FANC'
                             target = 'JRC2018U'
+                            FANC = flybrains.FANC
+                            JRC2018U = flybrains.JRC2018U
                         else:
                             print("No transform available for ", db)
                     print("Transforming from ", source, " to ", target) if verbose else None
