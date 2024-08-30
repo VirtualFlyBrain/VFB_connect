@@ -40,8 +40,9 @@ def dequote(string):
         return string
 
 NT_NTR_pairs = {'Cholinergic': 'Acetylcholine_receptor', 'Dopaminergic': 'Dopamine_receptor',  
-    'GABAergic': 'GABA_receptor', 'Glutamatergic':'Glutamate_receptor', 'GABAergic':'GABA_receptor', 
-    'Histaminergic':'Histamine_receptor', 'Octopaminergic':'Octopamine_receptor', 'Tyraminergic':'Tyramine_receptor'}
+    'GABAergic': 'GABA_receptor', 'Glutamatergic': 'Glutamate_receptor', 'GABAergic': 'GABA_receptor',
+    'Histaminergic': 'Histamine_receptor', 'Octopaminergic': 'Octopamine_receptor',
+    'Serotonergic': 'Serotonin_receptor', 'Tyraminergic': 'Tyramine_receptor'}
 
 class VfbConnect:
     """API wrapper class for Virtual Fly Brain (VFB) connectivity. 
@@ -585,7 +586,7 @@ class VfbConnect:
         labels = sorted(list(set(labels)))
         return labels
 
-    def get_transcriptomic_profile(self, cell_type, gene_type=False, query_by_label=True, return_dataframe=True):
+    def get_transcriptomic_profile(self, cell_type, gene_type=False, no_subtypes=False, query_by_label=True, return_dataframe=True):
         """Get gene expression data for a given cell type.
 
         Returns a DataFrame of gene expression data for clusters of cells annotated as the specified cell type (or subtypes).
@@ -594,6 +595,7 @@ class VfbConnect:
 
         :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
         :param gene_type: Optional. A gene function label retrieved using `get_gene_function_filters`.
+        :param no_subtypes: Optional. If `True`, only clusters for the specified cell_type will be returned and not subtypes. Default `False`.
         :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
         :return: A DataFrame with gene expression data for clusters of cells annotated as the specified cell type.
@@ -619,9 +621,14 @@ class VfbConnect:
         else:
             gene_label = ''
 
+        if no_subtypes:
+            equal_condition = 'AND c1.short_form = c2.short_form '
+        else:
+            equal_condition = ''
+
         query = ("MATCH (g:Gene:Class%s)<-[e:expresses]-(clus:Cluster:Individual)-"
                  "[:composed_primarily_of]->(c2:Class)-[:SUBCLASSOF*0..]->(c1:Neuron:Class) "
-                 "WHERE c1.short_form = '%s' "
+                 "WHERE c1.short_form = '%s' %s"
                  "MATCH (clus)-[:part_of]->()-[:has_part]->(sa:Sample:Individual) "
                  "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) "
                  "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] "
@@ -634,7 +641,7 @@ class VfbConnect:
                  "p.miniref[0] as ref, g.label AS gene, g.short_form AS gene_id, "
                  "apoc.coll.subtract(labels(g), ['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS function, "
                  "e.expression_extent[0] as extent, toFloat(e.expression_level[0]) as level "
-                 "ORDER BY cell_type, g.label" % (gene_label, cell_type_short_form))
+                 "ORDER BY cell_type, g.label" % (gene_label, cell_type_short_form, equal_condition))
         r = self.nc.commit_list([query])
         dc = dict_cursor(r)
         if return_dataframe:
@@ -977,16 +984,59 @@ class VfbConnect:
             return pd.DataFrame.from_records(dc)
         return dc
 
-    def get_nt_receptors_in_downstream_neurons(self, upstream_type, downstream_type='neuron', weight=0 , return_dataframe=True, verbose=False):
+    def get_nt_predictions(self, term, verbose=False):
+        """
+        Find predicted neurotransmitter(s) for a single neuron or all neurons of a given type.
+        If nothing is found, an empty DataFrame is returned.
+        :param term: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt) or the ID or name of an individual neuron in VFB.
+        :return: A DataFrame.
+        :rtype: pandas.DataFrame
+        """
+        input_id = self.lookup_id(term)
+        # check input type
+        type_results = self.cypher_query(
+            query="MATCH (n:Neuron {short_form:'%s'}) RETURN labels(n) AS labels" % input_id)
+        input_labels = type_results.labels[0]
+
+        def get_instance_predicted_nts(nt_search_ids, verbose=False):
+            results = self.cypher_query(query="""
+            MATCH (i:Individual:Neuron)-[c:capable_of]->(nt) 
+            WHERE EXISTS(c.confidence_value) 
+            AND i.short_form IN %s
+            RETURN i.label AS individual, i.short_form AS individual_id, labels(i) AS instance_labels, 
+            nt.label AS predicted_nt, c.confidence_value[0] AS confidence, c.database_cross_reference AS references
+            """ % nt_search_ids)
+            if results.empty:
+                print(f"No predicted neurotransmitters found for {nt_search_ids}.") if verbose else None
+            else:
+                results['all_nts'] = results['instance_labels'].apply(
+                    lambda x: [l for l in x if l in NT_NTR_pairs.keys()])  # needed by get_nt_receptors_in_downstream_neurons
+                results = results.drop('instance_labels', axis=1)
+            return results
+
+        if 'Individual' in input_labels:
+            output = get_instance_predicted_nts([input_id], verbose=verbose)
+        elif 'Class' in input_labels:
+            instances = self.get_instances(input_id, query_by_label=False)
+            instance_ids = instances['id'].to_list()
+            output = get_instance_predicted_nts(instance_ids, verbose=verbose)
+
+        if output.empty:
+            print(f"No predicted neurotransmitters found for {term}.") if verbose else None
+        return output
+
+    def get_nt_receptors_in_downstream_neurons(self, upstream_type, downstream_type='neuron', weight=0, use_predictions=True, return_dataframe=True, verbose=False):
         """
         Get neurotransmitter receptors in downstream neurons of a given neuron type.
 
         Returns a DataFrame of neurotransmitter receptors in downstream neurons of a specified neuron type.
         If no data is found, returns False.
+        If use_predictions, an extra column ('nt_only_predicted') will indicate whether each receptor is for a neurotransmitter that is only predicted to be released by the upstream type.
 
-        :param upstream_type: The ID, name, or symbol of a class in the Drosohila Anatomy Ontology (FBbt).
+        :param upstream_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
         :param downstream_type: Optional. The type of downstream neurons to search for. Default is 'neuron'.
         :param weight: Optional. Limit returned neurons to those connected by >= weight synapses. Default is 0.
+        :param use_predictions: Optional. Use predicted neurotransmitters (from instances) in addition to known neurotransmitters. Default is True.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
         :return: A DataFrame with neurotransmitter receptors in downstream neurons of the specified neuron type.
         :rtype: pandas.DataFrame or list of dicts
@@ -994,22 +1044,46 @@ class VfbConnect:
         upstream_type = self.lookup_id(upstream_type)
         downstream_type = self.lookup_id(downstream_type)
         downstream = self.get_connected_neurons_by_type(upstream_type=upstream_type, downstream_type=downstream_type, weight=weight)
-        downstream_classes = downstream['downstream_class'].drop_duplicates().to_list()
+        downstream['downstream_class'] = downstream['downstream_class'].apply(
+            lambda x: x.split('|') if isinstance(x, str) else x)
+        downstream_classes = downstream.explode('downstream_class')['downstream_class'].drop_duplicates().to_list()
 
         cell_type_short_form = self.lookup_id(upstream_type)
 
-        results = self.cypher_query(query="MATCH (n:Neuron {short_form:'%s'}) RETURN labels(n) AS labels" % cell_type_short_form)
-        nt = [r for r in results.labels[0] if r in NT_NTR_pairs.keys()]
-        print(nt) if verbose else None
-        if nt:
-            ntr = [NT_NTR_pairs[n] for n in nt]
+        known_nt_results = self.cypher_query(query="MATCH (n:Neuron {short_form:'%s'}) RETURN labels(n) AS labels" % cell_type_short_form)
+        nts = [r for r in known_nt_results.labels[0] if r in NT_NTR_pairs.keys()]
+        if use_predictions:
+            predicted_nt_results = self.get_nt_predictions(upstream_type)
+            if not predicted_nt_results.empty:
+                pred_nts = predicted_nt_results.explode('all_nts')['all_nts'].drop_duplicates().to_list()
+                pred_only_nts = [nt for nt in pred_nts if nt not in nts]
+            else:
+                pred_only_nts = []
+            nts.extend(pred_only_nts)
+
+        print(nts) if verbose else None
+        if nts:
+            ntr = [NT_NTR_pairs[n] for n in nts]
+        elif not use_predictions:
+            print(f"No known neurotransmitters for {upstream_type}, try setting use_predictions=True")
         else:
-            raise ValueError(f"No neurotransmitters for {upstream_type}")
+            print(f"No known or predicted neurotransmitters for {upstream_type}")
+
+        if use_predictions:
+            pred_only_ntrs = [NT_NTR_pairs[n] for n in pred_only_nts]
 
         dataframes = []
         for c in downstream_classes:
             for n in ntr:
-                dataframes.append(self.get_transcriptomic_profile(c, gene_type=n))
+                # only exact match classes (no_subtypes=True)
+                # to avoid specific-looking results based on general typing of connectomics data
+                df = self.get_transcriptomic_profile(c, gene_type=n, no_subtypes=True)
+                if use_predictions:
+                    if n in pred_only_ntrs:
+                        df['nt_only_predicted'] = True
+                    else:
+                        df['nt_only_predicted'] = False
+                dataframes.append(df)
         receptor_expression = pd.concat(dataframes, ignore_index=True)
         if not return_dataframe:
             return receptor_expression.to_dict('records')
