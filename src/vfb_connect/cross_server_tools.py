@@ -981,6 +981,7 @@ class VfbConnect:
     def get_nt_predictions(self, term, verbose=False):
         """
         Find predicted neurotransmitter(s) for a single neuron or all neurons of a given type.
+        If nothing is found, an empty DataFrame is returned.
         :param term: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt) or the ID or name of an individual neuron in VFB.
         :return: A DataFrame.
         :rtype: pandas.DataFrame
@@ -1001,12 +1002,11 @@ class VfbConnect:
             """ % nt_search_ids)
             if results.empty:
                 print(f"No predicted neurotransmitters found for {nt_search_ids}.") if verbose else None
-                return False
             else:
                 results['all_nts'] = results['instance_labels'].apply(
                     lambda x: [l for l in x if l in NT_NTR_pairs.keys()])
                 results = results.drop('instance_labels', axis=1)
-                return results
+            return results
 
         if 'Individual' in input_labels:
             output = get_instance_predicted_nts([input_id], verbose=verbose)
@@ -1015,11 +1015,9 @@ class VfbConnect:
             instance_ids = instances['id'].to_list()
             output = get_instance_predicted_nts(instance_ids, verbose=verbose)
 
-        if output:
-            return output
-        else:
-            print(f"No predicted neurotransmitters found for {term}.")
-            return False
+        if output.empty:
+            print(f"No predicted neurotransmitters found for {term}.") if verbose else None
+        return output
 
     def get_nt_receptors_in_downstream_neurons(self, upstream_type, downstream_type='neuron', weight=0 , return_dataframe=True, verbose=False):
         """
