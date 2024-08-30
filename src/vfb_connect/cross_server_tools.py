@@ -1036,7 +1036,9 @@ class VfbConnect:
         upstream_type = self.lookup_id(upstream_type)
         downstream_type = self.lookup_id(downstream_type)
         downstream = self.get_connected_neurons_by_type(upstream_type=upstream_type, downstream_type=downstream_type, weight=weight)
-        downstream_classes = downstream['downstream_class'].drop_duplicates().to_list()
+        downstream['downstream_class'] = downstream['downstream_class'].apply(
+            lambda x: x.split('|') if isinstance(x, str) else x)
+        downstream_classes = downstream.explode('downstream_class')['downstream_class'].drop_duplicates().to_list()
 
         cell_type_short_form = self.lookup_id(upstream_type)
 
