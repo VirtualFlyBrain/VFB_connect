@@ -8,6 +8,7 @@ class VfbTermTest(unittest.TestCase):
         from vfb_connect import vfb
         self.vfb = vfb
         self.vfb._load_limit = 10
+        vfb._load_limit = 10
 
     def test_create_vfbterm_from_json(self):
         self.assertTrue(

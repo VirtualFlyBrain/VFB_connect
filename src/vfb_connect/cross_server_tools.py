@@ -64,7 +64,8 @@ class VfbConnect:
 
     def __init__(self, neo_endpoint=get_default_servers()['neo_endpoint'],
                  neo_credentials=get_default_servers()['neo_credentials'],
-                 owlery_endpoint=get_default_servers()['owlery_endpoint']):
+                 owlery_endpoint=get_default_servers()['owlery_endpoint'],
+                 vfb_launch=False):
         """
         VFB connect constructor. All args optional.
         With no args wraps connectsions to default public servers.
@@ -106,7 +107,7 @@ class VfbConnect:
 
         print("\033[32mSession Established!\033[0m")
         print("")
-        print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.terms)\033[0m")
+        print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.terms)\033[0m") if vfb_launch else None
 
     def __dir__(self):
         return [attr for attr in list(self.__dict__.keys()) if not attr.startswith('_')] + [attr for attr in dir(self.__class__) if not attr.startswith('_') and not attr.startswith('add_')]
