@@ -1004,7 +1004,7 @@ class VfbConnect:
                 print(f"No predicted neurotransmitters found for {nt_search_ids}.") if verbose else None
             else:
                 results['all_nts'] = results['instance_labels'].apply(
-                    lambda x: [l for l in x if l in NT_NTR_pairs.keys()])
+                    lambda x: [l for l in x if l in NT_NTR_pairs.keys()])  # needed by get_nt_receptors_in_downstream_neurons
                 results = results.drop('instance_labels', axis=1)
             return results
 
@@ -1019,16 +1019,18 @@ class VfbConnect:
             print(f"No predicted neurotransmitters found for {term}.") if verbose else None
         return output
 
-    def get_nt_receptors_in_downstream_neurons(self, upstream_type, downstream_type='neuron', weight=0 , return_dataframe=True, verbose=False):
+    def get_nt_receptors_in_downstream_neurons(self, upstream_type, downstream_type='neuron', weight=0, use_predictions=True, return_dataframe=True, verbose=False):
         """
         Get neurotransmitter receptors in downstream neurons of a given neuron type.
 
         Returns a DataFrame of neurotransmitter receptors in downstream neurons of a specified neuron type.
         If no data is found, returns False.
+        If use_predictions, an extra column ('nt_only_predicted') will indicate whether each receptor is for a neurotransmitter that is only predicted to be released by the upstream type.
 
-        :param upstream_type: The ID, name, or symbol of a class in the Drosohila Anatomy Ontology (FBbt).
+        :param upstream_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
         :param downstream_type: Optional. The type of downstream neurons to search for. Default is 'neuron'.
         :param weight: Optional. Limit returned neurons to those connected by >= weight synapses. Default is 0.
+        :param use_predictions: Optional. Use predicted neurotransmitters (from instances) in addition to known neurotransmitters. Default is True.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
         :return: A DataFrame with neurotransmitter receptors in downstream neurons of the specified neuron type.
         :rtype: pandas.DataFrame or list of dicts
@@ -1042,18 +1044,38 @@ class VfbConnect:
 
         cell_type_short_form = self.lookup_id(upstream_type)
 
-        results = self.cypher_query(query="MATCH (n:Neuron {short_form:'%s'}) RETURN labels(n) AS labels" % cell_type_short_form)
-        nt = [r for r in results.labels[0] if r in NT_NTR_pairs.keys()]
-        print(nt) if verbose else None
-        if nt:
-            ntr = [NT_NTR_pairs[n] for n in nt]
+        known_nt_results = self.cypher_query(query="MATCH (n:Neuron {short_form:'%s'}) RETURN labels(n) AS labels" % cell_type_short_form)
+        nts = [r for r in known_nt_results.labels[0] if r in NT_NTR_pairs.keys()]
+        if use_predictions:
+            predicted_nt_results = self.get_nt_predictions(upstream_type)
+            if not predicted_nt_results.empty:
+                pred_nts = predicted_nt_results.explode('all_nts')['all_nts'].drop_duplicates().to_list()
+                pred_only_nts = [nt for nt in pred_nts if nt not in nts]
+            else:
+                pred_only_nts = []
+            nts.extend(pred_only_nts)
+
+        print(nts) if verbose else None
+        if nts:
+            ntr = [NT_NTR_pairs[n] for n in nts]
+        elif not use_predictions:
+            print(f"No known neurotransmitters for {upstream_type}, try setting use_predictions=True")
         else:
-            raise ValueError(f"No neurotransmitters for {upstream_type}")
+            print(f"No known or predicted neurotransmitters for {upstream_type}")
+
+        if use_predictions:
+            pred_only_ntrs = [NT_NTR_pairs[n] for n in pred_only_nts]
 
         dataframes = []
         for c in downstream_classes:
             for n in ntr:
-                dataframes.append(self.get_transcriptomic_profile(c, gene_type=n))
+                df = self.get_transcriptomic_profile(c, gene_type=n)
+                if use_predictions:
+                    if n in pred_only_ntrs:
+                        df['nt_only_predicted'] = True
+                    else:
+                        df['nt_only_predicted'] = False
+                dataframes.append(df)
         receptor_expression = pd.concat(dataframes, ignore_index=True)
         if not return_dataframe:
             return receptor_expression.to_dict('records')
