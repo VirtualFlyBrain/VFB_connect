@@ -13,3 +13,4 @@ colormath
 tqdm
 vispy
 ipywidgets
+flybrains
