@@ -586,7 +586,7 @@ class VfbConnect:
         labels = sorted(list(set(labels)))
         return labels
 
-    def get_transcriptomic_profile(self, cell_type, gene_type=False, query_by_label=True, return_dataframe=True):
+    def get_transcriptomic_profile(self, cell_type, gene_type=False, no_subtypes=False, query_by_label=True, return_dataframe=True):
         """Get gene expression data for a given cell type.
 
         Returns a DataFrame of gene expression data for clusters of cells annotated as the specified cell type (or subtypes).
@@ -595,6 +595,7 @@ class VfbConnect:
 
         :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
         :param gene_type: Optional. A gene function label retrieved using `get_gene_function_filters`.
+        :param no_subtypes: Optional. If `True`, only clusters for the specified cell_type will be returned and not subtypes. Default `False`.
         :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
         :return: A DataFrame with gene expression data for clusters of cells annotated as the specified cell type.
@@ -620,9 +621,14 @@ class VfbConnect:
         else:
             gene_label = ''
 
+        if no_subtypes:
+            equal_condition = 'AND c1.short_form = c2.short_form '
+        else:
+            equal_condition = ''
+
         query = ("MATCH (g:Gene:Class%s)<-[e:expresses]-(clus:Cluster:Individual)-"
                  "[:composed_primarily_of]->(c2:Class)-[:SUBCLASSOF*0..]->(c1:Neuron:Class) "
-                 "WHERE c1.short_form = '%s' "
+                 "WHERE c1.short_form = '%s' %s"
                  "MATCH (clus)-[:part_of]->()-[:has_part]->(sa:Sample:Individual) "
                  "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) "
                  "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] "
@@ -635,7 +641,7 @@ class VfbConnect:
                  "p.miniref[0] as ref, g.label AS gene, g.short_form AS gene_id, "
                  "apoc.coll.subtract(labels(g), ['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS function, "
                  "e.expression_extent[0] as extent, toFloat(e.expression_level[0]) as level "
-                 "ORDER BY cell_type, g.label" % (gene_label, cell_type_short_form))
+                 "ORDER BY cell_type, g.label" % (gene_label, cell_type_short_form, equal_condition))
         r = self.nc.commit_list([query])
         dc = dict_cursor(r)
         if return_dataframe:
@@ -1069,7 +1075,9 @@ class VfbConnect:
         dataframes = []
         for c in downstream_classes:
             for n in ntr:
-                df = self.get_transcriptomic_profile(c, gene_type=n)
+                # only exact match classes (no_subtypes=True)
+                # to avoid specific-looking results based on general typing of connectomics data
+                df = self.get_transcriptomic_profile(c, gene_type=n, no_subtypes=True)
                 if use_predictions:
                     if n in pred_only_ntrs:
                         df['nt_only_predicted'] = True
