@@ -40,8 +40,9 @@ def dequote(string):
         return string
 
 NT_NTR_pairs = {'Cholinergic': 'Acetylcholine_receptor', 'Dopaminergic': 'Dopamine_receptor',  
-    'GABAergic': 'GABA_receptor', 'Glutamatergic':'Glutamate_receptor', 'GABAergic':'GABA_receptor', 
-    'Histaminergic':'Histamine_receptor', 'Octopaminergic':'Octopamine_receptor', 'Tyraminergic':'Tyramine_receptor'}
+    'GABAergic': 'GABA_receptor', 'Glutamatergic': 'Glutamate_receptor', 'GABAergic': 'GABA_receptor',
+    'Histaminergic': 'Histamine_receptor', 'Octopaminergic': 'Octopamine_receptor',
+    'Serotonergic': 'Serotonin_receptor', 'Tyraminergic': 'Tyramine_receptor'}
 
 class VfbConnect:
     """API wrapper class for Virtual Fly Brain (VFB) connectivity. 
