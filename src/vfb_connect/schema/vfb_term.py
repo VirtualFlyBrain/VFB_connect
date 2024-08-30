@@ -2651,7 +2651,7 @@ class VFBTerm:
         Get the default template for the term.
         """
         if template:
-            return template
+            return self.vfb.lookup_id(template)
         else:
             templates = [ci.image.template_anatomy.short_form for ci in self.channel_images] if self.channel_images else None
             if templates:
@@ -2661,7 +2661,7 @@ class VFBTerm:
                 if 'VFB_00200000' in templates:
                     template = 'VFB_00200000' #Default to JRC2018UnisexVNC if available
                     print("Defaulting to JRC2018UnisexVNC template")
-        return None
+        return template
 
     def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, **kwargs):
         """
