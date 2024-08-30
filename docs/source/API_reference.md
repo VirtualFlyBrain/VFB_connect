@@ -6,6 +6,7 @@ the functions in VFB_connect acting on our default API endpoints.
 ```Python
 from vfb_connect import vfb
 ```
+
 A range canned queries are available via methods directly accessible from this
 object, or via vfb.
 
@@ -14,8 +15,7 @@ Core, cross server methods are directly accessible from this object
 Direct queries of our `Neo4J` database are available via methods under `vfb.nc`
 OWL queries are available under `vfb.oc`.
 
-(Other direct query endpoint will be added in future)
-
+Note: we now have `VFBTerm` Objects that have most common queries embeded baded on the term type See [VFB_connect object formats]() for full details.
 
 ### Queries cell and anatomical types
 
