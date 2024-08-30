@@ -1,6 +1,6 @@
 # API Reference
 
-It is sufficient to initialise a single `VfbConnect` object to get access to all
+It is sufficient to initialise a single `vfb` object to get access to all
 the functions in VFB_connect acting on our default API endpoints.
 
 ```Python
@@ -22,9 +22,9 @@ OWL queries are available under `vfb.oc`.
 .. autosummary::
     :toctree: generated/
 
-    ~VfbConnect.TreeNeuron.get_subclasses
-    ~VfbConnect.get_superclasses
-    ~VfbConnect.get_terms_by_region
+    ~vfb.TreeNeuron.get_subclasses
+    ~vfb.get_superclasses
+    ~vfb.get_terms_by_region
 
 ### Connectivity queries
 
