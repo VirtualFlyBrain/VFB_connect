@@ -26,8 +26,8 @@ setup(name='vfb_connect',  # Required
       # This should be a valid email address corresponding to the author listed
       # above.
       author_email='dosumis@gmail.com',  # Optional
-      install_requires=['requests', 'pandas', 'jsonpath_rw'],
-      data_files=[('json_schema', ['src/vfb_connect/resources/VFB_TermInfo_queries.json'])],
+      install_requires=['requests', 'pandas', 'jsonpath_rw', 'pysolr', 'navis', 'flybrains', 'numpy', 'neuprint-python', 'python-catmaid', 'matplotlib>3.9', 'seaborn>0.13', 'colormath', 'tqdm', 'vispy', 'ipywidgets'],
+      data_files=[('json_schema', ['src/vfb_connect/resources/VFB_TermInfo_queries.json','src/vfb_connect/resources/VFB_results_single_input.json','src/vfb_connect/resources/VFB_results_multi_input.json'])],
       classifiers=[  # Optional
           # How mature is this project? Common values are
           #   3 - Alpha

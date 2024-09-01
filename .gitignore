@@ -8,3 +8,4 @@ __pycache__
 docs/source/_build
 /build
 /src/vfb_connect.egg-info
+/image_folder_tmp

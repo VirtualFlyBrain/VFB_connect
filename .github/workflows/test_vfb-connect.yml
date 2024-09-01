@@ -31,9 +31,9 @@ jobs:
       - name: Run the neo_tools tests
         run: |
           cd src
-          python -m vfb_connect.neo.test.neo_tools_tests
+          python -m vfb_connect.neo.test.neo_tools_test
 
       - name: Run the VFBterms tests
         run: |
           cd src
-          python -m vfb_connect.schema.test.vfb_term_tests
+          python -m vfb_connect.schema.test.vfb_term_test

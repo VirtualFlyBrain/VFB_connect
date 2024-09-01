@@ -21,11 +21,11 @@ jobs:
 
       - name: Execute the tutorial notebooks
         run: |
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/*.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=None docs/source/tutorials/*.ipynb
 
       - name: Execute the snippet notebooks
         run: |
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 snippets/*.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=None snippets/*.ipynb
 
 
       - uses: actions/upload-artifact@v2
