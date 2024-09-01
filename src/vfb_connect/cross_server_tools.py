@@ -116,6 +116,7 @@ class VfbConnect:
         """Set the Neo4j endpoint and credentials."""
         self.nc = Neo4jConnect(endpoint=endpoint, usr=usr, pwd=pwd)
         self.neo_query_wrapper = QueryWrapper(endpoint=endpoint, usr=usr, pwd=pwd)
+        self.reload_lookup_cache()
 
     def setOwleryEndpoint(self, endpoint):
         """Set the OWLery endpoint."""
