@@ -811,17 +811,21 @@ class Image:
         if self.image_swc:
             return navis.read_swc(self.image_swc)
         if self.image_obj and 'volume_man.obj' in self.image_obj:
+            mesh = None
             local_file = self.create_temp_file(suffix=".obj", verbose=verbose)
-            self.download_file(self.image_obj, local_file.name, verbose=verbose)
-            mesh = navis.read_mesh(local_file.name, output='neuron', errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_obj, local_file.name, verbose=verbose)
+            if file:
+                mesh = navis.read_mesh(local_file.name, output='neuron', errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if mesh:
                 return mesh
         if self.image_nrrd:
+            dotprops = None
             local_file = self.create_temp_file(suffix=".nrrd", verbose=verbose)
-            self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
-            dotprops = navis.read_nrrd(local_file.name, output='dotprops', errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
+            if file:
+                dotprops = navis.read_nrrd(local_file.name, output='dotprops', errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if dotprops:
                 return dotprops
         return None
@@ -835,11 +839,13 @@ class Image:
         :return: The mesh as a navis object or None if not found.
         """
         if self.image_obj and 'volume_man.obj' in self.image_obj:
+            mesh = None
             print("Reading mesh from ", self.image_obj) if verbose else None
             local_file = self.create_temp_file(suffix=".obj", verbose=verbose)
-            self.download_file(self.image_obj, local_file.name, verbose=verbose)
-            mesh = navis.read_mesh(local_file.name, output=output, errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_obj, local_file.name, verbose=verbose)
+            if file:
+                mesh = navis.read_mesh(local_file.name, output=output, errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if mesh:
                 return mesh
         if self.image_swc:
@@ -855,11 +861,13 @@ class Image:
         :return: The volume as a navis object or None if not found.
         """
         if self.image_nrrd:
+            mesh = None
             print("Reading volume from ", self.image_nrrd) if verbose else None
             local_file = self.create_temp_file(suffix=".nrrd", verbose=verbose)
-            self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
-            mesh = navis.read_nrrd(local_file.name, output='voxels', errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
+            if file:
+                mesh = navis.read_nrrd(local_file.name, output='voxels', errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if mesh:
                 return mesh
         else:
