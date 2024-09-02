@@ -113,6 +113,15 @@ class VfbConnect:
     def __dir__(self):
         return [attr for attr in list(self.__dict__.keys()) if not attr.startswith('_')] + [attr for attr in dir(self.__class__) if not attr.startswith('_') and not attr.startswith('add_')]
 
+    def setNeoEndpoint(self, endpoint, usr, pwd):
+        """Set the Neo4j endpoint and credentials."""
+        self.nc = Neo4jConnect(endpoint=endpoint, usr=usr, pwd=pwd)
+        self.neo_query_wrapper = QueryWrapper(endpoint=endpoint, usr=usr, pwd=pwd)
+        self.reload_lookup_cache()
+
+    def setOwleryEndpoint(self, endpoint):
+        """Set the OWLery endpoint."""
+        self.oc = OWLeryConnect(endpoint=endpoint, lookup=self.lookup)
 
     def get_cache_file_path(self):
         """Determine a safe place to save the pickle file in the same directory as the module."""

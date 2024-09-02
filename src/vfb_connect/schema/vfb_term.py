@@ -814,17 +814,21 @@ class Image:
         if self.image_swc:
             return navis.read_swc(self.image_swc)
         if self.image_obj and 'volume_man.obj' in self.image_obj:
+            mesh = None
             local_file = self.create_temp_file(suffix=".obj", verbose=verbose)
-            self.download_file(self.image_obj, local_file.name, verbose=verbose)
-            mesh = navis.read_mesh(local_file.name, output='neuron', errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_obj, local_file.name, verbose=verbose)
+            if file:
+                mesh = navis.read_mesh(local_file.name, output='neuron', errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if mesh:
                 return mesh
         if self.image_nrrd:
+            dotprops = None
             local_file = self.create_temp_file(suffix=".nrrd", verbose=verbose)
-            self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
-            dotprops = navis.read_nrrd(local_file.name, output='dotprops', errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
+            if file:
+                dotprops = navis.read_nrrd(local_file.name, output='dotprops', errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if dotprops:
                 return dotprops
         return None
@@ -838,11 +842,13 @@ class Image:
         :return: The mesh as a navis object or None if not found.
         """
         if self.image_obj and 'volume_man.obj' in self.image_obj:
+            mesh = None
             print("Reading mesh from ", self.image_obj) if verbose else None
             local_file = self.create_temp_file(suffix=".obj", verbose=verbose)
-            self.download_file(self.image_obj, local_file.name, verbose=verbose)
-            mesh = navis.read_mesh(local_file.name, output=output, errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_obj, local_file.name, verbose=verbose)
+            if file:
+                mesh = navis.read_mesh(local_file.name, output=output, errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if mesh:
                 return mesh
         if self.image_swc:
@@ -858,11 +864,13 @@ class Image:
         :return: The volume as a navis object or None if not found.
         """
         if self.image_nrrd:
+            mesh = None
             print("Reading volume from ", self.image_nrrd) if verbose else None
             local_file = self.create_temp_file(suffix=".nrrd", verbose=verbose)
-            self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
-            mesh = navis.read_nrrd(local_file.name, output='voxels', errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
+            if file:
+                mesh = navis.read_nrrd(local_file.name, output='voxels', errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if mesh:
                 return mesh
         else:
@@ -891,14 +899,18 @@ class Image:
         :param verbose: If True, print additional information.
         :return: The path to the downloaded file, or None if the download failed.
         """
-        response = requests.get(url, stream=True)
-        if response.status_code == 200:
-            with open(local_filename, 'wb') as f:
-                for chunk in response.iter_content(1024):
-                    f.write(chunk)
-            return local_filename
-        else:
-            print(f"Failed to download file from {url}") if verbose else None
+        try:
+            response = requests.get(url, stream=True, allow_redirects=True)
+            if response.status_code == 200:
+                with open(local_filename, 'wb') as f:
+                    for chunk in response.iter_content(1024):
+                        f.write(chunk)
+                return local_filename
+            else:
+                print(f"Failed to download file from {url}") if verbose else None
+                return None
+        except Exception as e:
+            print(f"\033[31mError:\033[0m downloading file from {url}: {e}")
             return None
 
     def delete_temp_file(self, file_path, verbose=False):
@@ -915,7 +927,7 @@ class Image:
             else:
                 print(f"File not found: {file_path}") if verbose else None
         except Exception as e:
-            print(f"Error deleting file {file_path}: {e}") if verbose else None
+            print(f"\033[31mError:\033[0m deleting file {file_path}: {e}") if verbose else None
 
     def show(self, transparent=False, verbose=False):
         """
@@ -949,7 +961,7 @@ class Image:
                 img.show()
 
         except Exception as e:
-            print("Error displaying thumbnail: ", e)
+            print("\033[31mError:\033[0m displaying thumbnail: ", e)
 
 
 class ChannelImage:
@@ -4047,7 +4059,7 @@ class VFBTerms:
                     overlay_img.show()
 
             except Exception as e:
-                print("Error displaying thumbnail: ", e)
+                print("\033[31mError:\033[0m displaying thumbnail: ", e)
         else:
             print("No thumbnails found to display")
 
