@@ -888,14 +888,18 @@ class Image:
         :param verbose: If True, print additional information.
         :return: The path to the downloaded file, or None if the download failed.
         """
-        response = requests.get(url, stream=True)
-        if response.status_code == 200:
-            with open(local_filename, 'wb') as f:
-                for chunk in response.iter_content(1024):
-                    f.write(chunk)
-            return local_filename
-        else:
-            print(f"Failed to download file from {url}") if verbose else None
+        try:
+            response = requests.get(url, stream=True, allow_redirects=True)
+            if response.status_code == 200:
+                with open(local_filename, 'wb') as f:
+                    for chunk in response.iter_content(1024):
+                        f.write(chunk)
+                return local_filename
+            else:
+                print(f"Failed to download file from {url}") if verbose else None
+                return None
+        except Exception as e:
+            print(f"Error downloading file from {url}: {e}") if verbose else None
             return None
 
     def delete_temp_file(self, file_path, verbose=False):
