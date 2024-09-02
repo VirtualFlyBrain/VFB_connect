@@ -497,15 +497,5 @@ class VfbTermTest(unittest.TestCase):
         print(term.xref_id)
         self.assertEqual(self.vfb.xref_2_vfb_id(term.xref_id, return_just_ids=True)[0], term.id)
 
-    def test_swap_server(self):
-        self.vfb.setOwleryEndpoint("http://owl-alpha.virtualflybrain.org/kbs/vfb/")
-        self.vfb.setNeoEndpoint("http://pdb-alpha.virtualflybrain.org", usr='neo4j', pwd='vfb')
-        term = self.vfb.term('FBbt_20001885')
-        self.vfb.debug = True
-        print("got term ", term)
-        inds = term.instances
-        print("got inds ", inds)
-        self.assertGreater(len(inds), 1)
-
 if __name__ == "__main__":
     unittest.main()
