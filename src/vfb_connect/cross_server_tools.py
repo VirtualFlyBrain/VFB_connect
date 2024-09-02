@@ -442,8 +442,9 @@ class VfbConnect:
                                               classification=classification, query_by_label=query_by_label,
                                               return_dataframe=return_dataframe, verbose=verbose)
 
-    def get_connected_neurons_by_type(self, upstream_type, downstream_type, weight, query_by_label=True,
+    def get_connected_neurons_by_type(self, upstream_type=None, downstream_type=None, weight=None, query_by_label=True,
                                       return_dataframe=True, verbose=False):
+
         """Get all synaptic connections between individual neurons of `upstream_type` and `downstream_type` where
         synapse count >= `weight`.
 
@@ -458,30 +459,40 @@ class VfbConnect:
         # This might be confusing tough, given behavior of other, similar methods.
         # Might be better to refactor to work out if query is class expression or class & funnel query method
         # accordingly.
+
+        if (upstream_type is None) and (downstream_type is None):
+            print("At least one of upstream_type or downstream_type must be specified")
+            return 1
+        if weight is None:
+            print("A minimum connection weight must be specified.")
         if query_by_label:
             upstream_type = self.lookup_id(dequote(upstream_type))
             downstream_type = self.lookup_id(dequote(downstream_type))
-
-        cypher_query = "MATCH (up:Class:Neuron)<-[:SUBCLASSOF|INSTANCEOF*..]-(n1:Neuron:Individual) " \
-                       'WHERE up.short_form = "%s" ' % upstream_type
-        cypher_query += "MATCH (n1)-[r:synapsed_to]->(n2:Neuron:Individual) " \
-                        "WHERE r.weight[0] >= %d " % weight
-        cypher_query += "MATCH (n2)-[:SUBCLASSOF|INSTANCEOF*..]->(down:Class:Neuron) " \
-                        'WHERE down.short_form = "%s" ' % downstream_type
-        cypher_query += "MATCH (c1:Class)<-[:INSTANCEOF]-(n1),  (c2:Class)<-[:INSTANCEOF]-(n2) " \
-                        "OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) " \
-                        "WHERE exists(s1.is_data_source) AND s1.is_data_source = True " \
+        cypher_q = "MATCH "
+        if upstream_type:
+            cypher_q += " (up:Class)<-[:SUBCLASSOF*0..]-(c1:Class)<-[:INSTANCEOF]-"
+        cypher_q += "(n1:Neuron)-[r:synapsed_to]->(n2:Neuron:Individual)-[:INSTANCEOF]->(c2:Class)"
+        if downstream_type:
+            cypher_q += "-[:SUBCLASSOF*0..]->(down:Class) "
+        cypher_q += "WHERE r.weight[0] >= %d " % weight
+        if upstream_type:
+            cypher_q += 'AND up.short_form = "%s" ' % upstream_type
+        if downstream_type:
+            cypher_q += 'AND down.short_form = "%s" ' % downstream_type
+        cypher_q += "OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) " \
+                        "WHERE exists(s1.is_data_source) AND s1.is_data_source = [True] " \
                         "OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Site) " \
-                        "WHERE exists(s2.is_data_source) AND s2.is_data_source = True " \
+                        "WHERE exists(s2.is_data_source) AND s2.is_data_source = [True] " \
                         "RETURN n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name, " \
                         "r.weight[0] as weight, n2.short_form as downstream_neuron_id, " \
                         "n2.label as downstream_neuron_name, " \
                         "apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, " \
                         "apoc.text.join(collect(distinct c2.label),'|') as downstream_class, " \
-                        "s1.short_form AS up_data_source, r1.accession[0] as up_accession," \
+                        "s1.short_form AS up_data_source, r1.accession[0] as up_accession, " \
                         "s2.short_form AS down_source, r2.accession[0] AS down_accession"
-        print(cypher_query) if verbose else None
-        r = self.nc.commit_list([cypher_query])
+
+        print(cypher_q) if verbose else None
+        r = self.nc.commit_list([cypher_q])
         dc = dict_cursor(r)
         print(dc) if verbose else None
         if return_dataframe:
@@ -975,3 +986,4 @@ class VfbConnect:
 
         print(rgb_colors) if verbose else None
         return rgb_colors
+
