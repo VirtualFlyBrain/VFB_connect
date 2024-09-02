@@ -168,7 +168,13 @@ class Term:
             raise ValueError("core must be a MinimalEntityInfo object")
         self.description = ", ".join(description) if description else ""
         self.comment = ", ".join(comment) if comment else ""
-        self.link = link if link else "https://n2t.net/vfb:" + self.core.short_form
+        self.link = (
+            link
+            if link
+            else "https://n2t.net/vfb:" + str(self.core.short_form)
+            if hasattr(self.core, 'short_form') and self.core.short_form is not None
+            else ""
+        )
         self.icon = icon if icon else ""
 
     def get(self, key, default=None):
@@ -461,6 +467,10 @@ class Xref:
             self.link_text = link_text
         if homepage:
             self.homepage = homepage
+        self.site_id = self.core.short_form if hasattr(self.core, 'short_form') else self.core.iri if hasattr(self.core, 'iri') else None
+        self.id = self.site_id + ':' + self.accession if hasattr(self, 'accession') else self.site_id
+        self.site_name = self.core.symbol if hasattr(self.core, 'symbol') else self.core.label if hasattr(self.core, 'label') else self.site_id
+        self.name = self.link_text if hasattr(self, 'link_text') and self.link_text else self.site_name
 
     def get(self, key, default=None):
         """
@@ -801,17 +811,21 @@ class Image:
         if self.image_swc:
             return navis.read_swc(self.image_swc)
         if self.image_obj and 'volume_man.obj' in self.image_obj:
+            mesh = None
             local_file = self.create_temp_file(suffix=".obj", verbose=verbose)
-            self.download_file(self.image_obj, local_file.name, verbose=verbose)
-            mesh = navis.read_mesh(local_file.name, output='neuron', errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_obj, local_file.name, verbose=verbose)
+            if file:
+                mesh = navis.read_mesh(local_file.name, output='neuron', errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if mesh:
                 return mesh
         if self.image_nrrd:
+            dotprops = None
             local_file = self.create_temp_file(suffix=".nrrd", verbose=verbose)
-            self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
-            dotprops = navis.read_nrrd(local_file.name, output='dotprops', errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
+            if file:
+                dotprops = navis.read_nrrd(local_file.name, output='dotprops', errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if dotprops:
                 return dotprops
         return None
@@ -825,11 +839,13 @@ class Image:
         :return: The mesh as a navis object or None if not found.
         """
         if self.image_obj and 'volume_man.obj' in self.image_obj:
+            mesh = None
             print("Reading mesh from ", self.image_obj) if verbose else None
             local_file = self.create_temp_file(suffix=".obj", verbose=verbose)
-            self.download_file(self.image_obj, local_file.name, verbose=verbose)
-            mesh = navis.read_mesh(local_file.name, output=output, errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_obj, local_file.name, verbose=verbose)
+            if file:
+                mesh = navis.read_mesh(local_file.name, output=output, errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if mesh:
                 return mesh
         if self.image_swc:
@@ -845,11 +861,13 @@ class Image:
         :return: The volume as a navis object or None if not found.
         """
         if self.image_nrrd:
+            mesh = None
             print("Reading volume from ", self.image_nrrd) if verbose else None
             local_file = self.create_temp_file(suffix=".nrrd", verbose=verbose)
-            self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
-            mesh = navis.read_nrrd(local_file.name, output='voxels', errors='ignore' if not verbose else 'log')
-            self.delete_temp_file(local_file.name, verbose=verbose)
+            file = self.download_file(self.image_nrrd, local_file.name, verbose=verbose)
+            if file:
+                mesh = navis.read_nrrd(local_file.name, output='voxels', errors='ignore' if not verbose else 'log')
+                self.delete_temp_file(local_file.name, verbose=verbose)
             if mesh:
                 return mesh
         else:
@@ -878,14 +896,18 @@ class Image:
         :param verbose: If True, print additional information.
         :return: The path to the downloaded file, or None if the download failed.
         """
-        response = requests.get(url, stream=True)
-        if response.status_code == 200:
-            with open(local_filename, 'wb') as f:
-                for chunk in response.iter_content(1024):
-                    f.write(chunk)
-            return local_filename
-        else:
-            print(f"Failed to download file from {url}") if verbose else None
+        try:
+            response = requests.get(url, stream=True, allow_redirects=True)
+            if response.status_code == 200:
+                with open(local_filename, 'wb') as f:
+                    for chunk in response.iter_content(1024):
+                        f.write(chunk)
+                return local_filename
+            else:
+                print(f"Failed to download file from {url}") if verbose else None
+                return None
+        except Exception as e:
+            print(f"\033[31mError:\033[0m downloading file from {url}: {e}")
             return None
 
     def delete_temp_file(self, file_path, verbose=False):
@@ -902,7 +924,7 @@ class Image:
             else:
                 print(f"File not found: {file_path}") if verbose else None
         except Exception as e:
-            print(f"Error deleting file {file_path}: {e}") if verbose else None
+            print(f"\033[31mError:\033[0m deleting file {file_path}: {e}") if verbose else None
 
     def show(self, transparent=False, verbose=False):
         """
@@ -936,7 +958,7 @@ class Image:
                 img.show()
 
         except Exception as e:
-            print("Error displaying thumbnail: ", e)
+            print("\033[31mError:\033[0m displaying thumbnail: ", e)
 
 
 class ChannelImage:
@@ -1546,24 +1568,6 @@ class VFBTerm:
             if isinstance(id, list):
                 id = id[0]
             print(f"\033[32mINFO:\033[0m Fetching term for {id}") if verbose else None
-            # Test for passed xrefs
-            if isinstance(id,str) and ":" in id:
-                print(f"\033[32mINFO:\033[0m Checking for xrefs for {id}") if verbose else None
-                dbs = self.vfb.get_dbs()
-                split_id = id.rsplit(":", 1)
-                if ')' in split_id[1] or '(' in split_id[1] or ' ' in split_id[1]:
-                    print(f"\033[32mINFO:\033[0m Not a valid xref {split_id[1]}") if verbose else None
-                else:
-                    db = self.vfb.lookup_id(split_id[0])
-                    if db in dbs:
-                        xid = self.vfb.xref_2_vfb_id(acc=[split_id[1]], db=db)
-                        xdb = xid.get(split_id[1], [])
-                        if xdb:
-                            for x in xdb:
-                                if x.get('db',None) == db:
-                                    id = x.get('vfb_id',None)
-                                    print(f"\033[32mINFO:\033[0m Resolved xref {split_id[0]}:{split_id[1]} to {id}")
-                                    break
             self.id = id
             self.name = "unresolved"
             if self.vfb._use_cache and self.vfb._term_cache and isinstance(self.vfb._term_cache, VFBTerms) and id in self.vfb._term_cache.get_ids():
@@ -1654,6 +1658,12 @@ class VFBTerm:
 
             if xrefs:
                 self.xrefs = xrefs
+                for xref in xrefs:
+                    if xref.is_data_source:
+                        self.data_source = xref.site_name
+                        self.xref_id = xref.id
+                        self.xref_url = xref.link if hasattr(xref, 'link') and xref.link else xref.homepage
+                        self.xref_name = xref.name
 
             if synonyms:
                 self.synonyms = synonyms
@@ -1890,6 +1900,12 @@ class VFBTerm:
                 print("Loading instances for dataset: ", self.name) if self.debug else None
                 print(f"Loading {self.counts['images'] if self.counts and 'images' in self.counts.keys() else ''} instances for dataset: {self.name}...")
                 self._instances = VFBTerms(self.vfb.get_instances_by_dataset(dataset=self.id, return_id_only=True))
+            elif self.has_tag('API'):
+                print("Loading instances for API: ", self.name) if self.debug else None
+                self._instances = VFBTerms([r['id'] for r in self.vfb.cypher_query(query="MATCH (a:API {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)])
+            elif self.has_tag('Site'):
+                print("Loading instances for site: ", self.name) if self.debug else None
+                self._instances = VFBTerms([r['id'] for r in self.vfb.cypher_query(query="MATCH (a:Site {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)])
             if self._instances and len(self._instances) > 0:
                 self.has_image = True
         return self._instances
@@ -2474,6 +2490,7 @@ class VFBTerm:
             Whether to allow multiple skeletons to be loaded.
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if self.has_tag('Neuron'):
             if template:
                 if query_by_label:
@@ -2484,11 +2501,16 @@ class VFBTerm:
                 print("Loading skeleton for ", self.name, " aligned to ", template) if verbose else None
                 skeletons = [ci.image.get_skeleton() for ci in self.channel_images if ci.image.template_anatomy.short_form == selected_template] if self.channel_images else None
                 if skeletons:
-                    self._skeleton = skeletons[0] if skeletons else None
+                    self._skeleton = skeletons[0]
+                    self._skeleton_template = selected_template
             else:
                 print("Loading skeletons for ", self.name) if verbose else None
                 print("Processinng channel images: ", self.channel_images) if verbose else None
-                self._skeleton = [ci.image.get_skeleton() for ci in self.channel_images] if self.channel_images else None
+                if self.channel_images:
+                    self._skeleton = [ci.image.get_skeleton() for ci in self.channel_images]
+                    self._skeleton_template = self.channel_images[0].image.template_anatomy.short_form
+                else:
+                    self._skeleton = None
             if self._skeleton:
                 if isinstance(self._skeleton, list):
                     self._skeleton = [item for item in self._skeleton if item is not None]
@@ -2530,6 +2552,7 @@ class VFBTerm:
             Whether to allow multiple meshes to be loaded.
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -2583,6 +2606,7 @@ class VFBTerm:
             Whether to allow multiple volumes to be loaded.
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -2617,9 +2641,46 @@ class VFBTerm:
                 self._volume.label = self.name
                 self._volume.id = self.id
 
+    def load_skeleton_synaptic_connections(self, template=None, verbose=False):
+        """
+        Load the synaptic connections for the neuron's skeleton.
+        """
+        template = self.get_default_template(template=template)
+        if not self._skeleton or self._skeleton_template != template:
+            print(f"No skeleton loaded yet for {self.name} so loading...") if verbose else None
+            template = self.get_default_template(template=template)
+            self.load_skeleton(template=template, verbose=verbose)
+        if self._skeleton:
+            print(f"Loading synaptic connections for {self.name}...") if verbose else None
+            xref = self.xref
+            # TODO: Load synaptic connections
+            # see https://github.com/navis-org/navis/blob/1eead062710af6adabc9e9c40196ad7be029cb52/navis/interfaces/neuprint.py#L491
+        print("FEATURE NOT YET IMPLEMENTED")
+
+
+    def get_default_template(self, template=None):
+        """
+        Get the default template for the term.
+        """
+        if template:
+            return self.vfb.lookup_id(template)
+        else:
+            templates = [ci.image.template_anatomy.short_form for ci in self.channel_images] if self.channel_images else None
+            if templates:
+                if 'VFB_00101567' in templates:
+                    template = 'VFB_00101567' #Default to JRC2018Unisex if available
+                    print("Defaulting to JRC2018Unisex template")
+                if 'VFB_00200000' in templates:
+                    template = 'VFB_00200000' #Default to JRC2018UnisexVNC if available
+                    print("Defaulting to JRC2018UnisexVNC template")
+        return template
+
     def plot3d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, **kwargs):
         """
         Plot the 3D representation of any neuron, expression or regions.
+
+        This is calling the navis.plot3d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
 
         Parameters
         ----------
@@ -2637,6 +2698,7 @@ class VFBTerm:
             Additional keyword arguments to pass to the plot
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -2645,12 +2707,12 @@ class VFBTerm:
             else:
                 selected_template = template
         if self.has_tag('Individual'):
-            if not self._skeleton or force_reload:
+            if not self._skeleton or force_reload or self._skeleton_template != selected_template:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
                 if include_template:
-                    combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
+                    combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self
                     combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                     return
                 self._skeleton.plot3d(**kwargs)
@@ -2696,6 +2758,9 @@ class VFBTerm:
         """
         Plot the 2D representation of any neuron, expression or regions.
 
+        This is calling the navis.plot2d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
+
         Parameters
         ----------
         template : str
@@ -2710,6 +2775,7 @@ class VFBTerm:
             Additional keyword arguments to pass to the plot
         """
         selected_template = None
+        template = self.get_default_template(template=template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -2717,7 +2783,7 @@ class VFBTerm:
             else:
                 selected_template = template
         if self.has_tag('Individual'):
-            if not self._skeleton or force_reload:
+            if not self._skeleton or force_reload or self._skeleton_template != selected_template:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
@@ -2798,6 +2864,7 @@ class VFBTerm:
         :param template: Template short form to match for image display.
         :param verbose: Print additional information if True.
         """
+        template = self.get_default_template(template=template)
         if min_weight:
             print(f"Filtering partners with weight greater than {min_weight}") if verbose else None
             partners = [partner for partner in partners if partner.weight > min_weight]
@@ -2880,35 +2947,48 @@ class VFBTerms:
 
         # Check if terms is a list of strings (IDs)
         if isinstance(terms, list) and all(isinstance(term, str) for term in terms):
-            self.terms = VFBTerms([])
+            self.terms = []
+            count = 0
             for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms"):
+                if self.vfb._load_limit:
+                    if count >= self.vfb._load_limit:
+                        print(f"Reached load limit of {self.vfb._load_limit}. Stopping.")
+                        break
                 vfb_term = VFBTerm(id=term, verbose=verbose)
                 if hasattr(vfb_term, 'term'):
                     self.terms.append(vfb_term)
+                    count += 1
                 else:
                     print(f"\033[33mWarning:\033[0m Term with ID {term} not found") if verbose else None
             return
 
+        if isinstance(terms, list) and all(isinstance(term, type(None)) for term in terms):
+            self.terms = []
+            return
+
         # Check if terms is a DataFrame
         if isinstance(terms, pandas.core.frame.DataFrame):
-            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(terms['id'].values, threshold=10, desc="Loading terms")] if 'id' in terms.columns else []
+            term_list = terms[:self.vfb._load_limit] if self.vfb._load_limit else terms
+            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(term_list['id'].values, threshold=10, desc="Loading terms")] if 'id' in terms.columns else []
             return
 
         # Check if terms is a numpy array
         if isinstance(terms, np.ndarray):
-            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")] if len(terms) > 0 and isinstance(terms[0], str) else []
+            term_list = terms[:self.vfb._load_limit] if self.vfb._load_limit else terms
+            self.terms = [VFBTerm(id=id, verbose=verbose) for id in self.tqdm_with_threshold(term_list, threshold=10, desc="Loading terms")] if len(terms) > 0 and isinstance(terms[0], str) else []
             return
 
         # Check if terms is a list of dictionaries
         if isinstance(terms, list) and all(isinstance(term, dict) for term in terms):
-            self.terms = [VFBTerm(id=term['id'], verbose=verbose) for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms")]
+            term_list = terms[:self.vfb._load_limit] if self.vfb._load_limit else terms
+            self.terms = [VFBTerm(id=term['id'], verbose=verbose) for term in self.tqdm_with_threshold(term_list, threshold=10, desc="Loading terms")]
             return
 
         if isinstance(terms, VFBTerms):
             self.terms = terms.terms
             return
 
-        raise ValueError(f"Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame. Got {type(terms)}")
+        raise ValueError(f"Invalid input type for terms. Expected a list of VFBTerm, a list of str, or a DataFrame. Got {type(terms)} : {terms}")
 
     @property
     def summary(self):
@@ -3260,7 +3340,12 @@ class VFBTerms:
                         if verbose and value is not None:
                             print(f"Using first value: {value}")
                     else:
-                        value = ' and '.join(value)  # Combine all values
+                        if isinstance(value, list) and all(isinstance(item, str) for item in value):
+                            value = ' and '.join(value)  # Combine all values
+                        elif isinstance(value, VFBTerms):
+                            value = ' and '.join(value.get_names())
+                        else:
+                            value = ' and '.join([str(item) for item in value])
 
                 # Add the value to the result set for unique values
                 if value is not None:
@@ -3496,6 +3581,9 @@ class VFBTerms:
         """
         Plot the 3D representation of any neuron or expression.
 
+        This is calling the navis.plot3d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
+
         :param template: The short form of the template to plot 3D representations in.
         :param verbose: Print additional information if True.
         :param query_by_label: Query by label if True.
@@ -3523,6 +3611,9 @@ class VFBTerms:
     def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, include_template=False, limit=False, **kwargs):
         """
         Plot the 2D representation of any neuron or expression.
+
+        This is calling the navis.plot3d method.
+        for help and extra options see https://navis.readthedocs.io/en/latest/source/tutorials/plotting.html#plot-intro
 
         :param template: The short form of the template to plot 2D representations in.
         :param verbose: Print additional information if True.
@@ -3815,7 +3906,7 @@ class VFBTerms:
                     overlay_img.show()
 
             except Exception as e:
-                print("Error displaying thumbnail: ", e)
+                print("\033[31mError:\033[0m displaying thumbnail: ", e)
         else:
             print("No thumbnails found to display")
 
