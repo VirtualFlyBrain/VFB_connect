@@ -375,7 +375,7 @@ class Syn:
             return f"Syn(scope={self.scope}, label={self.label})"
         return f"Syn(label={self.label})"
 
-class Synonym:x
+class Synonym:
     def __init__(self, synonym: Syn, pub: Optional[Publication] = None):
         """
         Initialize a Synonym object.
