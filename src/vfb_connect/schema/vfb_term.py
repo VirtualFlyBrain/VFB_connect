@@ -907,7 +907,7 @@ class Image:
                 print(f"Failed to download file from {url}") if verbose else None
                 return None
         except Exception as e:
-            print(f"Error downloading file from {url}: {e}") if verbose else None
+            print(f"\033[31mError:\033[0m downloading file from {url}: {e}")
             return None
 
     def delete_temp_file(self, file_path, verbose=False):
@@ -924,7 +924,7 @@ class Image:
             else:
                 print(f"File not found: {file_path}") if verbose else None
         except Exception as e:
-            print(f"Error deleting file {file_path}: {e}") if verbose else None
+            print(f"\033[31mError:\033[0m deleting file {file_path}: {e}") if verbose else None
 
     def show(self, transparent=False, verbose=False):
         """
@@ -958,7 +958,7 @@ class Image:
                 img.show()
 
         except Exception as e:
-            print("Error displaying thumbnail: ", e)
+            print("\033[31mError:\033[0m displaying thumbnail: ", e)
 
 
 class ChannelImage:
@@ -3906,7 +3906,7 @@ class VFBTerms:
                     overlay_img.show()
 
             except Exception as e:
-                print("Error displaying thumbnail: ", e)
+                print("\033[31mError:\033[0m displaying thumbnail: ", e)
         else:
             print("No thumbnails found to display")
 
