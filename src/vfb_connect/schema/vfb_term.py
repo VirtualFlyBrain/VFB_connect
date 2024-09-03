@@ -1671,6 +1671,8 @@ class VFBTerm:
                 self.synonyms = synonyms
 
             self._instances = None
+            self._instances_ids = None
+            self._instances_names = None
             self._skeleton = None
             self._mesh = None
             self._volume = None
@@ -1889,27 +1891,36 @@ class VFBTerm:
         setattr(self.__class__, 'scRNAseq_genes', scRNAseq_genes)
 
     @property
-    def instances(self):
+    def instances(self, return_type='full'):
         """
         Get the instances of this term.
         """
-        if self._instances is None:
-            print("Loading instances for the first time...")
+        if self._instances_ids is None:
+            print("Loading instances ids for the first time...")
             if self.has_tag('Class'):
                 print("Loading instances for class: ", self.name) if self.debug else None
-                self._instances = VFBTerms(self.vfb.get_instances(class_expression=f"'{self.id}'", return_id_only=True))
+                self._instances_ids = self.vfb.get_instances(class_expression=f"'{self.id}'", return_id_only=True)
             elif self.has_tag('DataSet'):
                 print("Loading instances for dataset: ", self.name) if self.debug else None
                 print(f"Loading {self.counts['images'] if self.counts and 'images' in self.counts.keys() else ''} instances for dataset: {self.name}...")
-                self._instances = VFBTerms(self.vfb.get_instances_by_dataset(dataset=self.id, return_id_only=True))
+                self._instances_ids = self.vfb.get_instances_by_dataset(dataset=self.id, return_id_only=True)
             elif self.has_tag('API'):
                 print("Loading instances for API: ", self.name) if self.debug else None
-                self._instances = VFBTerms([r['id'] for r in self.vfb.cypher_query(query="MATCH (a:API {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)])
+                self._instances_ids = [r['id'] for r in self.vfb.cypher_query(query="MATCH (a:API {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)]
             elif self.has_tag('Site'):
                 print("Loading instances for site: ", self.name) if self.debug else None
-                self._instances = VFBTerms([r['id'] for r in self.vfb.cypher_query(query="MATCH (a:Site {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)])
-            if self._instances and len(self._instances) > 0:
+                self._instances_ids = [r['id'] for r in self.vfb.cypher_query(query="MATCH (a:Site {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)]
+            if self.self._instances_ids and len(self._instances) > 0:
                 self.has_image = True
+        if return_type == 'id':
+            return self._instances_ids
+        if not self._instances_names:
+                self._instances_names = self.vfb.lookup_name(self._instances_ids)
+        if return_type == 'name':
+            return self._instances_names
+        if self._instances is None:
+            print("Creating instances for the first time...")
+            self._instances = VFBTerms(self._instances_ids, verbose=self.debug)
         return self._instances
 
     @property
