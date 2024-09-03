@@ -2865,6 +2865,7 @@ class VFBTerm:
         :param transparent: Display the image with transparency if True.
         :param verbose: Print additional information if True.
         """
+        template = self.get_default_template(template=template)
         if self.channel_images:
             if template:
                 selected_template = self.vfb.lookup_id(template)
