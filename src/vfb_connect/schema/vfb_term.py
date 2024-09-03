@@ -2956,11 +2956,21 @@ class VFBTerms:
         # Check if terms is a list of strings (IDs)
         if isinstance(terms, list) and all(isinstance(term, str) for term in terms):
             self.terms = []
-            count = 0
+            terms = [self.vfb.lookup_id(term) for term in terms if term]
             if len(terms) > self.vfb._load_limit:
                 print(f"More thann the load limit of {self.vfb._load_limit} requested. Loading first {self.vfb._load_limit} terms out of {len(terms)}")
                 terms = terms[:self.vfb._load_limit]
             json_list = self.vfb.get_TermInfo(terms, summary=False)
+            if len(json_list) < len(terms):
+                print("Some terms not found in cache. Falling back to slower Neo4j queries.")
+                loaded_ids = [j['term']['core']['short_form'] for j in json_list]
+                missing_ids = [term for term in terms if term not in loaded_ids]
+                missing_json = self.vfb.get_TermInfo(missing_ids, summary=False, cache=False)
+                json_list = json_list + missing_json
+                if len(json_list) < len(terms):
+                    loaded_ids = [j['term']['core']['short_form'] for j in json_list]
+                    missing_ids = [term for term in terms if term not in loaded_ids]
+                    print(f"Failed to load {len(missing_ids)} terms: {missing_ids}")
             self.terms = create_vfbterm_list_from_json(json_list, verbose=verbose)
             return
 
