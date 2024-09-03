@@ -2957,15 +2957,16 @@ class VFBTerms:
         if isinstance(terms, list) and all(isinstance(term, str) for term in terms):
             self.terms = []
             terms = [self.vfb.lookup_id(term) for term in terms if term]
-            if len(terms) > self.vfb._load_limit:
+            if self.vfb._load_limit and len(terms) > self.vfb._load_limit:
                 print(f"More thann the load limit of {self.vfb._load_limit} requested. Loading first {self.vfb._load_limit} terms out of {len(terms)}")
                 terms = terms[:self.vfb._load_limit]
-            json_list = self.vfb.get_TermInfo(terms, summary=False)
+            print(f"Pulling {len(terms)} terms from VFB...")
+            json_list = self.vfb.get_TermInfo(terms, summary=False, verbose=verbose)
             if len(json_list) < len(terms):
                 print("Some terms not found in cache. Falling back to slower Neo4j queries.")
                 loaded_ids = [j['term']['core']['short_form'] for j in json_list]
                 missing_ids = [term for term in terms if term not in loaded_ids]
-                missing_json = self.vfb.get_TermInfo(missing_ids, summary=False, cache=False)
+                missing_json = self.vfb.get_TermInfo(missing_ids, summary=False, cache=False, verbose=verbose)
                 json_list = json_list + missing_json
                 if len(json_list) < len(terms):
                     loaded_ids = [j['term']['core']['short_form'] for j in json_list]
@@ -3829,11 +3830,11 @@ class VFBTerms:
         :param return_dataframe: Return the summaries as a DataFrame if True.
         :return: List or DataFrame of term summaries.
         """
+        summaries = []
         if not self.vfb._load_limit and not limit:
             for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Summaries"):
                 summaries.append(term.get_summary(return_dataframe=return_dataframe, verbose=verbose))
         else:
-            summaries = []
             count = 0
             for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Summaries"):
                 summaries.append(term.get_summary(return_dataframe=return_dataframe, verbose=verbose))
@@ -3843,7 +3844,6 @@ class VFBTerms:
 
         if return_dataframe:
             return pandas.concat(summaries, ignore_index=True)
-
         return summaries
 
     def open(self, template=None, verbose=False):
