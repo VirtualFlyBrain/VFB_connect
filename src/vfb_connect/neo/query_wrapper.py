@@ -348,15 +348,15 @@ class QueryWrapper(Neo4jConnect):
         :return: list of VFB IDs."""
         query = "MATCH (i:Individual) " \
                 "WHERE i:Site OR i:API " \
-                "return i.short_form"
+                "return i.short_form as id"
         results = self._query(query)
-        dbs = [d['i.short_form'] for d in results]
+        dbs = [d['id'] for d in results]
         if include_symbols:
             query = "MATCH (i:Individual) " \
                     "WHERE i:Site OR i:API AND exists(i.symbol) and not i.symbol[0] = '' " \
-                    "RETURN i.symbol"
+                    "RETURN i.symbol[0] as symbol"
             results = self._query(query)
-            dbs.extend([d['i.symbol'] for d in results if d['i.symbol']])
+            dbs.extend([d['symbol'] for d in results if d['symbol']])
         return dbs
 
     def get_datasets(self, summary=True, return_dataframe=True):

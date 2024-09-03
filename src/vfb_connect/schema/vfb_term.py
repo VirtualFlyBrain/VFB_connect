@@ -1545,6 +1545,9 @@ class Partner:
         return f"Partner(weight={self.weight}, partner={self.name})"
 
 class VFBTerm:
+    """
+    A class representing a Virtual Fly Brain term.
+    """
     def __init__(self, id=None, term: Optional[Term] = None, related_terms: Optional[Relations] = None, channel_images: Optional[List[ChannelImage]] = None, parents: Optional[List[str]] = None, regions: Optional[List[str]] = None, counts: Optional[dict] = None, publications: Optional[List[Publication]] = None, license: Optional[Term] = None, xrefs: Optional[List[Xref]] = None, dataset: Optional[List[str]] = None, synonyms: Optional[Synonym] = None, verbose=False):
         """
         Initialize a VFBTerm object representing a Virtual Fly Brain term.
@@ -2979,6 +2982,16 @@ class VFBTerm:
 
 
 class VFBTerms:
+    """
+    A class to represent a list of VFBTerm objects.
+
+    Parameters
+    ----------
+    terms : list of VFBTerm or list of str or pandas DataFrame
+        A list of VFBTerm objects, a list of term IDs, or a DataFrame of term IDs.
+    verbose : bool
+        Whether to print out information about the loading process.
+    """
     def __init__(self, terms: Union[List[VFBTerm], List[str], pandas.core.frame.DataFrame, List[dict]], verbose=False):
         from vfb_connect import vfb
         self.vfb = vfb
