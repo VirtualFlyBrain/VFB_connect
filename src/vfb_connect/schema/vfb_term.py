@@ -2450,10 +2450,14 @@ class VFBTerm:
             summary["Related Terms"] = [str(rel) for rel in self.related_terms]
         if hasattr(self, "_instances") and self._instances:
             summary["instances"] = self.instances.get_names()
-        if hasattr(self, "parents") and self.parents:
+        if hasattr(self, "_parents") and self._parents:
             summary["Parents"] = self.parents.get_names()
-        if hasattr(self, "regions") and self.regions:
+        elif hasattr(self, "_parents_ids") and self._parents_ids:
+            summary["Parents"] = self.vfb.lookukp_name(self._parents_ids)
+        if hasattr(self, "_regions") and self._regions:
             summary["Regions"] = self.regions.get_names()
+        elif hasattr(self, "_regions_ids") and self._regions_ids:
+            summary["Regions"] = self.vfb.lookup_name(self._regions_ids)
         if hasattr(self, "counts") and self.counts:
             summary["Counts"] = self.counts
         if hasattr(self, "publications") and self.publications:
@@ -2462,8 +2466,10 @@ class VFBTerm:
             summary["License"] = self.license.core.name
         if hasattr(self, "xrefs") and self.xrefs:
             summary["Cross References"] = [str(xref.link) for xref in self.xrefs]
-        if hasattr(self, "datasets") and self.datasets:
+        if hasattr(self, "_datasets") and self._datasets:
             summary["Datasets"] = self.datasets.get_names()
+        elif hasattr(self, "_dataset_ids") and self._dataset_ids:
+            summary["Datasets"] = self.vfb.lookup_name(self._dataset_ids)
         if return_dataframe:
             return pandas.DataFrame([summary])
 
@@ -3810,23 +3816,23 @@ class VFBTerms:
         """
         return [term.name for term in self.terms]
 
-    def get_summaries(self, return_dataframe=True):
+    def get_summaries(self, return_dataframe=True, verbose=False, limit=None):
         """
         Get the summaries of the terms.
 
         :param return_dataframe: Return the summaries as a DataFrame if True.
         :return: List or DataFrame of term summaries.
         """
-        if not self._load_limit:
+        if not self._load_limit and not limit:
             for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Summaries"):
-                summaries.append(term.get_summary(return_dataframe=return_dataframe))
+                summaries.append(term.get_summary(return_dataframe=return_dataframe, verbose=verbose))
         else:
             summaries = []
             count = 0
             for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Summaries"):
-                summaries.append(term.get_summary(return_dataframe=return_dataframe))
+                summaries.append(term.get_summary(return_dataframe=return_dataframe, verbose=verbose))
                 count += 1
-                if count >= self._load_limit:
+                if (self._load_limit count >= self._load_limit) or (limit and count >= limit):
                     break
 
         if return_dataframe:
