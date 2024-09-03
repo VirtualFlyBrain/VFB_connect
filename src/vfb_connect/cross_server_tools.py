@@ -152,6 +152,8 @@ class VfbConnect:
         """
         if isinstance(ids, list):
             return [self.lookup_name(id) for id in ids]
+        if not ids in self.lookup.values():
+            return ids # If not found, return the input
         return {v: k for k, v in self.lookup.items()}[ids]
 
     def lookup_id(self, key, return_curie=False, allow_subsitutions=True, subsitution_stages=['adult', 'larval', 'pupal'], verbose=False):
