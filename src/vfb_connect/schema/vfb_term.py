@@ -529,6 +529,8 @@ class Rel:
         self._object = None
         if object_name:
             self._object_name = object_name
+        else:
+            self._object_name = self.vfb.lookup_name(self._object_id)
 
     @property
     def object(self):
