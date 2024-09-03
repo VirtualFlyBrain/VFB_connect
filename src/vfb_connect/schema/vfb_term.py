@@ -2453,7 +2453,7 @@ class VFBTerm:
         if hasattr(self, "_parents") and self._parents:
             summary["Parents"] = self.parents.get_names()
         elif hasattr(self, "_parents_ids") and self._parents_ids:
-            summary["Parents"] = self.vfb.lookukp_name(self._parents_ids)
+            summary["Parents"] = self.vfb.lookup_name(self._parents_ids)
         if hasattr(self, "_regions") and self._regions:
             summary["Regions"] = self.regions.get_names()
         elif hasattr(self, "_regions_ids") and self._regions_ids:
