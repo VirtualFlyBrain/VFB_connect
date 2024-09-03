@@ -1673,7 +1673,7 @@ class VFBTerm:
             self._instances = None
             self._instances_ids = None
             self._instances_names = None
-            self._return_type = 'full' # Default to full term information but can be set to id or name
+            self._return_type = self.vfb._return_type # Default to global version but can be set to id, name (list) or full (VFBTerms)
             self._skeleton = None
             self._mesh = None
             self._volume = None
@@ -2085,6 +2085,7 @@ class VFBTerm:
             """
             Get the neurons that have postsynaptic terminals in this region. Based on literature.
             """
+
             if self._upstream_neurons is None:
                 # If not a type then run the query against the first parent type
                 if self.is_type:

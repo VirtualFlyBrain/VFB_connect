@@ -283,7 +283,7 @@ class QueryWrapper(Neo4jConnect):
     def _query(self, q):
         qr = self.commit_list([q])
         if not qr:
-            raise Exception('Query failed.')
+            raise Exception(f'Query failed: {q}')
         else:
             r = dict_cursor(qr)
             if not r:
@@ -347,14 +347,16 @@ class QueryWrapper(Neo4jConnect):
 
         :return: list of VFB IDs."""
         query = "MATCH (i:Individual) " \
-                "WHERE 'Site' in labels(i) OR 'API' in labels(i)" \
+                "WHERE i:Site OR i:API " \
                 "return i.short_form"
-        dbs = [d['i.short_form'] for d in self._query(query)]
+        results = self._query(query)
+        dbs = [d['i.short_form'] for d in results]
         if include_symbols:
             query = "MATCH (i:Individual) " \
-                    "WHERE 'Site' in labels(i) OR 'API' in labels(i) AND exists(i.symbol) and not i.symbol[0] = '' " \
+                    "WHERE i:Site OR i:API AND exists(i.symbol) and not i.symbol[0] = '' " \
                     "RETURN i.symbol"
-            dbs.extend([d['i.symbol'] for d in self._query(query) if d['i.symbol']])
+            results = self._query(query)
+            dbs.extend([d['i.symbol'] for d in results if d['i.symbol']])
         return dbs
 
     def get_datasets(self, summary=True, return_dataframe=True):
@@ -371,7 +373,6 @@ class QueryWrapper(Neo4jConnect):
                 `return_dataframe` is `True` and `summary` is `True`.
         :rtype: list of dicts or pandas.DataFrame
         """
-
         dc = self._query("MATCH (ds:DataSet) "
                         "RETURN ds.short_form AS sf")
         short_forms = [d['sf'] for d in dc]

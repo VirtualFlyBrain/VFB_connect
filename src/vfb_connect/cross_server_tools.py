@@ -109,6 +109,7 @@ class VfbConnect:
         self._use_cache = True
         self._load_limit = False
         self._dbs = None
+        self._return_type = 'full' # the default for property returns: full (VFBterms), name or id (lists)
 
         print("\033[32mSession Established!\033[0m")
         print("")
@@ -816,7 +817,7 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.vfb_id_2_xrefs(vfb_id=vfb_id, db=db, id_type=id_type, reverse_return=reverse_return)
 
-    def get_dbs(self, include_symbols=False):
+    def get_dbs(self, include_symbols=True):
         """Get all external databases in the database.
 
         :return: List of external databases in the database.
