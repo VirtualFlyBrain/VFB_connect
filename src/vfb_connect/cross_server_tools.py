@@ -14,6 +14,7 @@ import pandas as pd
 import numpy as np
 from colormath.color_objects import LabColor, sRGBColor
 from colormath.color_conversions import convert_color
+from scipy.spatial import KDTree
 
 
 def gen_short_form(iri):
@@ -1058,13 +1059,23 @@ class VfbConnect:
         """
         upstream_type = self.lookup_id(upstream_type)
         downstream_type = self.lookup_id(downstream_type)
+
+        # get all types of all connected neurons that are instances of downstream_type
         downstream = self.get_connected_neurons_by_type(upstream_type=upstream_type, downstream_type=downstream_type, weight=weight)
         downstream['downstream_class'] = downstream['downstream_class'].apply(
             lambda x: x.split('|') if isinstance(x, str) else x)
         downstream_classes = downstream.explode('downstream_class')['downstream_class'].drop_duplicates().to_list()
 
-        cell_type_short_form = self.lookup_id(upstream_type)
+        # only keep downstream_classes that are subclasses of downstream_type
+        subclass_check_query = self.cypher_query(
+            query=("MATCH (c2:Neuron:Class)-[:SUBCLASSOF*0..]->(c1:Neuron:Class) "
+                   "WHERE c2.label IN %s AND c1.short_form = '%s'"
+                   "RETURN c2.label AS downstream_classes"
+                    % (downstream_classes, downstream_type)))
+        downstream_classes = subclass_check_query.downstream_classes.to_list()
 
+        # get nts for upstream
+        cell_type_short_form = self.lookup_id(upstream_type)
         known_nt_results = self.cypher_query(query="MATCH (n:Neuron {short_form:'%s'}) RETURN labels(n) AS labels" % cell_type_short_form)
         nts = [r for r in known_nt_results.labels[0] if r in NT_NTR_pairs.keys()]
         if use_predictions:
@@ -1087,6 +1098,7 @@ class VfbConnect:
         if use_predictions:
             pred_only_ntrs = [NT_NTR_pairs[n] for n in pred_only_nts]
 
+        # get expression for each ntr in each downstream class
         dataframes = []
         for c in downstream_classes:
             for n in ntr:
@@ -1132,38 +1144,52 @@ class VfbConnect:
             return terms
         print(terms) if verbose else None
         return VFBTerms(terms, verbose=verbose)
-    
-    def generate_lab_colors(self, num_colors, verbose=False):
+
+    def generate_lab_colors(self, num_colors, min_distance=100, verbose=False):
         """
         Generate a list of Lab colors and convert them to RGB tuples.
-        
+
         :param num_colors: The number of colors to generate.
+        :param min_distance: Minimum perceptual distance between colors.
         :return: A list of RGB tuples.
         """
-        # Calculate the grid size for each of L, a, and b components
-        grid_size = int(np.ceil(num_colors ** (1/3)))
-
-        # Generate linearly spaced values for L, a, and b components
+        # Generate a large set of candidate colors in Lab space
+        grid_size = int(np.ceil((num_colors * 5) ** (1 / 3)))  # Generating more candidates
         l_values = np.linspace(0, 100, grid_size)
         a_values = np.linspace(-100, 100, grid_size)
         b_values = np.linspace(-100, 100, grid_size)
 
-        # Create a meshgrid and reshape to get all combinations
         lab_colors = np.array(np.meshgrid(l_values, a_values, b_values)).T.reshape(-1, 3)
 
-        # If we generated more colors than needed, truncate the list
-        if len(lab_colors) > num_colors:
-            lab_colors = lab_colors[:num_colors]
+        # Shuffle the candidate colors to introduce randomness
+        np.random.shuffle(lab_colors)
+
+        selected_lab_colors = []
+        rgb_colors = []
+
+        # Select the first color
+        selected_lab_colors.append(lab_colors[0])
+        lab_tree = KDTree(selected_lab_colors)  # Rebuild tree with the first color
+
+        # Pick colors that are far apart
+        for lab in lab_colors[1:]:
+            distances, _ = lab_tree.query([lab], k=1)
+            if distances[0] >= min_distance:
+                selected_lab_colors.append(lab)
+                lab_tree = KDTree(selected_lab_colors)  # Update tree with the new color
+            if len(selected_lab_colors) >= num_colors:
+                break
 
         # Convert Lab to RGB
-        rgb_colors = []
-        for lab in lab_colors:
+        for lab in selected_lab_colors:
             lab_color = LabColor(lab[0], lab[1], lab[2])
             rgb_color = convert_color(lab_color, sRGBColor)
-            rgb_tuple = (int(rgb_color.clamped_rgb_r * 255), 
-                        int(rgb_color.clamped_rgb_g * 255), 
-                        int(rgb_color.clamped_rgb_b * 255))
+            rgb_tuple = (int(round(rgb_color.clamped_rgb_r * 255)),
+                         int(round(rgb_color.clamped_rgb_g * 255)),
+                         int(round(rgb_color.clamped_rgb_b * 255)))
             rgb_colors.append(rgb_tuple)
 
-        print(rgb_colors) if verbose else None
+        if verbose:
+            print(f"Generated RGB colors: {rgb_colors}")
+
         return rgb_colors
