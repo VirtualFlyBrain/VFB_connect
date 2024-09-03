@@ -2988,6 +2988,10 @@ class VFBTerms:
             self.terms = [terms]
             return
 
+        if isinstance(terms, str):
+            self.terms = [VFBTerm(id=terms, verbose=verbose)]
+            return
+        
         # Check if terms is a list of VFBTerm objects
         if isinstance(terms, list) and all(isinstance(term, VFBTerm) for term in terms):
             self.terms = terms
