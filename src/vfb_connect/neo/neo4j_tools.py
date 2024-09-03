@@ -116,9 +116,15 @@ class Neo4jConnect:
             for s in statements:
                 cstatements.append({'statement': s}) # rows an columns are returned by default.
         payload = {'statements': cstatements}
-        response = requests.post(url = "%s%s"
+        try:
+            response = requests.post(url = "%s%s"
                                  % (self.base_uri, self.commit), auth = (self.usr, self.pwd) ,
                                   data = json.dumps(payload), headers = self.headers)
+        except requests.exceptions.RequestException as e:
+            print("\033[31mConnection Error:\033[0m %s" % e)
+            print("Retrying in 10 seconds...")
+            time.sleep(10)
+            return self.commit_list(statements)
         if self.rest_return_check(response):
             return response.json()['results']
         else:

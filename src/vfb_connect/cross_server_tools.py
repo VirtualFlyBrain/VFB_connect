@@ -66,7 +66,9 @@ class VfbConnect:
 
     def __init__(self, neo_endpoint=get_default_servers()['neo_endpoint'],
                  neo_credentials=get_default_servers()['neo_credentials'],
-                 owlery_endpoint=get_default_servers()['owlery_endpoint']):
+                 owlery_endpoint=get_default_servers()['owlery_endpoint'],
+                 solr_endpoint=get_default_servers()['solr_endpoint'],
+                 vfb_launch=False):
         """
         VFB connect constructor. All args optional.
         With no args wraps connectsions to default public servers.
@@ -88,6 +90,7 @@ class VfbConnect:
                 "pwd": neo_credentials[1]
             }
         }
+        self.solr_url = solr_endpoint
         self.nc = Neo4jConnect(**connections['neo'])
         self.neo_query_wrapper = QueryWrapper(**connections['neo'])
         self.cache_file = self.get_cache_file_path()
@@ -105,6 +108,9 @@ class VfbConnect:
         self._term_cache = []
         self._use_cache = True
         self._load_limit = False
+        self._dbs = None
+        self._gene_function_filters = None
+        self._return_type = 'full' # the default for property returns: full (VFBterms), name or id (lists)
 
         print("\033[32mSession Established!\033[0m")
         print("")
@@ -149,6 +155,8 @@ class VfbConnect:
         """
         if isinstance(ids, list):
             return [self.lookup_name(id) for id in ids]
+        if not ids in self.lookup.values():
+            return ids # If not found, return the input
         return {v: k for k, v in self.lookup.items()}[ids]
 
     def lookup_id(self, key, return_curie=False, allow_subsitutions=True, subsitution_stages=['adult', 'larval', 'pupal'], verbose=False):
@@ -175,7 +183,7 @@ class VfbConnect:
             return [self.lookup_id(k, return_curie=return_curie, allow_subsitutions=allow_subsitutions, subsitution_stages=subsitution_stages) for k in key]
         
         if isinstance(key, str):
-            dbs = self.neo_query_wrapper.get_dbs()
+            dbs = self.get_dbs()
             if any(key.startswith(db) for db in dbs):
                 split_key = key.rsplit(':', 1)
                 print(f"Split xref: {split_key}") if verbose else None
@@ -540,7 +548,7 @@ class VfbConnect:
         if dataset:
             query = "MATCH (ds:DataSet)<-[:has_source]-(i:Individual) " \
                     "WHERE ds.short_form = '%s' " \
-                    "RETURN collect(i.short_form) as inds" % dataset
+                    "RETURN collect(distinct i.short_form) as inds" % dataset
             dc = self.neo_query_wrapper._query(query) # TODO - Would better to use the original column oriented return!
             if return_id_only:
                 return dc[0]['inds']
@@ -595,14 +603,16 @@ class VfbConnect:
         :return: List of unique gene function labels in alphabetical order.
         :rtype: list
         """
-        query = ("MATCH (g:Gene) RETURN DISTINCT apoc.coll.subtract(labels(g), "
+        if not self._gene_function_filters:
+            query = ("MATCH (g:Gene) RETURN DISTINCT apoc.coll.subtract(labels(g), "
                  "['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS gene_labels")
-        result = self.neo_query_wrapper._query(query)
-        labels = []
-        for r in result:
-            labels.extend(r['gene_labels'])
-        labels = sorted(list(set(labels)))
-        return labels
+            result = self.neo_query_wrapper._query(query)
+            labels = []
+            for r in result:
+                labels.extend(r['gene_labels'])
+            labels = sorted(list(set(labels)))
+            self._gene_function_filters = labels
+        return self._gene_function_filters
 
     def get_transcriptomic_profile(self, cell_type, gene_type=False, no_subtypes=False, query_by_label=True, return_dataframe=True):
         """Get gene expression data for a given cell type.
@@ -818,13 +828,15 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.vfb_id_2_xrefs(vfb_id=vfb_id, db=db, id_type=id_type, reverse_return=reverse_return)
 
-    def get_dbs(self, include_symbols=False):
+    def get_dbs(self, include_symbols=True):
         """Get all external databases in the database.
 
         :return: List of external databases in the database.
         :rtype: list
         """
-        return self.neo_query_wrapper.get_dbs(include_symbols=include_symbols)
+        if not self._dbs:
+            self._dbs = self.neo_query_wrapper.get_dbs(include_symbols=include_symbols)
+        return self._dbs
 
     def get_scRNAseq_expression(self, id, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
         """
@@ -1117,6 +1129,70 @@ class VfbConnect:
         if not return_dataframe:
             return receptor_expression.to_dict('records')
         return receptor_expression
+    
+    import json
+
+
+    def search(self, query, return_dataframe=True, verbose=False, filter_by_has_tag=None, filter_by_not_tag=['Deprecated']):
+        """
+        Search for terms in the database using a complex Solr query configuration.
+
+        :param query: The search query.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :param verbose: Optional. If `True`, prints the query for debugging purposes.
+        :param filter_by_has_tag: Optional. List of tags to boost if present. These will be upvoted in the query.
+        :param filter_by_not_tag: Optional. List of tags to downvote if present. These will be downvoted in the query.
+        :return: A DataFrame or list of results.
+        :rtype: pandas.DataFrame or list of dicts
+        """
+        import pysolr
+
+        # Initialize the Solr client
+        solr = pysolr.Solr(self.solr_url, always_commit=True)
+
+        # Base search parameters
+        search_params = {
+            "q": f"({query} OR {query}* OR *{query} OR *{query}*)",
+            "q.op": "OR",
+            "defType": "edismax",
+            "mm": "45%",
+            "qf": "label^110 synonym^100 label_autosuggest synonym_autosuggest shortform_autosuggest",
+            "fl": "short_form,label,synonym,id,facets_annotation,unique_facets",
+            "start": "0",
+            "pf": "true",
+            "fq": [
+                "(short_form:VFB* OR short_form:FB* OR facets_annotation:DataSet OR facets_annotation:pub) AND NOT short_form:VFBc_*"
+            ],
+            "rows": "150",
+            "wt": "json",
+            "bq": "short_form:VFBexp*^10.0 short_form:VFB*^100.0 short_form:FBbt*^100.0 short_form:FBbt_00003982^2"
+        }
+
+        # Adding 'has tag' filters to boost query (upvote)
+        if filter_by_has_tag:
+            for tag in filter_by_has_tag:
+                search_params["bq"] += f" facets_annotation:{tag}^10.0"
+
+        # Adding 'not tag' filters to boost query (downvote)
+        if filter_by_not_tag:
+            for tag in filter_by_not_tag:
+                search_params["bq"] += f" facets_annotation:{tag}^0.001"
+
+        # Convert the search parameters to JSON string for debugging
+        search_json = json.dumps({"params": search_params})
+        
+        if verbose:
+            print(f"Solr Search JSON: {search_json}")
+
+        # Execute the search
+        results = solr.search(**search_params)
+
+        # Return results as a DataFrame or list of dictionaries
+        if return_dataframe:
+            return pd.DataFrame(results.docs)
+        else:
+            return results.docs
+
 
     def term(self, term, verbose=False):
         """Get a VFBTerm object for a given term id, name, symbol or synonym.

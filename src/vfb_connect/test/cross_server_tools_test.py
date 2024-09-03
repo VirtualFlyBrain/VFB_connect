@@ -157,5 +157,10 @@ class VfbTermTests(unittest.TestCase):
         self.assertTrue(isinstance(fu.parents[0], VFBTerm))
         self.assertTrue(len(fu) > 0)
 
+    def test_solr_search(self):
+        fu = self.vc.search('fan-shaped body', return_dataframe=False)
+        print(fu)
+        self.assertTrue(len(fu) > 0)
+
 if __name__ == "__main__":
     unittest.main()

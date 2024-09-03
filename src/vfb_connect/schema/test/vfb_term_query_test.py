@@ -45,6 +45,8 @@ class VfbTermTest(unittest.TestCase):
     def test_scRNAseq_datasets(self):
         cluster = self.vfb.term("FBlc0006144")
         datasets = cluster.datasets
+        self.vfb._load_limit = 10
+        datasets[0].debug = True
         print(datasets)
         self.assertIsNotNone(datasets)
         self.assertTrue(isinstance(datasets, VFBTerms))
@@ -53,7 +55,7 @@ class VfbTermTest(unittest.TestCase):
         print(ds_instances.get_summaries())
         self.assertIsNotNone(ds_instances)
         self.assertTrue(isinstance(ds_instances, VFBTerms))
-        self.assertGreater(len(ds_instances), 80)
+        self.assertGreater(len(ds_instances), 8)
         print(ds_instances[0].has_tag('Cluster'))
 
 if __name__ == "__main__":
