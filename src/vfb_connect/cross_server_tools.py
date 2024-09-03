@@ -109,6 +109,7 @@ class VfbConnect:
         self._use_cache = True
         self._load_limit = False
         self._dbs = None
+        self._gene_function_filters = None
         self._return_type = 'full' # the default for property returns: full (VFBterms), name or id (lists)
 
         print("\033[32mSession Established!\033[0m")
@@ -594,14 +595,16 @@ class VfbConnect:
         :return: List of unique gene function labels in alphabetical order.
         :rtype: list
         """
-        query = ("MATCH (g:Gene) RETURN DISTINCT apoc.coll.subtract(labels(g), "
+        if not self._gene_function_filters:
+            query = ("MATCH (g:Gene) RETURN DISTINCT apoc.coll.subtract(labels(g), "
                  "['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS gene_labels")
-        result = self.neo_query_wrapper._query(query)
-        labels = []
-        for r in result:
-            labels.extend(r['gene_labels'])
-        labels = sorted(list(set(labels)))
-        return labels
+            result = self.neo_query_wrapper._query(query)
+            labels = []
+            for r in result:
+                labels.extend(r['gene_labels'])
+            labels = sorted(list(set(labels)))
+            self._gene_function_filters = labels
+        return self._gene_function_filters
 
     def get_transcriptomic_profile(self, cell_type, gene_type=False, no_subtypes=False, query_by_label=True, return_dataframe=True):
         """Get gene expression data for a given cell type.
