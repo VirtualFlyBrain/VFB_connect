@@ -466,31 +466,28 @@ class VfbConnect:
         if weight is None:
             print("A minimum connection weight must be specified.")
         if query_by_label:
-            upstream_type = self.lookup_id(dequote(upstream_type))
-            downstream_type = self.lookup_id(dequote(downstream_type))
-        cypher_q = "MATCH "
+            if upstream_type: upstream_type = self.lookup_id(dequote(upstream_type))
+            if downstream_type: downstream_type = self.lookup_id(dequote(downstream_type))
+        cypher_ql=[]
         if upstream_type:
-            cypher_q += " (up:Class)<-[:SUBCLASSOF*0..]-(c1:Class)<-[:INSTANCEOF]-"
-        cypher_q += "(n1:Neuron)-[r:synapsed_to]->(n2:Neuron:Individual)-[:INSTANCEOF]->(c2:Class)"
+            cypher_ql.append("MATCH (up:Class)<-[:SUBCLASSOF*0..]-(c1:Class)<-[:INSTANCEOF]-(n1:has_neuron_connectivity)" 
+                             " WHERE up.short_form = '%s' " % upstream_type)
         if downstream_type:
-            cypher_q += "-[:SUBCLASSOF*0..]->(down:Class) "
-        cypher_q += "WHERE r.weight[0] >= %d " % weight
-        if upstream_type:
-            cypher_q += 'AND up.short_form = "%s" ' % upstream_type
-        if downstream_type:
-            cypher_q += 'AND down.short_form = "%s" ' % downstream_type
-        cypher_q += "OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) " \
-                        "WHERE exists(s1.is_data_source) AND s1.is_data_source = [True] " \
-                        "OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Site) " \
-                        "WHERE exists(s2.is_data_source) AND s2.is_data_source = [True] " \
-                        "RETURN n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name, " \
-                        "r.weight[0] as weight, n2.short_form as downstream_neuron_id, " \
-                        "n2.label as downstream_neuron_name, " \
-                        "apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, " \
-                        "apoc.text.join(collect(distinct c2.label),'|') as downstream_class, " \
-                        "s1.short_form AS up_data_source, r1.accession[0] as up_accession, " \
-                        "s2.short_form AS down_source, r2.accession[0] AS down_accession"
-
+            cypher_ql.append("MATCH (down:Class)<-[:SUBCLASSOF*0..]-(c2:Class)<-[:INSTANCEOF]-(n2:has_neuron_connectivity)" 
+                             "WHERE down.short_form = '%s' " % downstream_type)
+        cypher_ql.append("MATCH (n1)-[r:synapsed_to]->(n2) WHERE r.weight[0] >= %d " % weight)
+        cypher_ql.append("OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) "
+                        "WHERE exists(s1.is_data_source) AND s1.is_data_source = [True] ")
+        cypher_ql.append("OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Site) " 
+                        "WHERE exists(s2.is_data_source) AND s2.is_data_source = [True] " )
+        cypher_ql.append("   RETURN n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name,"
+                        "r.weight[0] as weight, n2.short_form as downstream_neuron_id, " 
+                        "n2.label as downstream_neuron_name, " 
+                        "apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, " 
+                        "apoc.text.join(collect(distinct c2.label),'|') as downstream_class, " 
+                        "s1.short_form AS up_data_source, r1.accession[0] as up_accession, " 
+                        "s2.short_form AS down_source, r2.accession[0] AS down_accession")
+        cypher_q = ' \n'.join(cypher_ql)
         print(cypher_q) if verbose else None
         r = self.nc.commit_list([cypher_q])
         dc = dict_cursor(r)
