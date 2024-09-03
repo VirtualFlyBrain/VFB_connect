@@ -1918,7 +1918,7 @@ class VFBTerm:
             elif self.has_tag('Site'):
                 print("Loading instances for site: ", self.name) if self.debug else None
                 self._instances_ids = [r['id'] for r in self.vfb.cypher_query(query="MATCH (a:Site {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)]
-            if self._instances_ids and len(self._instances) > 0:
+            if self._instances_ids and len(self._instances_ids) > 0:
                 self.has_image = True
         if return_type == 'id':
             return self._instances_ids
