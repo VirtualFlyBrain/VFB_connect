@@ -1056,13 +1056,23 @@ class VfbConnect:
         """
         upstream_type = self.lookup_id(upstream_type)
         downstream_type = self.lookup_id(downstream_type)
+
+        # get all types of all connected neurons that are instances of downstream_type
         downstream = self.get_connected_neurons_by_type(upstream_type=upstream_type, downstream_type=downstream_type, weight=weight)
         downstream['downstream_class'] = downstream['downstream_class'].apply(
             lambda x: x.split('|') if isinstance(x, str) else x)
         downstream_classes = downstream.explode('downstream_class')['downstream_class'].drop_duplicates().to_list()
 
-        cell_type_short_form = self.lookup_id(upstream_type)
+        # only keep downstream_classes that are subclasses of downstream_type
+        subclass_check_query = self.cypher_query(
+            query=("MATCH (c2:Neuron:Class)-[:SUBCLASSOF*0..]->(c1:Neuron:Class) "
+                   "WHERE c2.label IN %s AND c1.short_form = '%s'"
+                   "RETURN c2.label AS downstream_classes"
+                    % (downstream_classes, downstream_type)))
+        downstream_classes = subclass_check_query.downstream_classes.to_list()
 
+        # get nts for upstream
+        cell_type_short_form = self.lookup_id(upstream_type)
         known_nt_results = self.cypher_query(query="MATCH (n:Neuron {short_form:'%s'}) RETURN labels(n) AS labels" % cell_type_short_form)
         nts = [r for r in known_nt_results.labels[0] if r in NT_NTR_pairs.keys()]
         if use_predictions:
@@ -1085,6 +1095,7 @@ class VfbConnect:
         if use_predictions:
             pred_only_ntrs = [NT_NTR_pairs[n] for n in pred_only_nts]
 
+        # get expression for each ntr in each downstream class
         dataframes = []
         for c in downstream_classes:
             for n in ntr:
