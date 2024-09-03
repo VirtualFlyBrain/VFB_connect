@@ -2704,7 +2704,10 @@ class VFBTerm:
         if template:
             return self.vfb.lookup_id(template)
         else:
-            templates = [ci.image.template_anatomy.short_form for ci in self.channel_images] if self.channel_images else None
+            if isinstance(self, VFBTerms):
+                templates = [ci.image.template_anatomy.short_form for t in self.terms for ci in t.channel_images] if any(t.channel_images for t in self.terms) else None
+            else:
+                templates = [ci.image.template_anatomy.short_form for ci in self.channel_images] if self.channel_images else None
             if templates:
                 if 'VFB_00101567' in templates:
                     template = 'VFB_00101567' #Default to JRC2018Unisex if available
@@ -3719,7 +3722,7 @@ class VFBTerms:
         :return: A list of skeletons and the selected template.
         """
         selected_template = None
-        template = VFBTerm.get_default_template(template)
+        template = VFBTerm.get_default_template(self, template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -3794,7 +3797,7 @@ class VFBTerms:
         :param kwargs: Additional arguments for plotting.
         """
         selected_template = None
-        template = VFBTerm.get_default_template(template)
+        template = VFBTerm.get_default_template(self, template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -3928,7 +3931,7 @@ class VFBTerms:
         :param transparent: Use transparent thumbnails if True.
         :param verbose: Print additional information if True.
         """
-        template = VFBTerm.get_default_template(template)
+        template = VFBTerm.get_default_template(self, template)
         if template:
             template = self.vfb.lookup_id(template)
 
