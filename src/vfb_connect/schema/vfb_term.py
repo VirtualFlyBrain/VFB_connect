@@ -1705,10 +1705,10 @@ class VFBTerm:
                 self.add_instance_properties()
                 if self.channel_images and len(self.channel_images) > 0:
                     for ci in self.channel_images:
-                        if hasattr(ci.image, 'image_obj') and 'volume_man.obj' in ci.image.image_obj:
+                        if hasattr(ci.image, 'image_obj') and ci.image.image_obj and 'volume_man.obj' in ci.image.image_obj:
                             if not self._mesh:
                                 self.add_mesh_property()
-                        if hasattr(ci.image, 'image_nrrd') and 'volume.nrrd' in ci.image.image_nrrd:
+                        if hasattr(ci.image, 'image_nrrd') and ci.image.image_nrrd and 'volume.nrrd' in ci.image.image_nrrd:
                             if not self._volume:
                                 self.add_volume_property()
                         if self._volume and self._mesh:
@@ -2704,7 +2704,10 @@ class VFBTerm:
         if template:
             return self.vfb.lookup_id(template)
         else:
-            templates = [ci.image.template_anatomy.short_form for ci in self.channel_images] if self.channel_images else None
+            if isinstance(self, VFBTerms):
+                templates = [ci.image.template_anatomy.short_form for t in self.terms for ci in t.channel_images] if any(t.channel_images for t in self.terms) else None
+            else:
+                templates = [ci.image.template_anatomy.short_form for ci in self.channel_images] if self.channel_images else None
             if templates:
                 if 'VFB_00101567' in templates:
                     template = 'VFB_00101567' #Default to JRC2018Unisex if available
@@ -3719,6 +3722,7 @@ class VFBTerms:
         :return: A list of skeletons and the selected template.
         """
         selected_template = None
+        template = VFBTerm.get_default_template(self, template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -3793,6 +3797,7 @@ class VFBTerms:
         :param kwargs: Additional arguments for plotting.
         """
         selected_template = None
+        template = VFBTerm.get_default_template(self, template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -3926,6 +3931,7 @@ class VFBTerms:
         :param transparent: Use transparent thumbnails if True.
         :param verbose: Print additional information if True.
         """
+        template = VFBTerm.get_default_template(self, template)
         if template:
             template = self.vfb.lookup_id(template)
 
@@ -3941,7 +3947,6 @@ class VFBTerms:
                             template = ci.image.template_anatomy.short_form
                             if verbose:
                                 print(f"Fixing template to {template}. Please specify a template to avoid this.")
-                        break
 
         if thumbnails:
             from PIL import Image
