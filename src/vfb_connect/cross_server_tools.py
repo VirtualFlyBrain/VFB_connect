@@ -108,6 +108,7 @@ class VfbConnect:
         self._term_cache = []
         self._use_cache = True
         self._load_limit = False
+        self._dbs = None
 
         print("\033[32mSession Established!\033[0m")
         print("")
@@ -821,7 +822,7 @@ class VfbConnect:
         :return: List of external databases in the database.
         :rtype: list
         """
-        if not hasattr(self, '_dbs') or not self.vfb._dbs:
+        if not self._dbs:
             self._dbs = self.neo_query_wrapper.get_dbs(include_symbols=include_symbols)
         return self._dbs
 
