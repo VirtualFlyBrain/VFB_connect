@@ -1893,7 +1893,15 @@ class VFBTerm:
     @property
     def instances(self, return_type='full'):
         """
-        Get the instances of this term.
+        Get the instances of this term. The return type can be specified to 
+        return only IDs, only names, or the full instance details.
+        
+        Parameters:
+        - return_type (str): Determines the type of data to return. 
+        Options are 'full', 'id', or 'name'. Default is 'full'.
+        
+        Returns:
+        - list: A list of instances or their IDs/names based on the return_type.
         """
         if self._instances_ids is None:
             print("Loading instances ids for the first time...")
@@ -1910,7 +1918,7 @@ class VFBTerm:
             elif self.has_tag('Site'):
                 print("Loading instances for site: ", self.name) if self.debug else None
                 self._instances_ids = [r['id'] for r in self.vfb.cypher_query(query="MATCH (a:Site {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)]
-            if self.self._instances_ids and len(self._instances) > 0:
+            if self._instances_ids and len(self._instances) > 0:
                 self.has_image = True
         if return_type == 'id':
             return self._instances_ids
@@ -2462,7 +2470,7 @@ class VFBTerm:
         if hasattr(self, "related_terms") and self.related_terms:
             summary["Related Terms"] = [str(rel) for rel in self.related_terms]
         if hasattr(self, "_instances") and self._instances:
-            summary["instances"] = self.instances.get_names()
+            summary["instances"] = self.instances(return_type='name')
         if hasattr(self, "_parents") and self._parents:
             summary["Parents"] = self.parents.get_names()
         elif hasattr(self, "_parents_ids") and self._parents_ids:
