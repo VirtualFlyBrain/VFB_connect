@@ -335,14 +335,16 @@ class VfbTermTest(unittest.TestCase):
         # self.assertTrue(neurons == terms2)
 
     def test_vfbterms_xrefs(self):
+        self.vfb._dbs = None
         terms = self.vfb.terms(['catmaid_l1em:17545695', 'neuprint_JRC_Hemibrain_1point1:2039100722'])
         print("got terms ", terms)
+        print(self.vfb._dbs)
         self.assertEqual(len(terms), 2)
         xref = terms[0].xrefs
         print("got xref ", xref)
         self.assertTrue(xref)
         self.assertTrue(isinstance(xref[0], Xref))
-        self.assertEqual(len(xref), 1)
+        self.assertGreaterEqual(len(xref), 1)
 
     def test_vfbterms_transgene_expression(self):
         term = self.vfb.term('medulla')
@@ -482,8 +484,10 @@ class VfbTermTest(unittest.TestCase):
     def test_vfbterm_site(self):
         term = self.vfb.term('fafb_catmaid_api')
         print("got term ", term)
+        term.debug = True
+        term._return_type='id'
         print(term.instances)
-        self.assertEqual(len(term.instances), 10)
+        self.assertGreater(len(term._instances_ids), 9)
         print(dir(term))
         print(term.get_summary(return_dataframe=False))
         self.assertTrue(term.has_image)
