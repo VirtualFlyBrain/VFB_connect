@@ -71,7 +71,7 @@ class VfbConnect:
                  vfb_launch=False):
         """
         VFB connect constructor. All args optional.
-        With no args wraps connectsions to default public servers.
+        With no args wraps connections to default public servers.
 
         :neo_endpoint: Specify a neo4j REST endpoint.
         :neo_credentials: Specify credential for Neo4j Rest endpoint.
