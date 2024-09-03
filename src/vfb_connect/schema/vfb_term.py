@@ -3719,6 +3719,7 @@ class VFBTerms:
         :return: A list of skeletons and the selected template.
         """
         selected_template = None
+        template = VFBTerm.get_default_template(template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -3793,6 +3794,7 @@ class VFBTerms:
         :param kwargs: Additional arguments for plotting.
         """
         selected_template = None
+        template = VFBTerm.get_default_template(template)
         if template:
             if query_by_label:
                 selected_template = self.vfb.lookup_id(template)
@@ -3926,6 +3928,7 @@ class VFBTerms:
         :param transparent: Use transparent thumbnails if True.
         :param verbose: Print additional information if True.
         """
+        template = VFBTerm.get_default_template(template)
         if template:
             template = self.vfb.lookup_id(template)
 
@@ -3941,7 +3944,6 @@ class VFBTerms:
                             template = ci.image.template_anatomy.short_form
                             if verbose:
                                 print(f"Fixing template to {template}. Please specify a template to avoid this.")
-                        break
 
         if thumbnails:
             from PIL import Image
