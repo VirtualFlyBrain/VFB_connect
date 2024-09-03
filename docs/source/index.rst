@@ -27,6 +27,7 @@ the General Documentation should provide sufficient details in an accessible for
    :maxdepth: 2
    :caption: General Documentation
    
+   vfbterm
    API_reference
    output_formats
    Semantic_queries

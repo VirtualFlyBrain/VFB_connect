@@ -17,3 +17,5 @@ colormath
 matplotlib
 tqdm
 sphinx-autodoc-typehints
+flybrains
+navis

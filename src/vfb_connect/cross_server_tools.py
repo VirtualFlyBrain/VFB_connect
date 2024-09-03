@@ -66,7 +66,8 @@ class VfbConnect:
 
     def __init__(self, neo_endpoint=get_default_servers()['neo_endpoint'],
                  neo_credentials=get_default_servers()['neo_credentials'],
-                 owlery_endpoint=get_default_servers()['owlery_endpoint']):
+                 owlery_endpoint=get_default_servers()['owlery_endpoint'],
+                 vfb_launch=False):
         """
         VFB connect constructor. All args optional.
         With no args wraps connectsions to default public servers.
@@ -108,7 +109,7 @@ class VfbConnect:
 
         print("\033[32mSession Established!\033[0m")
         print("")
-        print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.terms)\033[0m")
+        print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.terms)\033[0m") if vfb_launch else None
 
     def __dir__(self):
         return [attr for attr in list(self.__dict__.keys()) if not attr.startswith('_')] + [attr for attr in dir(self.__class__) if not attr.startswith('_') and not attr.startswith('add_')]
@@ -729,22 +730,27 @@ class VfbConnect:
             if ':' in acc and db == '':
                 db, acc = acc.split(':')
             acc = [acc]
-        elif isinstance(acc, list) and all(isinstance(x, str) for x in acc):
+        elif isinstance(acc, list) and all(isinstance(x, int) for x in acc):
+            acc = [str(x) for x in acc]
+            print(f"Converted to strings: {acc}") if verbose else None
+        if isinstance(acc, list) and all(isinstance(x, str) for x in acc):
             new_acc = []
             for xref in acc:
                 if ':' in xref:
                     if db == '':
                         db, temp_acc = xref.split(':')
                         new_acc.append(temp_acc)
-                    else:
-                        new_acc.append(xref.split(':')[-1])
+                else:
+                    new_acc.append(xref)
             acc = new_acc
-        result = self.neo_query_wrapper.xref_2_vfb_id(acc=acc, db=db, id_type=id_type, reverse_return=reverse_return, verbose=verbose)
+        result = self.neo_query_wrapper.xref_2_vfb_id(acc=acc, db=db, id_type=id_type, reverse_return=reverse_return, verbose=False)
         if return_just_ids & reverse_return:
+            print(f"Returning just IDs: {result}") if verbose else None
             return [x.key for x in result]
         if return_just_ids and not reverse_return:
             id_list = []
             for id in acc:
+                print(f"Looking up {id} in {result}") if verbose else None
                 id_list.append(result[id][0]['vfb_id']) # This takes the first match only
                 if len(result[id]) > 1:
                     print(f"Multiple matches found for {id}: {result[id]}")
