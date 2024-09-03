@@ -3817,7 +3817,17 @@ class VFBTerms:
         :param return_dataframe: Return the summaries as a DataFrame if True.
         :return: List or DataFrame of term summaries.
         """
-        summaries = [term.get_summary(return_dataframe=return_dataframe) for term in self.terms]
+        if not self._load_limit:
+            for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Summaries"):
+                summaries.append(term.get_summary(return_dataframe=return_dataframe))
+        else:
+            summaries = []
+            count = 0
+            for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Summaries"):
+                summaries.append(term.get_summary(return_dataframe=return_dataframe))
+                count += 1
+                if count >= self._load_limit:
+                    break
 
         if return_dataframe:
             return pandas.concat(summaries, ignore_index=True)
