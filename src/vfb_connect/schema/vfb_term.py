@@ -2778,14 +2778,19 @@ class VFBTerm:
                         print(f"No volume found for {self.name}") if verbose else None
         else:
             print(f"{self.name} is not a instance") if verbose else None
+        temp = self._return_type
+        self._return_type = 'full'
         if self.instances and len(self._instances) > 0:
             print(f"Loading instances for {self.name}") if verbose else None
             if include_template:
                 combined = VFBTerms([selected_template if selected_template else self.instances[0].channel_images[0].image.template_anatomy.short_form]) + self.instances
                 combined.plot3d(template=selected_template if selected_template else self.instances[0].channel_images[0].image.template_anatomy.short_form, **kwargs)
+                self._return_type = temp
                 return
             self.instances.plot3d(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, **kwargs)
+            self._return_type = temp
             return
+        self._return_type = temp
 
     def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
         """
@@ -2842,10 +2847,14 @@ class VFBTerm:
                         print(f"No volume found for {self.name}") if verbose else None
         else:
             print(f"{self.name} is not a instance") if verbose else None
+        temp=self._return_type
+        self._return_type = 'full'
         if self.instances and len(self._instances) > 0:
             print(f"Loading instances for {self.name}") if verbose else None
             self.instances.plot2d(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, **kwargs)
+            self._return_type = temp
             return
+        self._return_type = temp
         print(f"No images found for {self.name}") if verbose else None
 
     def show(self, template=None, transparent=False, verbose=False):
@@ -2871,13 +2880,15 @@ class VFBTerm:
                     return  # Successfully displayed, so exit the method
 
         # If the current object has instances, try to show the image for one of them
+        temp = self._return_type
+        self._return_type = 'full'
         if self.instances and len(self.instances) > 0:
             for instance in self.instances:
                 if instance.channel_images and len(instance.channel_images) > 0:
                     print("Calling instance thumbnail for", instance.name) if verbose else None
                     instance.show(template=template, transparent=transparent, verbose=verbose)
+                    self._return_type = temp
                     return  # Successfully displayed, so exit the method
-
         print(f"No images found to display for {self.name}") if verbose else None
 
     def open(self, verbose=False):
