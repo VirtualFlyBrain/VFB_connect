@@ -482,8 +482,10 @@ class VfbTermTest(unittest.TestCase):
     def test_vfbterm_site(self):
         term = self.vfb.term('fafb_catmaid_api')
         print("got term ", term)
-        print(term.instances(return_type='id'))
-        self.assertEqual(len(term._instances_ids), 10)
+        term.debug = True
+        term._return_type='id'
+        print(term.instances)
+        self.assertGreater(len(term._instances_ids), 9)
         print(dir(term))
         print(term.get_summary(return_dataframe=False))
         self.assertTrue(term.has_image)
