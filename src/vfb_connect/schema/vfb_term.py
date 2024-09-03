@@ -529,6 +529,8 @@ class Rel:
         self._object = None
         if object_name:
             self._object_name = object_name
+        else:
+            self._object_name = self.vfb.lookup_name(self._object_id)
 
     @property
     def object(self):
@@ -1669,6 +1671,9 @@ class VFBTerm:
                 self.synonyms = synonyms
 
             self._instances = None
+            self._instances_ids = None
+            self._instances_names = None
+            self._return_type = self.vfb._return_type # Default to global version but can be set to id, name (list) or full (VFBTerms)
             self._skeleton = None
             self._mesh = None
             self._volume = None
@@ -1887,27 +1892,49 @@ class VFBTerm:
         setattr(self.__class__, 'scRNAseq_genes', scRNAseq_genes)
 
     @property
-    def instances(self):
+    def instances(self, return_type=None):
         """
-        Get the instances of this term.
+        Get the instances of this term. The return type can be specified to 
+        return only IDs, only names, or the full instance details.
+        
+        Parameters:
+        - return_type (str): Determines the type of data to return. 
+        Options are 'full', 'id', or 'name'. Default is 'full'.
+        
+        Returns:
+        - list: A list of instances or their IDs/names based on the return_type.
         """
-        if self._instances is None:
-            print("Loading instances for the first time...")
+        if not return_type:
+            return_type = self._return_type
+        print(f"Getting {return_type}...") if self.debug else None
+        if self._instances_ids is None:
+            print("Loading instances ids for the first time...")
             if self.has_tag('Class'):
                 print("Loading instances for class: ", self.name) if self.debug else None
-                self._instances = VFBTerms(self.vfb.get_instances(class_expression=f"'{self.id}'", return_id_only=True))
+                self._instances_ids = self.vfb.get_instances(class_expression=f"'{self.id}'", return_id_only=True)
             elif self.has_tag('DataSet'):
                 print("Loading instances for dataset: ", self.name) if self.debug else None
                 print(f"Loading {self.counts['images'] if self.counts and 'images' in self.counts.keys() else ''} instances for dataset: {self.name}...")
-                self._instances = VFBTerms(self.vfb.get_instances_by_dataset(dataset=self.id, return_id_only=True))
+                self._instances_ids = self.vfb.get_instances_by_dataset(dataset=self.id, return_id_only=True)
             elif self.has_tag('API'):
                 print("Loading instances for API: ", self.name) if self.debug else None
-                self._instances = VFBTerms([r['id'] for r in self.vfb.cypher_query(query="MATCH (a:API {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)])
+                self._instances_ids = [r['id'] for r in self.vfb.cypher_query(query="MATCH (a:API {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)]
             elif self.has_tag('Site'):
                 print("Loading instances for site: ", self.name) if self.debug else None
-                self._instances = VFBTerms([r['id'] for r in self.vfb.cypher_query(query="MATCH (a:Site {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)])
-            if self._instances and len(self._instances) > 0:
+                results = self.vfb.cypher_query(query="MATCH (a:Site {short_form:'" + self.id + "'})<-[:database_cross_reference]-(i:Individual) RETURN i.short_form as id", return_dataframe=False)
+                print(f"Results: {results}") if self.debug else None
+                self._instances_ids = [r['id'] for r in results]
+            if self._instances_ids and len(self._instances_ids) > 0:
                 self.has_image = True
+        if return_type == 'id':
+            return self._instances_ids
+        if not self._instances_names:
+                self._instances_names = self.vfb.lookup_name(self._instances_ids)
+        if return_type == 'name':
+            return self._instances_names
+        if self._instances is None:
+            print("Creating instances for the first time...")
+            self._instances = VFBTerms(self._instances_ids, verbose=self.debug)
         return self._instances
 
     @property
@@ -2058,6 +2085,7 @@ class VFBTerm:
             """
             Get the neurons that have postsynaptic terminals in this region. Based on literature.
             """
+
             if self._upstream_neurons is None:
                 # If not a type then run the query against the first parent type
                 if self.is_type:
@@ -2448,12 +2476,18 @@ class VFBTerm:
         }
         if hasattr(self, "related_terms") and self.related_terms:
             summary["Related Terms"] = [str(rel) for rel in self.related_terms]
-        if hasattr(self, "_instances") and self._instances:
-            summary["instances"] = self.instances.get_names()
-        if hasattr(self, "parents") and self.parents:
+        if hasattr(self, "_instances_names") and self._instances_names:
+            summary["instances"] = self._instances_names
+        elif hasattr(self, "_instances_ids") and self._instances_ids:
+            summary["instances"] = self.vfb.lookup_name(self._instances_ids)
+        if hasattr(self, "_parents") and self._parents:
             summary["Parents"] = self.parents.get_names()
-        if hasattr(self, "regions") and self.regions:
+        elif hasattr(self, "_parents_ids") and self._parents_ids:
+            summary["Parents"] = self.vfb.lookup_name(self._parents_ids)
+        if hasattr(self, "_regions") and self._regions:
             summary["Regions"] = self.regions.get_names()
+        elif hasattr(self, "_regions_ids") and self._regions_ids:
+            summary["Regions"] = self.vfb.lookup_name(self._regions_ids)
         if hasattr(self, "counts") and self.counts:
             summary["Counts"] = self.counts
         if hasattr(self, "publications") and self.publications:
@@ -2462,8 +2496,10 @@ class VFBTerm:
             summary["License"] = self.license.core.name
         if hasattr(self, "xrefs") and self.xrefs:
             summary["Cross References"] = [str(xref.link) for xref in self.xrefs]
-        if hasattr(self, "datasets") and self.datasets:
+        if hasattr(self, "_datasets") and self._datasets:
             summary["Datasets"] = self.datasets.get_names()
+        elif hasattr(self, "_dataset_ids") and self._dataset_ids:
+            summary["Datasets"] = self.vfb.lookup_name(self._dataset_ids)
         if return_dataframe:
             return pandas.DataFrame([summary])
 
@@ -2745,14 +2781,19 @@ class VFBTerm:
                         print(f"No volume found for {self.name}") if verbose else None
         else:
             print(f"{self.name} is not a instance") if verbose else None
+        temp = self._return_type
+        self._return_type = 'full'
         if self.instances and len(self._instances) > 0:
             print(f"Loading instances for {self.name}") if verbose else None
             if include_template:
                 combined = VFBTerms([selected_template if selected_template else self.instances[0].channel_images[0].image.template_anatomy.short_form]) + self.instances
                 combined.plot3d(template=selected_template if selected_template else self.instances[0].channel_images[0].image.template_anatomy.short_form, **kwargs)
+                self._return_type = temp
                 return
             self.instances.plot3d(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, **kwargs)
+            self._return_type = temp
             return
+        self._return_type = temp
 
     def plot2d(self, template=None, verbose=False, query_by_label=True, force_reload=False, **kwargs):
         """
@@ -2809,10 +2850,14 @@ class VFBTerm:
                         print(f"No volume found for {self.name}") if verbose else None
         else:
             print(f"{self.name} is not a instance") if verbose else None
+        temp=self._return_type
+        self._return_type = 'full'
         if self.instances and len(self._instances) > 0:
             print(f"Loading instances for {self.name}") if verbose else None
             self.instances.plot2d(template=template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload, **kwargs)
+            self._return_type = temp
             return
+        self._return_type = temp
         print(f"No images found for {self.name}") if verbose else None
 
     def show(self, template=None, transparent=False, verbose=False):
@@ -2823,6 +2868,7 @@ class VFBTerm:
         :param transparent: Display the image with transparency if True.
         :param verbose: Print additional information if True.
         """
+        template = self.get_default_template(template=template)
         if self.channel_images:
             if template:
                 selected_template = self.vfb.lookup_id(template)
@@ -2838,13 +2884,15 @@ class VFBTerm:
                     return  # Successfully displayed, so exit the method
 
         # If the current object has instances, try to show the image for one of them
+        temp = self._return_type
+        self._return_type = 'full'
         if self.instances and len(self.instances) > 0:
             for instance in self.instances:
                 if instance.channel_images and len(instance.channel_images) > 0:
                     print("Calling instance thumbnail for", instance.name) if verbose else None
                     instance.show(template=template, transparent=transparent, verbose=verbose)
+                    self._return_type = temp
                     return  # Successfully displayed, so exit the method
-
         print(f"No images found to display for {self.name}") if verbose else None
 
     def open(self, verbose=False):
@@ -2948,18 +2996,23 @@ class VFBTerms:
         # Check if terms is a list of strings (IDs)
         if isinstance(terms, list) and all(isinstance(term, str) for term in terms):
             self.terms = []
-            count = 0
-            for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms"):
-                if self.vfb._load_limit:
-                    if count >= self.vfb._load_limit:
-                        print(f"Reached load limit of {self.vfb._load_limit}. Stopping.")
-                        break
-                vfb_term = VFBTerm(id=term, verbose=verbose)
-                if hasattr(vfb_term, 'term'):
-                    self.terms.append(vfb_term)
-                    count += 1
-                else:
-                    print(f"\033[33mWarning:\033[0m Term with ID {term} not found") if verbose else None
+            terms = [self.vfb.lookup_id(term) for term in terms if term]
+            if self.vfb._load_limit and len(terms) > self.vfb._load_limit:
+                print(f"More thann the load limit of {self.vfb._load_limit} requested. Loading first {self.vfb._load_limit} terms out of {len(terms)}")
+                terms = terms[:self.vfb._load_limit]
+            print(f"Pulling {len(terms)} terms from VFB...")
+            json_list = self.vfb.get_TermInfo(terms, summary=False, verbose=verbose)
+            if len(json_list) < len(terms):
+                print("Some terms not found in cache. Falling back to slower Neo4j queries.")
+                loaded_ids = [j['term']['core']['short_form'] for j in json_list]
+                missing_ids = [term for term in terms if term not in loaded_ids]
+                missing_json = self.vfb.get_TermInfo(missing_ids, summary=False, cache=False, verbose=verbose)
+                json_list = json_list + missing_json
+                if len(json_list) < len(terms):
+                    loaded_ids = [j['term']['core']['short_form'] for j in json_list]
+                    missing_ids = [term for term in terms if term not in loaded_ids]
+                    print(f"Failed to load {len(missing_ids)} terms: {missing_ids}")
+            self.terms = create_vfbterm_list_from_json(json_list, verbose=verbose)
             return
 
         if isinstance(terms, list) and all(isinstance(term, type(None)) for term in terms):
@@ -3810,18 +3863,27 @@ class VFBTerms:
         """
         return [term.name for term in self.terms]
 
-    def get_summaries(self, return_dataframe=True):
+    def get_summaries(self, return_dataframe=True, verbose=False, limit=None):
         """
         Get the summaries of the terms.
 
         :param return_dataframe: Return the summaries as a DataFrame if True.
         :return: List or DataFrame of term summaries.
         """
-        summaries = [term.get_summary(return_dataframe=return_dataframe) for term in self.terms]
+        summaries = []
+        if not self.vfb._load_limit and not limit:
+            for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Summaries"):
+                summaries.append(term.get_summary(return_dataframe=return_dataframe, verbose=verbose))
+        else:
+            count = 0
+            for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Summaries"):
+                summaries.append(term.get_summary(return_dataframe=return_dataframe, verbose=verbose))
+                count += 1
+                if (self.vfb._load_limit and count >= self.vfb._load_limit) or (limit and count >= limit):
+                    break
 
         if return_dataframe:
             return pandas.concat(summaries, ignore_index=True)
-
         return summaries
 
     def open(self, template=None, verbose=False):
@@ -3944,7 +4006,7 @@ def create_vfbterm_list_from_json(json_data, verbose=False):
     if isinstance(json_data, list):
         data = json_data
 
-    return VFBTerms([create_vfbterm_from_json(term, verbose=verbose) for term in data])
+    return VFBTerms([create_vfbterm_from_json(term, verbose=verbose) for term in VFBTerms.tqdm_with_threshold(VFBTerms, data, threshold=10, desc="Loading Terms")])
 
 def create_vfbterm_from_json(json_data, verbose=False):
     """
