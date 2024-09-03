@@ -2957,17 +2957,11 @@ class VFBTerms:
         if isinstance(terms, list) and all(isinstance(term, str) for term in terms):
             self.terms = []
             count = 0
-            for term in self.tqdm_with_threshold(terms, threshold=10, desc="Loading terms"):
-                if self.vfb._load_limit:
-                    if count >= self.vfb._load_limit:
-                        print(f"Reached load limit of {self.vfb._load_limit}. Stopping.")
-                        break
-                vfb_term = VFBTerm(id=term, verbose=verbose)
-                if hasattr(vfb_term, 'term'):
-                    self.terms.append(vfb_term)
-                    count += 1
-                else:
-                    print(f"\033[33mWarning:\033[0m Term with ID {term} not found") if verbose else None
+            if len(terms) > self.vfb._load_limit:
+                print(f"More thann the load limit of {self.vfb._load_limit} requested. Loading first {self.vfb._load_limit} terms out of {len(terms)}")
+                terms = terms[:self.vfb._load_limit]
+            json_list = self.vfb.get_TermInfo(terms, summary=False)
+            self.terms = create_vfbterm_list_from_json(json_list, verbose=verbose)
             return
 
         if isinstance(terms, list) and all(isinstance(term, type(None)) for term in terms):
@@ -3962,7 +3956,7 @@ def create_vfbterm_list_from_json(json_data, verbose=False):
     if isinstance(json_data, list):
         data = json_data
 
-    return VFBTerms([create_vfbterm_from_json(term, verbose=verbose) for term in data])
+    return VFBTerms([create_vfbterm_from_json(term, verbose=verbose) for term in VFBTerms.tqdm_with_threshold(VFBTerms, data, threshold=10, desc="Loading Terms")])
 
 def create_vfbterm_from_json(json_data, verbose=False):
     """
