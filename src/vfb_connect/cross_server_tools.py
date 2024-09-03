@@ -537,7 +537,7 @@ class VfbConnect:
         if dataset:
             query = "MATCH (ds:DataSet)<-[:has_source]-(i:Individual) " \
                     "WHERE ds.short_form = '%s' " \
-                    "RETURN collect(i.short_form) as inds" % dataset
+                    "RETURN collect(distinct i.short_form) as inds" % dataset
             dc = self.neo_query_wrapper._query(query) # TODO - Would better to use the original column oriented return!
             if return_id_only:
                 return dc[0]['inds']
