@@ -180,7 +180,7 @@ class VfbConnect:
             return [self.lookup_id(k, return_curie=return_curie, allow_subsitutions=allow_subsitutions, subsitution_stages=subsitution_stages) for k in key]
         
         if isinstance(key, str):
-            dbs = self.neo_query_wrapper.get_dbs()
+            dbs = self.get_dbs()
             if any(key.startswith(db) for db in dbs):
                 split_key = key.rsplit(':', 1)
                 print(f"Split xref: {split_key}") if verbose else None
@@ -821,7 +821,9 @@ class VfbConnect:
         :return: List of external databases in the database.
         :rtype: list
         """
-        return self.neo_query_wrapper.get_dbs(include_symbols=include_symbols)
+        if not hasattr(self, '_dbs') or not self.vfb._dbs:
+            self._dbs = self.neo_query_wrapper.get_dbs(include_symbols=include_symbols)
+        return self._dbs
 
     def get_scRNAseq_expression(self, id, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
         """
