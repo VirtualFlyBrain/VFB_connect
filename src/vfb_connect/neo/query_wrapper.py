@@ -430,7 +430,7 @@ class QueryWrapper(Neo4jConnect):
         mapping = self.vfb_id_2_xrefs(vfb_id, db=db, reverse_return=True)
         return [int(k) for k, v in mapping.items()]
 
-    def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False):
+    def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False, verbose=False):
         """Map a list external DB IDs to VFB IDs
 
           :param acc: An iterable (e.g. a list) of external IDs (e.g. neuprint bodyIDs).
@@ -442,6 +442,8 @@ class QueryWrapper(Neo4jConnect):
               Return if `reverse_return` is `True`:
                 dict { VFB_id : [{ db: <db> : acc : <acc> }
           """
+        if isinstance(acc, str):
+            acc = [acc]
         match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) WHERE"
         conditions = []
         if not (acc is None):
@@ -458,7 +460,9 @@ class QueryWrapper(Neo4jConnect):
             ret = "RETURN i.short_form as key, " \
                   "collect({ db: s.short_form, acc: r.accession[0]}) as mapping"
         q = ' '.join([match, condition_clauses, ret])
+        print(q) if verbose else None
         dc = self._query(q)
+        print(dc) if verbose else None
         return {d['key']: d['mapping'] for d in dc}
 
     @batch_query
