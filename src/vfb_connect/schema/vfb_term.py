@@ -3832,7 +3832,7 @@ class VFBTerms:
             for term in VFBTerms.tqdm_with_threshold(self, self.terms, threshold=10, desc="Loading Summaries"):
                 summaries.append(term.get_summary(return_dataframe=return_dataframe, verbose=verbose))
                 count += 1
-                if (self.vfb._load_limit count >= self.vfb._load_limit) or (limit and count >= limit):
+                if (self.vfb._load_limit and count >= self.vfb._load_limit) or (limit and count >= limit):
                     break
 
         if return_dataframe:
