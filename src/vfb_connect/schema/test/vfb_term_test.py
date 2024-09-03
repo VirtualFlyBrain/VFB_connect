@@ -483,7 +483,7 @@ class VfbTermTest(unittest.TestCase):
         term = self.vfb.term('fafb_catmaid_api')
         print("got term ", term)
         print(term.instances(return_type='id'))
-        self.assertEqual(len(term.instances), 10)
+        self.assertEqual(len(term._instances_ids), 10)
         print(dir(term))
         print(term.get_summary(return_dataframe=False))
         self.assertTrue(term.has_image)

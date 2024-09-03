@@ -1673,6 +1673,7 @@ class VFBTerm:
             self._instances = None
             self._instances_ids = None
             self._instances_names = None
+            self._return_type = 'full' # Default to full term information but can be set to id or name
             self._skeleton = None
             self._mesh = None
             self._volume = None
@@ -1891,7 +1892,7 @@ class VFBTerm:
         setattr(self.__class__, 'scRNAseq_genes', scRNAseq_genes)
 
     @property
-    def instances(self, return_type='full'):
+    def instances(self, return_type=None):
         """
         Get the instances of this term. The return type can be specified to 
         return only IDs, only names, or the full instance details.
@@ -1903,6 +1904,9 @@ class VFBTerm:
         Returns:
         - list: A list of instances or their IDs/names based on the return_type.
         """
+        if not return_type:
+            return_type = self._return_type
+        print(f"Getting {return_type}...") if self.debug else None
         if self._instances_ids is None:
             print("Loading instances ids for the first time...")
             if self.has_tag('Class'):
@@ -2469,8 +2473,10 @@ class VFBTerm:
         }
         if hasattr(self, "related_terms") and self.related_terms:
             summary["Related Terms"] = [str(rel) for rel in self.related_terms]
-        if hasattr(self, "_instances") and self._instances:
-            summary["instances"] = self.instances(return_type='name')
+        if hasattr(self, "_instances_names") and self._instances_names:
+            summary["instances"] = self._instances_names
+        elif hasattr(self, "_instances_ids") and self._instances_ids:
+            summary["instances"] = self.vfb.lookup_name(self._instances_ids)
         if hasattr(self, "_parents") and self._parents:
             summary["Parents"] = self.parents.get_names()
         elif hasattr(self, "_parents_ids") and self._parents_ids:
