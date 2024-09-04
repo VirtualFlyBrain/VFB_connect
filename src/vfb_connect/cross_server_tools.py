@@ -942,7 +942,7 @@ class VfbConnect:
 
             print("Querying for external database symbols:",symbol_query) if verbose else None
             symbol_results = self.cypher_query(symbol_query, return_dataframe=False, verbose=verbose)
-            dbs.extend([d['symbol'] for d in symbol_results if d['symbol']])
+            dbs.extend([d['symbol'] for d in symbol_results])
 
         # Cache the results for this combination of parameters
         self._dbs_cache[cache_key] = dbs
