@@ -164,6 +164,15 @@ class VfbConnect:
 
         return self.reverse_lookup[ids]
 
+    def preprocess_lookup(self):
+        """Preprocesses the lookup table to create a normalized lookup for faster access."""
+        normalized_lookup = {}
+        for k, v in self.lookup.items():
+            norm_key = self.normalize_key(k)
+            if norm_key not in normalized_lookup:
+                normalized_lookup[norm_key] = v
+        return normalized_lookup
+
     def normalize_key(self, key):
         """
         Normalize the key for comparison by making it lowercase and removing special characters.
