@@ -677,6 +677,39 @@ class VfbConnect:
         else:
             return dc
 
+    def get_neuron_pubs(self, neuron, include_subclasses=True, include_nlp=False,
+                        query_by_label=True, verbose=False):
+
+        """Get publications about a neuron type
+
+        :param neuron: An name, symbol, or ID of a neuron type
+        :param include_subclasses: Include references for subclasses (subtypes) of this neuron type, default: True
+        :param include_nlp: Include experimental matches from natural language processing. Default = False
+        :param query_by_label: query using the label, symbol or ID of a neuron.
+        :param verbose: Return underlying cypher query for debugging
+        """
+
+        if query_by_label:
+            neuron = self.lookup_id(dequote(neuron))
+        if include_subclasses:
+            cypher_q = "MATCH (n:Neuron)<-[:SUBCLASSOF*0..]-() "
+        else:
+            cypher_q = "MATCH (n:Neuron) "
+        cypher_q += """WHERE n.short_form = '%s'
+                      MATCH (n)-[r:has_reference]-(pub) 
+                      WHERE pub.title is not null """ % neuron
+        if not include_nlp:
+            cypher_q += "AND NOT (r.typ = 'nlp') "
+        cypher_q += """WITH collect ({ type: r.typ, miniref: pub.miniref[0], PMID: pub.PMID[0], DOI: pub.DOI[0], FlyBase: pub.FlyBase, title: pub.title[0]}) as pubs1, n 
+                      MATCH (ep:Expression_pattern:Class)<-[ar:part_of]-(anoni:Individual)-[:INSTANCEOF]->(n)
+                      MATCH (pub:pub { short_form: ar.pub[0]}) 
+                      WITH pubs1, collect({ type: 'expression', miniref: pub.miniref[0], PMID: pub.PMID[0], DOI: pub.DOI[0], FlyBase: pub.FlyBase }) as pubs2 
+                      RETURN pubs1 + pubs2  as all_pubs"""
+        r = self.nc.commit_list([cypher_q])
+        dc = dict_cursor(r)
+        print(cypher_q) if verbose else None
+        return pd.DataFrame.from_records(dc[0]['all_pubs'])
+
     #  Wrapped neo_query_wrapper methods
     def get_datasets(self, summary=True, return_dataframe=True):
         """Get all datasets in the database.
