@@ -924,7 +924,7 @@ class VfbConnect:
         query += "RETURN i.short_form as id"
 
         # Execute the query
-        results = self._query(query)
+        results = self.cypher_query(query, return_dataframe=False)
         dbs = [d['id'] for d in results]
 
         # Optionally include symbols
