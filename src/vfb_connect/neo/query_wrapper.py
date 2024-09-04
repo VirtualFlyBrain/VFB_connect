@@ -384,7 +384,7 @@ class QueryWrapper(Neo4jConnect):
             return pd.DataFrame.from_records(results)
         return results
 
-    def get_templates(self, summary=True, return_dataframe=True):
+    def get_templates(self, summary=True, return_dataframe=True, include_symbols=False):
         """Generate JSON report of all available templates.
 
             :param summary: Optional.  Returns summary reports if `True`. Default `True`
@@ -394,7 +394,12 @@ class QueryWrapper(Neo4jConnect):
         dc = self._query("MATCH (i:Individual:Template:Anatomy) "
                          "RETURN i.short_form as sf")
         short_forms = [d['sf'] for d in dc]
-        return self.get_anatomical_individual_TermInfo(short_forms, summary=summary)
+        if include_symbols:
+            dc = self._query("MATCH (i:Individual:Template:Anatomy) ",
+                             "WHERE exists(i.symbol) and not i.symbol[0] = '' "
+                             "RETURN i.symbol[0] as s")
+            short_forms.extend([d['s'] for d in dc if d['s']])
+        return self.get_anatomical_individual_TermInfo(short_forms, summary=summary, return_dataframe=return_dataframe)
 
     def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
         """Map a list of short_form IDs in VFB to external DB IDs
