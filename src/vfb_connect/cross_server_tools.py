@@ -95,6 +95,7 @@ class VfbConnect:
         self.nc = Neo4jConnect(**connections['neo'])
         self.neo_query_wrapper = QueryWrapper(**connections['neo'])
         self.cache_file = self.get_cache_file_path()
+        self._dbs_cache = {}
         self.lookup = self.nc.get_lookup(cache=self.cache_file)
         self.normalized_lookup = self.preprocess_lookup()
         self.reverse_lookup = {v: k for k, v in self.lookup.items()}
@@ -897,15 +898,51 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.vfb_id_2_xrefs(vfb_id=vfb_id, db=db, id_type=id_type, reverse_return=reverse_return)
 
-    def get_dbs(self, include_symbols=True):
-        """Get all external databases in the database.
+    def get_dbs(self, include_symbols=True, data_sources_only=True):
+        """Get all external databases in the database, optionally filtering by data sources and including symbols.
 
-        :return: List of external databases in the database.
+        :param include_symbols: If True, include the symbols of the databases.
+        :type include_symbols: bool
+        :param data_sources_only: If True, only include databases where is_datasource=True.
+        :type data_sources_only: bool
+        :return: List of external databases and optionally their symbols.
         :rtype: list
         """
-        if not self._dbs:
-            self._dbs = self.neo_query_wrapper.get_dbs(include_symbols=include_symbols)
-        return self._dbs
+        # Create a cache key based on the options to ensure unique cache for each option set
+        cache_key = (include_symbols, data_sources_only)
+
+        # Check if the result is already cached
+        if cache_key in self._dbs_cache:
+            return self._dbs_cache[cache_key]
+
+        # Base query to get all databases, filtering for data sources if needed
+        query = "MATCH (i:Individual) "
+        if data_sources_only:
+            query += "WHERE i.is_datasource=True AND (i:Site OR i:API) "
+        else:
+            query += "WHERE i:Site OR i:API "
+        query += "RETURN i.short_form as id"
+
+        # Execute the query
+        results = self._query(query)
+        dbs = [d['id'] for d in results]
+
+        # Optionally include symbols
+        if include_symbols:
+            symbol_query = "MATCH (i:Individual) "
+            if data_sources_only:
+                symbol_query += "WHERE i.is_datasource=True AND (i:Site OR i:API) "
+            else:
+                symbol_query += "WHERE i:Site OR i:API "
+            symbol_query += "AND exists(i.symbol) AND i.symbol[0] <> '' RETURN i.symbol[0] as symbol"
+
+            symbol_results = self._query(symbol_query)
+            dbs.extend([d['symbol'] for d in symbol_results if d['symbol']])
+
+        # Cache the results for this combination of parameters
+        self._dbs_cache[cache_key] = dbs
+
+        return dbs
 
     def get_scRNAseq_expression(self, id, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
         """
