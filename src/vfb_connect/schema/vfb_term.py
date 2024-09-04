@@ -3378,7 +3378,10 @@ class VFBTerms:
                 print(f"Returning result as a dictionary: {result_dict}")
             return result_dict
         else:
-            sorted_result = sorted(result)
+            try:
+                sorted_result = sorted(result)
+            except TypeError:
+                print("INFO: Result type can't be sorted")
             if verbose:
                 print(f"Final sorted result: {sorted_result}")
             return sorted_result
