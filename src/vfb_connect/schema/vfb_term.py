@@ -3382,6 +3382,7 @@ class VFBTerms:
                 sorted_result = sorted(result)
             except TypeError:
                 print("INFO: Result type can't be sorted")
+                sorted_result = result
             if verbose:
                 print(f"Final sorted result: {sorted_result}")
             return sorted_result
