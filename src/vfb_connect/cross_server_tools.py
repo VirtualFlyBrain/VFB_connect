@@ -95,6 +95,7 @@ class VfbConnect:
         self.nc = Neo4jConnect(**connections['neo'])
         self.neo_query_wrapper = QueryWrapper(**connections['neo'])
         self.cache_file = self.get_cache_file_path()
+        self._dbs_cache = {}
         self.lookup = self.nc.get_lookup(cache=self.cache_file)
         self.normalized_lookup = self.preprocess_lookup()
         self.reverse_lookup = {v: k for k, v in self.lookup.items()}
@@ -903,15 +904,56 @@ class VfbConnect:
         """
         return self.neo_query_wrapper.vfb_id_2_xrefs(vfb_id=vfb_id, db=db, id_type=id_type, reverse_return=reverse_return)
 
-    def get_dbs(self, include_symbols=True):
-        """Get all external databases in the database.
+    def get_dbs(self, include_symbols=True, data_sources_only=True, verbose=False):
+        """Get all external databases in the database, optionally filtering by data sources and including symbols.
 
-        :return: List of external databases in the database.
+        :param include_symbols: If True, include the symbols of the databases.
+        :type include_symbols: bool
+        :param data_sources_only: If True, only include databases where is_data_source=True.
+        :type data_sources_only: bool
+        :return: List of external databases and optionally their symbols.
         :rtype: list
         """
-        if not self._dbs:
-            self._dbs = self.neo_query_wrapper.get_dbs(include_symbols=include_symbols)
-        return self._dbs
+        # Create a cache key based on the options to ensure unique cache for each option set
+        cache_key = (include_symbols, data_sources_only)
+
+        # Check if the result is already cached
+        if cache_key in self._dbs_cache and self._dbs_cache[cache_key]:
+            print("Returning cached results") if verbose else None
+            return self._dbs_cache[cache_key]
+
+        print("Querying for external database ids") if verbose else None
+        # Base query to get all databases, filtering for data sources if needed
+        query = "MATCH (i:Individual) "
+        if data_sources_only:
+            query += "WHERE i.is_data_source=[True] AND (i:Site OR i:API) "
+        else:
+            query += "WHERE i:Site OR i:API "
+        query += "RETURN i.short_form as id"
+
+        # Execute the query
+        print("Querying for external database ids:", query) if verbose else None
+        results = self.cypher_query(query, return_dataframe=False, verbose=verbose)
+        dbs = [d['id'] for d in results]
+
+        # Optionally include symbols
+        if include_symbols:
+            print("Querying for external database symbols") if verbose else None
+            symbol_query = "MATCH (i:Individual) "
+            if data_sources_only:
+                symbol_query += "WHERE i.is_data_source=[True] AND (i:Site OR i:API) "
+            else:
+                symbol_query += "WHERE i:Site OR i:API "
+            symbol_query += "AND exists(i.symbol) AND not i.symbol[0] = '' RETURN i.symbol[0] as symbol"
+
+            print("Querying for external database symbols:",symbol_query) if verbose else None
+            symbol_results = self.cypher_query(symbol_query, return_dataframe=False, verbose=verbose)
+            dbs.extend([d['symbol'] for d in symbol_results])
+
+        # Cache the results for this combination of parameters
+        self._dbs_cache[cache_key] = dbs
+
+        return dbs
 
     def get_scRNAseq_expression(self, id, query_by_label=True, return_id_only=False, return_dataframe=True, verbose=False):
         """
@@ -1083,9 +1125,13 @@ class VfbConnect:
         :return: A DataFrame or list of results.
         :rtype: pandas.DataFrame or list of dicts
         """
+        print(f"Running query: {query}") if verbose else None
         r = self.nc.commit_list([query])
+        print(r) if verbose else None
         dc = dict_cursor(r)
+        print(dc) if verbose else None
         if return_dataframe:
+            print("Returning DataFrame") if verbose else None
             return pd.DataFrame.from_records(dc)
         return dc
 
