@@ -95,6 +95,7 @@ class VfbConnect:
         self.neo_query_wrapper = QueryWrapper(**connections['neo'])
         self.cache_file = self.get_cache_file_path()
         self.lookup = self.nc.get_lookup(cache=self.cache_file)
+        self.normalized_lookup = self.preprocess_lookup()
         self.oc = OWLeryConnect(endpoint=owlery_endpoint,
                                 lookup=self.lookup)
         self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
@@ -106,7 +107,7 @@ class VfbConnect:
             self.queries = json.loads(saxutils.unescape(f.read()))
 
         self._term_cache = []
-        self._use_cache = True
+        self._use_cache = False
         self._load_limit = False
         self._dbs = None
         self._gene_function_filters = None
@@ -159,7 +160,17 @@ class VfbConnect:
             return ids # If not found, return the input
         return {v: k for k, v in self.lookup.items()}[ids]
 
-    def lookup_id(self, key, return_curie=False, allow_subsitutions=True, subsitution_stages=['adult', 'larval', 'pupal'], verbose=False):
+    def normalize_key(self, key):
+        """
+        Normalize the key for comparison by making it lowercase and removing special characters.
+        
+        :param key: The key to normalize.
+        :return: A normalized string.
+        """
+        return key.lower().replace('_', '').replace('-', '').replace(' ', '').replace(':', '').replace(';', '')
+
+
+    def lookup_id(self, key, return_curie=False, allow_substitutions=True, substitution_stages=['adult', 'larval', 'pupal'], verbose=False):
         """Lookup the ID for a given key (label or symbol) using the internal lookup table.
 
         :param key: The label symbol, synonym, or potential ID to look up.
@@ -172,85 +183,75 @@ class VfbConnect:
         if not key:
             print("\033[31mError:\033[0m No key provided.")
             return ''
-        # Check if the key is a VFBTerm object
+
         if isinstance(key, VFBTerm):
             return key.id
-        
+
         if isinstance(key, VFBTerms):
             return key.get_ids()
-        
+
         if isinstance(key, list):
-            return [self.lookup_id(k, return_curie=return_curie, allow_subsitutions=allow_subsitutions, subsitution_stages=subsitution_stages) for k in key]
-        
+            return [self.lookup_id(k, return_curie=return_curie, allow_substitutions=allow_substitutions, substitution_stages=substitution_stages) for k in key]
+
         if isinstance(key, str):
             dbs = self.get_dbs()
             if ":" in key and any(key.startswith(db) for db in dbs):
                 split_key = key.rsplit(':', 1)
-                print(f"Split xref: {split_key}") if verbose else None
+                if verbose:
+                    print(f"Split xref: {split_key}")
                 if len(split_key) == 2:
                     id = self.xref_2_vfb_id(acc=split_key[1], db=split_key[0], return_just_ids=True)
                     if id and len(id) == 1:
                         return id[0]
 
-
-        # Direct lookup: Check if the key is already a valid ID
         if key in self.lookup.values():
             return key if not return_curie else key.replace('_', ':')
-        
-        # CARO lookup: Check if the key is a CARO/BFO/UBERON/FBbt(obsolete) term; though not in the lookup they need to be handled if explicitly called
+
         prefixes = ('CARO_', 'BFO_', 'UBERON_', 'GENO_', 'CL_', 'FB', 'VFB_', 'GO_', 'SO_', 'RO_', 'PATO_', 'CHEBI_', 'PR_', 'NCBITaxon_', 'ENVO_', 'OBI_', 'IAO_', 'OBI_')
-        if isinstance(key,str) and key.startswith(prefixes) and not key in self.lookup.keys():
+        if key.startswith(prefixes) and key not in self.lookup.keys():
             return key if not return_curie else key.replace('_', ':')
-        
-        # Direct lookup in the dictionary
-        if key in self.lookup.keys():
+
+        if key in self.lookup:
             out = self.lookup[key]
             return out if not return_curie else out.replace('_', ':')
-        else:
-            print(f"No direct match found for {key}")
 
-        if allow_subsitutions:
-            matched_key = ''
-            out = ''
-            # Case-insensitive and character-insensitive lookup
-            normalized_key = key.lower().replace('_', '').replace('-', '').replace(' ', '').replace(':','')
-            print(f"Normalized key: {normalized_key}") if verbose else None
-            matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '').replace(':','').replace(';','') == normalized_key}
+        if allow_substitutions:
+            normalized_key = self.normalize_key(key)
+            if verbose:
+                print(f"Normalized key: {normalized_key}")
 
-            if isinstance(subsitution_stages, str):
-                subsitution_stages = [subsitution_stages]
+            matches = {k: v for k, v in self.lookup.items() if self.normalize_key(k) == normalized_key}
+
+            if isinstance(substitution_stages, str):
+                substitution_stages = [substitution_stages]
+
             if not matches:
-                for stage in subsitution_stages:
-                        stage_normalized_key = stage + normalized_key
-                        matches = {k: v for k, v in self.lookup.items() if k.lower().replace('_', '').replace('-', '').replace(' ', '').replace(':','').replace(';','') == stage_normalized_key}
-                        if matches:
-                            break
+                for stage in substitution_stages:
+                    stage_normalized_key = self.normalize_key(stage + key)
+                    matches = {k: v for k, v in self.lookup.items() if self.normalize_key(k) == stage_normalized_key}
+                    if matches:
+                        break
 
             if matches:
-                for k, v in matches.items():
-                    print(f"Matched: {k} -> {v}") if verbose else None
-                    if not matched_key:
-                        matched_key = k
+                matched_key = min(matches.keys(), key=len)
+                if verbose:
+                    for k, v in matches.items():
+                        print(f"Matched: {k} -> {v}")
 
-                # Warn if a case substitution or normalization was performed
-                if matched_key:
-                    if len(matches.keys()) < 2:
-                        print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
-                        out = matches[matched_key]
-                    else:
-                        all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
-                        print(f"\033[33mWarning:\033[0m Ambiguous match for '\033[33m{key}\033[0m'. Using '{matched_key}' -> '\033[32m{out}\033[0m'. Other possible matches: {all_matches}")
+                if len(matches) == 1:
+                    print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
+                    return matches[matched_key] if not return_curie else matches[matched_key].replace('_', ':')
 
-                return out if not return_curie else out.replace('_', ':')
+                all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
+                print(f"\033[33mWarning:\033[0m Ambiguous match for '\033[33m{key}\033[0m'. Using '{matched_key}' -> '\033[32m{matches[matched_key]}\033[0m'. Other possible matches: {all_matches}")
+                return matches[matched_key] if not return_curie else matches[matched_key].replace('_', ':')
 
-            # Check for partial matches: starts with
             starts_with_matches = {k: v for k, v in self.lookup.items() if k.lower().startswith(key.lower())}
             if starts_with_matches:
                 all_matches = ", ".join([f"'\033[36m{k}\033[0m': '{v}'" for k, v in starts_with_matches.items()])
                 print(f"Notice: No exact match found, but potential matches starting with '\033[31m{key}\033[0m': {all_matches}")
                 return ''
 
-            # Check for partial matches: contains
             contains_matches = {k: v for k, v in self.lookup.items() if key.lower() in k.lower()}
             if contains_matches:
                 all_matches = ", ".join([f"'\033[36m{k}\033[0m': '{v}'" for k, v in contains_matches.items()])

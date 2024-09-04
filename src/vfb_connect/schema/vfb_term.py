@@ -1929,15 +1929,18 @@ class VFBTerm:
                 self._instances_ids = [r['id'] for r in results]
             if self._instances_ids and len(self._instances_ids) > 0:
                 self.has_image = True
+        print(f"Got {len(self._instances_ids)} instances...") if self.debug else None
         if return_type == 'id':
             return self._instances_ids
-        if not self._instances_names:
-                self._instances_names = self.vfb.lookup_name(self._instances_ids)
         if return_type == 'name':
+            if not self._instances_names:
+                self._instances_names = self.vfb.lookup_name(self._instances_ids)
+            print(f"Got {len(self._instances_names)} instance names...") if self.debug else None
             return self._instances_names
         if self._instances is None:
             print("Creating instances for the first time...")
             self._instances = VFBTerms(self._instances_ids, verbose=self.debug)
+        print(f"Got {len(self._instances)} instances...") if self.debug else None
         return self._instances
 
     @property
@@ -3010,6 +3013,7 @@ class VFBTerms:
         # Check if terms is a list of strings (IDs)
         if isinstance(terms, list) and all(isinstance(term, str) for term in terms):
             self.terms = []
+            print(f"Changing {len(terms)} term names to ids") if verbose else None
             terms = [self.vfb.lookup_id(term) for term in terms if term]
             if self.vfb._load_limit and len(terms) > self.vfb._load_limit:
                 print(f"More thann the load limit of {self.vfb._load_limit} requested. Loading first {self.vfb._load_limit} terms out of {len(terms)}")
