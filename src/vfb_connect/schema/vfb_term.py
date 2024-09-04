@@ -717,7 +717,7 @@ class Relations:
 
         :return: A VFBTerms object containing all the related terms.
         """
-        return VFBTerms([rel.object for rel in self.relations])
+        return VFBTerms([rel.object for rel in self.relations], query_by_label=False)
 
     def get_relations(self):
         """
@@ -1378,7 +1378,7 @@ class ExpressionList:
 
         :return: A VFBTerms object containing all the related terms.
         """
-        return VFBTerms([exp.term for exp in self.expressions])
+        return VFBTerms([exp.term for exp in self.expressions], query_by_label=False)
 
     def get_summary(self, return_dataframe=True):
         """
@@ -2398,13 +2398,13 @@ class VFBTerm:
         if isinstance(other, VFBTerms):
             other_ids = other.get_ids()
             print("Removing ", other_ids) if verbose else None
-            remaining_terms = VFBTerms([term for term in [self.term] if term.id not in other_ids])
+            remaining_terms = VFBTerms([term for term in [self.term] if term.id not in other_ids], query_by_label=False)
             print ("Remaining ", remaining_terms.get_ids()) if verbose else None
             return remaining_terms
         if isinstance(other, VFBTerm):
             other_ids = [other.id]
             print("Removing ", other.id) if verbose else None
-            remaining_terms = VFBTerms([term for term in [self.term] if term.id != other.id])
+            remaining_terms = VFBTerms([term for term in [self.term] if term.id != other.id], query_by_label=False)
             return remaining_terms
         raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
 
@@ -2757,7 +2757,7 @@ class VFBTerm:
             if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
                 if include_template:
-                    combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self
+                    combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form], query_by_label=False) + self
                     combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                     return
                 return self._skeleton.plot3d(**kwargs)
@@ -2768,7 +2768,7 @@ class VFBTerm:
                 if self._mesh:
                     print(f"Mesh found for {self.name}") if verbose else None
                     if include_template:
-                        combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
+                        combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form], query_by_label=False) + self.term
                         combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                         return
                     return self._mesh.plot3d(**kwargs)
@@ -2779,7 +2779,7 @@ class VFBTerm:
                     if self._volume:
                         print(f"Volume found for {self.name}") if verbose else None
                         if include_template:
-                            combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
+                            combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form], query_by_label=False) + self.term
                             combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                             return
                         return self._volume.plot3d(**kwargs)
@@ -2792,7 +2792,7 @@ class VFBTerm:
         if self.instances and len(self._instances) > 0:
             print(f"Loading instances for {self.name}") if verbose else None
             if include_template:
-                combined = VFBTerms([selected_template if selected_template else self.instances[0].channel_images[0].image.template_anatomy.short_form]) + self.instances
+                combined = VFBTerms([selected_template if selected_template else self.instances[0].channel_images[0].image.template_anatomy.short_form], query_by_label=False) + self.instances
                 combined.plot3d(template=selected_template if selected_template else self.instances[0].channel_images[0].image.template_anatomy.short_form, **kwargs)
                 self._return_type = temp
                 return
@@ -2992,7 +2992,7 @@ class VFBTerms:
     verbose : bool
         Whether to print out information about the loading process.
     """
-    def __init__(self, terms: Union[List[VFBTerm], List[str], pandas.core.frame.DataFrame, List[dict]], verbose=False):
+    def __init__(self, terms: Union[List[VFBTerm], List[str], pandas.core.frame.DataFrame, List[dict]], verbose=False, query_by_label=True):
         from vfb_connect import vfb
         self.vfb = vfb
         self._summary = None
@@ -3019,12 +3019,12 @@ class VFBTerms:
                 print(f"More thann the load limit of {self.vfb._load_limit} requested. Loading first {self.vfb._load_limit} terms out of {len(terms)}")
                 terms = terms[:self.vfb._load_limit]
             print(f"Pulling {len(terms)} terms from VFB...")
-            json_list = self.vfb.get_TermInfo(terms, summary=False, verbose=verbose)
+            json_list = self.vfb.get_TermInfo(terms, summary=False, verbose=verbose, query_by_label=query_by_label)
             if len(json_list) < len(terms):
                 print("Some terms not found in cache. Falling back to slower Neo4j queries.")
                 loaded_ids = [j['term']['core']['short_form'] for j in json_list]
                 missing_ids = [term for term in terms if term not in loaded_ids]
-                missing_json = self.vfb.get_TermInfo(missing_ids, summary=False, cache=False, verbose=verbose)
+                missing_json = self.vfb.get_TermInfo(missing_ids, summary=False, cache=False, verbose=verbose, query_by_label=query_by_label)
                 json_list = json_list + missing_json
                 if len(json_list) < len(terms):
                     loaded_ids = [j['term']['core']['short_form'] for j in json_list]
@@ -3230,13 +3230,13 @@ class VFBTerms:
         if isinstance(other, VFBTerms):
             other_ids = other.get_ids()
             print("Removing ", other_ids) if verbose else None
-            remaining_terms = VFBTerms([term for term in self.terms if term.id not in other_ids])
+            remaining_terms = VFBTerms([term for term in self.terms if term.id not in other_ids], query_by_label=False)
             print ("Remaining ", remaining_terms.get_ids()) if verbose else None
             return remaining_terms
         if isinstance(other, VFBTerm):
             other_ids = [other.id]
             print("Removing ", other.id) if verbose else None
-            remaining_terms = VFBTerms([term for term in self.terms if term.id != other.id])
+            remaining_terms = VFBTerms([term for term in self.terms if term.id != other.id], query_by_label=False)
             return remaining_terms
         raise TypeError("Unsupported operand type(s) for -: 'VFBTerms' and '{}'".format(type(other).__name__))
 
@@ -3477,13 +3477,13 @@ class VFBTerms:
         if isinstance(other, VFBTerms):
             other_ids = other.get_ids()
             print("ANDing with ", other_ids) if verbose else None
-            remaining_terms = VFBTerms([term for term in self.terms if term.id in other_ids])
+            remaining_terms = VFBTerms([term for term in self.terms if term.id in other_ids], query_by_label=False)
             print ("Remaining ", remaining_terms.get_ids()) if verbose else None
             return remaining_terms
         if isinstance(other, VFBTerm):
             other_ids = [other.id]
             print("ANDing with ", other.id) if verbose else None
-            remaining_terms = VFBTerms([term for term in self.terms if term.id == other.id])
+            remaining_terms = VFBTerms([term for term in self.terms if term.id == other.id], query_by_label=False)
             return remaining_terms
         raise TypeError("Unsupported operand type(s) for AND: 'VFBTerms' and '{}'".format(type(other).__name__))
 
@@ -3608,13 +3608,13 @@ class VFBTerms:
         if isinstance(other, VFBTerms):
             other_ids = other.get_ids()
             print("NOTing with ", other_ids) if verbose else None
-            remaining_terms = VFBTerms([term for term in self.terms if term.id not in other_ids])
+            remaining_terms = VFBTerms([term for term in self.terms if term.id not in other_ids], query_by_label=False)
             print ("Remaining ", remaining_terms.get_ids()) if verbose else None
             return remaining_terms
         if isinstance(other, VFBTerm):
             other_ids = [other.id]
             print("NOTing with ", other.id) if verbose else None
-            remaining_terms = VFBTerms([term for term in self.terms if term.id != other.id])
+            remaining_terms = VFBTerms([term for term in self.terms if term.id != other.id], query_by_label=False)
             return remaining_terms
         raise TypeError("Unsupported operand type(s) for NOT: 'VFBTerms' and '{}'".format(type(other).__name__))
 
@@ -4032,7 +4032,7 @@ def create_vfbterm_list_from_json(json_data, verbose=False):
     if isinstance(json_data, list):
         data = json_data
 
-    return VFBTerms([create_vfbterm_from_json(term, verbose=verbose) for term in VFBTerms.tqdm_with_threshold(VFBTerms, data, threshold=10, desc="Loading Terms")])
+    return VFBTerms([create_vfbterm_from_json(term, verbose=verbose) for term in VFBTerms.tqdm_with_threshold(VFBTerms, data, threshold=10, desc="Loading Terms")], query_by_label=False)
 
 def create_vfbterm_from_json(json_data, verbose=False):
     """
