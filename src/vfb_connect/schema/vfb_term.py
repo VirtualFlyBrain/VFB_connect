@@ -2757,8 +2757,7 @@ class VFBTerm:
                     combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self
                     combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                     return
-                self._skeleton.plot3d(**kwargs)
-                return
+                return self._skeleton.plot3d(**kwargs)
             else:
                 print(f"No skeleton found for {self.name} check for a mesh") if verbose else None
                 if not self._mesh or force_reload:
@@ -2769,8 +2768,7 @@ class VFBTerm:
                         combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
                         combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                         return
-                    self._mesh.plot3d(**kwargs)
-                    return
+                    return self._mesh.plot3d(**kwargs)
                 else:
                     print(f"No mesh found for {self.name} check for a volume") if verbose else None
                     if not self._volume or force_reload:
@@ -2781,8 +2779,7 @@ class VFBTerm:
                             combined = VFBTerms([selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form]) + self.term
                             combined.plot3d(template=selected_template if selected_template else self.channel_images[0].image.template_anatomy.short_form, **kwargs)
                             return
-                        self._volume.plot3d(**kwargs)
-                        return
+                        return self._volume.plot3d(**kwargs)
                     else:
                         print(f"No volume found for {self.name}") if verbose else None
         else:
@@ -2834,24 +2831,21 @@ class VFBTerm:
                 self.load_skeleton(template=selected_template, verbose=verbose, query_by_label=query_by_label, force_reload=force_reload)
             if self._skeleton:
                 print(f"Skeleton found for {self.name}") if verbose else None
-                self._skeleton.plot2d(**kwargs)
-                return
+                return self._skeleton.plot2d(**kwargs)
             else:
                 print(f"No skeleton found for {self.name} check for a mesh") if verbose else None
                 if not self._mesh or force_reload:
                     self.load_mesh(template=selected_template, verbose=verbose, query_by_label=query_by_label)
                 if self._mesh:
                     print(f"Mesh found for {self.name}") if verbose else None
-                    self._mesh.plot2d(**kwargs)
-                    return
+                    return self._mesh.plot2d(**kwargs)
                 else:
                     print(f"No mesh found for {self.name} check for a volume") if verbose else None
                     if not self._volume or force_reload:
                         self.load_volume(template=selected_template, verbose=verbose, query_by_label=query_by_label)
                     if self._volume:
                         print(f"Volume found for {self.name}") if verbose else None
-                        self._volume.plot2d(**kwargs)
-                        return
+                        return self._volume.plot2d(**kwargs)
                     else:
                         print(f"No volume found for {self.name}") if verbose else None
         else:
@@ -3378,7 +3372,11 @@ class VFBTerms:
                 print(f"Returning result as a dictionary: {result_dict}")
             return result_dict
         else:
-            sorted_result = sorted(result)
+            try:
+                sorted_result = sorted(result)
+            except TypeError:
+                print("INFO: Result type can't be sorted")
+                sorted_result = result
             if verbose:
                 print(f"Final sorted result: {sorted_result}")
             return sorted_result
@@ -3679,7 +3677,7 @@ class VFBTerms:
                 temp.load_mesh()
                 if hasattr(temp, 'mesh') and temp.mesh:
                     skeletons.append(temp.mesh)
-            navis.plot3d(skeletons, **kwargs)
+            return navis.plot3d(skeletons, **kwargs)
         else:
             print("Nothing found to plot")
 
@@ -3711,7 +3709,7 @@ class VFBTerms:
                 temp.load_mesh()
                 if hasattr(temp, 'mesh') and temp.mesh:
                     skeletons.append(temp.mesh)
-            navis.plot2d(skeletons, **kwargs)
+            return navis.plot2d(skeletons, **kwargs)
 
     def _get_plot_images(self, template=None, verbose=False, query_by_label=True, force_reload=False):
         """
@@ -3867,7 +3865,7 @@ class VFBTerms:
                         print(f"No volume found for {term.name}") if verbose else None
         if skeletons:
             print(f"Plotting 3D representation of {len(skeletons)} items")
-            navis.plot3d(skeletons, legend_group=types)
+            return navis.plot3d(skeletons, legend_group=types)
         else:
             print("Nothing found to plot")
 
