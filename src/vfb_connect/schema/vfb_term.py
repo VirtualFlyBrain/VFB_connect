@@ -1780,7 +1780,7 @@ class VFBTerm:
         """
         if self._parents is None:
             print("Loading parents for the first time...") if self.debug else None
-            self._parents = VFBTerms(self._parents_ids) if self._parents_ids else None
+            self._parents = VFBTerms(self._parents_ids, query_by_label=False) if self._parents_ids else None
         return self._parents
 
     def add_anatomy_type_properties(self):
@@ -1854,7 +1854,7 @@ class VFBTerm:
         def regions(self):
             if self._regions is None:
                 print("Loading regions for the first time...") if self.debug else None
-                self._regions = VFBTerms(self._regions_ids) if self._regions_ids else None
+                self._regions = VFBTerms(self._regions_ids, query_by_label=False) if self._regions_ids else None
             return self._regions
 
         # Dynamically add the property to the instance
@@ -1939,7 +1939,7 @@ class VFBTerm:
             return self._instances_names
         if self._instances is None:
             print("Creating instances for the first time...")
-            self._instances = VFBTerms(self._instances_ids, verbose=self.debug)
+            self._instances = VFBTerms(self._instances_ids, verbose=self.debug, query_by_label=False)
         print(f"Got {len(self._instances)} instances...") if self.debug else None
         return self._instances
 
@@ -1960,7 +1960,7 @@ class VFBTerm:
             """
             if self._datasets is None:
                 print("Loading datasets for the first time...") if self.debug else None
-                self._datasets = VFBTerms(self._dataset_ids) if self._dataset_ids else None
+                self._datasets = VFBTerms(self._dataset_ids, query_by_label=False) if self._dataset_ids else None
             return self._datasets
 
         # Dynamically add the property to the instance
@@ -1974,7 +1974,7 @@ class VFBTerm:
             """
             if self._subtypes is None:
                 print("Loading subtypes for the first time...") if self.debug else None
-                self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"'{self.id}'", ))
+                self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"'{self.id}'", ), query_by_label=False)
             return self._subtypes
 
         @property
@@ -1984,7 +1984,7 @@ class VFBTerm:
             """
             if self._subparts is None:
                 print("Loading subparts for the first time...") if self.debug else None
-                self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'is part of' some '{self.id}'"))
+                self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'is part of' some '{self.id}'"), query_by_label=False)
             return self._subparts
 
         @property
