@@ -184,7 +184,7 @@ class VfbConnect:
         
         if isinstance(key, str):
             dbs = self.get_dbs()
-            if any(key.startswith(db) for db in dbs):
+            if ":" in key and any(key.startswith(db) for db in dbs):
                 split_key = key.rsplit(':', 1)
                 print(f"Split xref: {split_key}") if verbose else None
                 if len(split_key) == 2:

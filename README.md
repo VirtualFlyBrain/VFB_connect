@@ -18,18 +18,18 @@ from vfb_connect import vfb
 
 # Get TermInfo for Types/Classes, DataSets and anatomical individuals.
 
-vfb.get_TermInfo(['FBbt_00003686'])
+vfb.term('FBbt_00003686')
 
-vfb.get_TermInfo(['Ito02013'])
+vfb.terms(['Ito02013'])
 
-vfb.get_TermInfo(['VFB_00010001'])
+vfb.terms(['VFB_00010001'])
 
-# Get all terms relevant to a brain region (all parts and all overlapping cells.  Query by label supported by default.
+# Get all terms relevant to a brain region (all parts and all overlapping cells. You can query by label, symbol, synonym, id or xref.
 
 vfb.get_terms_by_region('fan-shaped body')
 
 ```
 
-TermInfo return a pandas DataFrame by default but can also return a dict summary or full VFB_json values that conform to [VFB_json_schema](https://virtualflybrain.github.io/schema_doc.html)
+TermInfo returns a pandas DataFrame by default but can also return a dict summary or full VFBTerms.
 
 For more examples see our [Quick Guide Jupyter Notebook](https://github.com/VirtualFlyBrain/VFB_connect/blob/master/snippets/VFB_connect_Quick_Guide.ipynb)
