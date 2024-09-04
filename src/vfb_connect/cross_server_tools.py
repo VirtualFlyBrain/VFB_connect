@@ -261,6 +261,15 @@ class VfbConnect:
         print(f"\033[31mError:\033[0m Unrecognized value: \033[31m{key}\033[0m")
         return ''
 
+    def __version__(self):
+        from importlib.metadata import version, PackageNotFoundError
+        return version('vfb_connect')
+        try:
+            return version('vfb_connect')
+        except PackageNotFoundError:
+            return '0.0.0'
+        return '0.0.0'
+
     def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True, return_dataframe=True):
         """Generate TermInfo reports for all terms relevant to annotating a specific region, optionally limited to cells.
 
