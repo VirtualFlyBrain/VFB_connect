@@ -525,13 +525,13 @@ class VfbConnect:
                         "WHERE exists(s1.is_data_source) AND s1.is_data_source = [True] ")
         cypher_ql.append("OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Site) " 
                         "WHERE exists(s2.is_data_source) AND s2.is_data_source = [True] " )
-        cypher_ql.append("RETURN apoc.text.join(collect(distinct c1.label),'|') AS upstream_type, "
-                         "apoc.text.join(collect(distinct c1.short_form),'|') AS upstream_type_id, "
+        cypher_ql.append("RETURN apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, "
+                         "apoc.text.join(collect(distinct c1.short_form),'|') AS upstream_class_id, "
                          "n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name,"
                          "r.weight[0] as weight, n2.short_form as downstream_neuron_id, "
                          "n2.label as downstream_neuron_name, "
-                         "apoc.text.join(collect(distinct c2.label),'|') as downstream_type, "
-                         "apoc.text.join(collect(distinct c2.short_form),'|') as downstream_type_id, "
+                         "apoc.text.join(collect(distinct c2.label),'|') as downstream_class, "
+                         "apoc.text.join(collect(distinct c2.short_form),'|') as downstream_class_id, "
                          "s1.short_form AS up_data_source, r1.accession[0] as up_accession, "
                          "s2.short_form AS down_source, r2.accession[0] AS down_accession")
         cypher_q = ' \n'.join(cypher_ql)

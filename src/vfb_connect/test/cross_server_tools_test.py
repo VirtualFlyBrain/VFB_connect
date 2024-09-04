@@ -66,6 +66,7 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(len(fu) > 0)
 
     def test_get_connected_neurons_by_type(self):
+        print()
         fu = self.vc.get_connected_neurons_by_type(upstream_type='Kenyon cell', downstream_type='mushroom body output neuron', weight=20)
         self.assertTrue(len(fu) > 0)
         fu = self.vc.get_connected_neurons_by_type(upstream_type='FBbt_00051488', weight=5)
