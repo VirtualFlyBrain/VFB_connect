@@ -3460,6 +3460,8 @@ class VFBTerms:
                 text_color = "255;255;255"  # White text for dark backgrounds
 
             print(f"\033[48;2;{r};{g};{b}m\033[38;2;{text_color}m  {value}  \033[0m")
+        if (0, 0, 0) in term_colors_mapped:
+            print(f"\033[48;2;{0};{0};{0}m\033[38;2;255;255;255m  None  \033[0m")
 
         return term_colors_mapped  # Return the list of colors corresponding to each term
 
