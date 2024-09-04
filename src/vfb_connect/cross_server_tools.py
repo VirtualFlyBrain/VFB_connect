@@ -742,13 +742,13 @@ class VfbConnect:
         return self.neo_query_wrapper.get_images(short_forms, template=template, image_folder=image_folder,
                                                  image_type=image_type, stomp=stomp)
     
-    def get_templates(self, summary=True, return_dataframe=True):
+    def get_templates(self, summary=True, return_dataframe=True, include_symbols=False):
         """Get all templates in the database.
 
         :return: List of templates in the database.
         :rtype: list
         """
-        return self.neo_query_wrapper.get_templates(summary=summary, return_dataframe=return_dataframe)
+        return self.neo_query_wrapper.get_templates(summary=summary, return_dataframe=return_dataframe, include_symbols=include_symbols)
     
     @batch_query
     def get_terms_by_xref(self, xrefs: iter, db='', summary=True, return_dataframe=True):
