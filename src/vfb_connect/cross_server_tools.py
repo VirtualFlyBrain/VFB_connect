@@ -1246,11 +1246,10 @@ class VfbConnect:
         rgb_colors = []
 
         # Select the first color
-        selected_lab_colors.append(lab_colors[0])
-        lab_tree = KDTree(selected_lab_colors)  # Rebuild tree with the first color
+        lab_tree = KDTree([(0, 0, 0)])  # Start tree with black
 
-        # Pick colors that are far apart
-        for lab in lab_colors[1:]:
+        # Pick colors that are far apart from each other and from black
+        for lab in lab_colors[0:]:
             distances, _ = lab_tree.query([lab], k=1)
             if distances[0] >= min_distance:
                 selected_lab_colors.append(lab)
