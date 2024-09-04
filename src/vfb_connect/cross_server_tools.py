@@ -96,6 +96,7 @@ class VfbConnect:
         self.cache_file = self.get_cache_file_path()
         self.lookup = self.nc.get_lookup(cache=self.cache_file)
         self.normalized_lookup = self.preprocess_lookup()
+        self.reverse_lookup = {v: k for k, v in self.lookup.items()}
         self.oc = OWLeryConnect(endpoint=owlery_endpoint,
                                 lookup=self.lookup)
         self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
@@ -148,17 +149,20 @@ class VfbConnect:
         self.lookup = self.nc.get_lookup(cache=self.cache_file, verbose=verbose)
 
     def lookup_name(self, ids):
-        """Lookup the name for a given ID using the internal lookup table.
+        """
+        Lookup the name for a given ID using the internal lookup table.
 
         :param ids: A single ID or list of IDs to look up.
-        :return: The name associated with the ID.
-        :rtype: str
+        :return: The name associated with the ID or a list of names if input is a list.
+        :rtype: str or list of str
         """
         if isinstance(ids, list):
             return [self.lookup_name(id) for id in ids]
-        if not ids in self.lookup.values():
-            return ids # If not found, return the input
-        return {v: k for k, v in self.lookup.items()}[ids]
+
+        if ids not in self.reverse_lookup:
+            return ids  # If not found, return the input
+
+        return self.reverse_lookup[ids]
 
     def normalize_key(self, key):
         """
