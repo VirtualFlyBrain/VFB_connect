@@ -938,7 +938,7 @@ class VfbConnect:
                 symbol_query += "WHERE i.is_data_source=[True] AND (i:Site OR i:API) "
             else:
                 symbol_query += "WHERE i:Site OR i:API "
-            symbol_query += "AND exists(i.symbol) AND i.symbol[0] <> '' RETURN i.symbol[0] as symbol"
+            symbol_query += "AND exists(i.symbol) AND not i.symbol[0] = '' RETURN i.symbol[0] as symbol"
 
             print("Querying for external database symbols:",symbol_query) if verbose else None
             symbol_results = self.cypher_query(symbol_query, return_dataframe=False, verbose=verbose)
@@ -1119,9 +1119,13 @@ class VfbConnect:
         :return: A DataFrame or list of results.
         :rtype: pandas.DataFrame or list of dicts
         """
+        print(f"Running query: {query}") if verbose else None
         r = self.nc.commit_list([query])
+        print(r) if verbose else None
         dc = dict_cursor(r)
+        print(dc) if verbose else None
         if return_dataframe:
+            print("Returning DataFrame") if verbose else None
             return pd.DataFrame.from_records(dc)
         return dc
 
