@@ -1,5 +1,6 @@
 import json
 import os
+import warnings
 from string import Template
 from typing import List
 from xml.sax import saxutils
@@ -489,19 +490,19 @@ class VfbConnect:
                                               classification=classification, query_by_label=query_by_label,
                                               return_dataframe=return_dataframe, verbose=verbose)
 
-    def get_connected_neurons_by_type(self, upstream_type=None, downstream_type=None, weight=None, query_by_label=True,
+    def get_connected_neurons_by_type(self, weight, upstream_type=None, downstream_type=None, query_by_label=True,
                                       return_dataframe=True, verbose=False):
 
         """Get all synaptic connections between individual neurons of `upstream_type` and `downstream_type` where
-        synapse count >= `weight`.
+             synapse count >= `weight`.  At least one of 'upstream_type' or downstream_type must be specified.
 
-        :param upstream_type: The upstream neuron type (e.g., 'GABAergic neuron').
-        :param downstream_type: The downstream neuron type (e.g., 'Descending neuron').
-        :param query_by_label: Optional. Specify neuron type by label if `True` (default) or by short_form ID if `False`.
-        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
-        :return: A DataFrame or list of synaptic connections between specified neuron types.
-        :rtype: pandas.DataFrame or list of dicts
-        """
+             :param upstream_type: The upstream neuron type (e.g., 'GABAergic neuron').
+             :param downstream_type: The downstream neuron type (e.g., 'Descending neuron').
+             :param query_by_label: Optional. Specify neuron type by label if `True` (default) or by short_form ID if `False`.
+             :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+             :return: A DataFrame or list of synaptic connections between specified neuron types.
+             :rtype: pandas.DataFrame or list of dicts
+             """
         # TODO - chose not to do this with class expressions to avoid poor performance and blowing up results.
         # This might be confusing tough, given behavior of other, similar methods.
         # Might be better to refactor to work out if query is class expression or class & funnel query method
@@ -510,35 +511,46 @@ class VfbConnect:
         if (upstream_type is None) and (downstream_type is None):
             print("At least one of upstream_type or downstream_type must be specified")
             return 1
-        if weight is None:
-            print("A minimum connection weight must be specified.")
         if query_by_label:
             if upstream_type: upstream_type = self.lookup_id(dequote(upstream_type))
             if downstream_type: downstream_type = self.lookup_id(dequote(downstream_type))
-        cypher_ql=[]
+        cypher_ql = []
         if upstream_type:
-            cypher_ql.append("MATCH (up:Class)<-[:SUBCLASSOF*0..]-(c1:Class)<-[:INSTANCEOF]-(n1:has_neuron_connectivity)" 
-                             " WHERE up.short_form = '%s' " % upstream_type)
+            cypher_ql.append(
+                "MATCH (up:Class)<-[:SUBCLASSOF*0..]-(c1:Class)<-[:INSTANCEOF]-(n1:has_neuron_connectivity)"
+                " WHERE up.short_form = '%s' " % upstream_type)
         if downstream_type:
-            cypher_ql.append("MATCH (down:Class)<-[:SUBCLASSOF*0..]-(c2:Class)<-[:INSTANCEOF]-(n2:has_neuron_connectivity)" 
-                             "WHERE down.short_form = '%s' " % downstream_type)
-        cypher_ql.append("MATCH (n1)-[r:synapsed_to]->(n2) WHERE r.weight[0] >= %d " % weight)
+            cypher_ql.append(
+                "MATCH (down:Class)<-[:SUBCLASSOF*0..]-(c2:Class)<-[:INSTANCEOF]-(n2:has_neuron_connectivity)"
+                "WHERE down.short_form = '%s' " % downstream_type)
+        if not upstream_type:
+            cypher_ql.append(
+                "MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:synapsed_to]->(n2) WHERE r.weight[0] >= %d " % weight)
+        elif not downstream_type:
+            cypher_ql.append(
+                "MATCH (n1)-[r:synapsed_to]->(n2)-[:INSTANCEOF]->(c2:Class) WHERE r.weight[0] >= %d " % weight)
+        else:
+            cypher_ql.append("MATCH (n1)-[r:synapsed_to]->(n2) WHERE r.weight[0] >= %d " % weight)
         cypher_ql.append("OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) "
                         "WHERE exists(s1.is_data_source) AND s1.is_data_source = [True] ")
         cypher_ql.append("OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Site) " 
                         "WHERE exists(s2.is_data_source) AND s2.is_data_source = [True] " )
-        cypher_ql.append("   RETURN n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name,"
-                        "r.weight[0] as weight, n2.short_form as downstream_neuron_id, " 
-                        "n2.label as downstream_neuron_name, " 
-                        "apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, " 
-                        "apoc.text.join(collect(distinct c2.label),'|') as downstream_class, " 
-                        "s1.short_form AS up_data_source, r1.accession[0] as up_accession, " 
-                        "s2.short_form AS down_source, r2.accession[0] AS down_accession")
+        cypher_ql.append("RETURN apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, "
+                         "apoc.text.join(collect(distinct c1.short_form),'|') AS upstream_class_id, "
+                         "n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name,"
+                         "r.weight[0] as weight, n2.short_form as downstream_neuron_id, "
+                         "n2.label as downstream_neuron_name, "
+                         "apoc.text.join(collect(distinct c2.label),'|') as downstream_class, "
+                         "apoc.text.join(collect(distinct c2.short_form),'|') as downstream_class_id, "
+                         "s1.short_form AS up_data_source, r1.accession[0] as up_accession, "
+                         "s2.short_form AS down_source, r2.accession[0] AS down_accession")
         cypher_q = ' \n'.join(cypher_ql)
         print(cypher_q) if verbose else None
         r = self.nc.commit_list([cypher_q])
+        if not r:
+            warnings.warn("No results returned")
+            return False
         dc = dict_cursor(r)
-        print(dc) if verbose else None
         if return_dataframe:
             return pd.DataFrame.from_records(dc)
         else:
@@ -1313,4 +1325,5 @@ class VfbConnect:
             print(f"Generated RGB colors: {rgb_colors}")
 
         return rgb_colors
+
       
