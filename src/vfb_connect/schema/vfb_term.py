@@ -3016,7 +3016,7 @@ class VFBTerms:
             print(f"Changing {len(terms)} term names to ids") if verbose else None
             terms = [self.vfb.lookup_id(term) for term in terms if term]
             if self.vfb._load_limit and len(terms) > self.vfb._load_limit:
-                print(f"More thann the load limit of {self.vfb._load_limit} requested. Loading first {self.vfb._load_limit} terms out of {len(terms)}")
+                print(f"More than the load limit of {self.vfb._load_limit} requested. Loading first {self.vfb._load_limit} terms out of {len(terms)}")
                 terms = terms[:self.vfb._load_limit]
             print(f"Pulling {len(terms)} terms from VFB...")
             json_list = self.vfb.get_TermInfo(terms, summary=False, verbose=verbose, query_by_label=query_by_label)
