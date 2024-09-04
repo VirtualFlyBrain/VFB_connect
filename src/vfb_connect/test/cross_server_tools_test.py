@@ -90,6 +90,44 @@ class VfbConnectTest(unittest.TestCase):
         if os.path.exists('image_folder_tmp') and os.path.isdir('image_folder_tmp'):
             shutil.rmtree('image_folder_tmp')
 
+    def test_lookup_id(self):
+        from vfb_connect import vfb
+        test_key = "LPC1 (FlyEM-HB:1808965929)"
+        term = vfb.term(test_key, verbose=True)
+        self.assertEqual(term.id, "VFB_jrchk00a")
+
+    def test_get_owl_subclasses(self):
+        ofb = self.vc.owl_subclasses(query="RO:0002131 some FBbt:00003679", return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertGreater(len(ofb), 150,
+                           "Unexpectedly small number structures overlap FB")
+        ofbl = self.vc.owl_subclasses(query="'overlaps' some 'fan-shaped body'", query_by_label=True, return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertTrue(set(ofb) == set(ofbl))
+
+    def test_get_owl_instances(self):
+        ofb = self.vc.owl_instances(query="RO:0002131 some FBbt:00003679", return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertGreater(len(ofb), 150,
+                           "Unexpectedly small number structures overlap FB")
+        ofbl = self.vc.owl_instances(query="'overlaps' some 'fan-shaped body'", query_by_label=True, return_id_only=True)
+        self.assertTrue(ofb, "Query failed.")
+        self.assertTrue(set(ofb) == set(ofbl))
+
+    def test_cypher_query(self):
+        fu = self.vc.cypher_query("MATCH (n:Class) WHERE n.label = 'fan-shaped body' RETURN n", return_dataframe=False)
+        self.assertTrue(fu)
+        self.assertTrue(len(fu) > 0)
+        self.assertTrue(isinstance(fu[0], dict))
+        self.assertEqual(fu[0]['n']['label'], 'fan-shaped body')
+
+    def test_nt_receptors_in_downstream_neurons(self):
+        fu = self.vc.get_nt_receptors_in_downstream_neurons(upstream_type='Dm8', downstream_type='Dm9', weight=10)
+        print(fu)
+        self.assertTrue(len(fu) > 9)
+        bar = self.vc.get_nt_receptors_in_downstream_neurons(upstream_type='Dm8', downstream_type='Dm9', weight=10, return_dataframe=False)
+        print(bar)
+        self.assertTrue(len(bar) > 9)
 class VfbTermTests(unittest.TestCase):
 
     def setUp(self):
@@ -117,6 +155,11 @@ class VfbTermTests(unittest.TestCase):
         self.assertTrue(isinstance(fu.parents, VFBTerms))
         self.assertTrue(len(fu.parents) > 0)
         self.assertTrue(isinstance(fu.parents[0], VFBTerm))
+        self.assertTrue(len(fu) > 0)
+
+    def test_solr_search(self):
+        fu = self.vc.search('fan-shaped body', return_dataframe=False)
+        print(fu)
         self.assertTrue(len(fu) > 0)
 
 if __name__ == "__main__":

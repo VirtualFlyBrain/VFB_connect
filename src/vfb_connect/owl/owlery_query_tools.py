@@ -85,7 +85,7 @@ class OWLeryConnect:
             print("\033[31mConnection Error:\033[0m " + str(r.content))
             return False
 
-    def get_subclasses(self, query, query_by_label=True, direct=False, return_short_forms=True):
+    def get_subclasses(self, query, query_by_label=True, direct=False, return_short_forms=True, verbose=False):
         """Generate list of IDs of all subclasses of class_expression.
 
                 :param class_expression: A valid OWL class expression, e.g. the name of a class.
@@ -97,13 +97,20 @@ class OWLeryConnect:
                 """
         out = self.query(query_type='subclasses', return_type='superClassOf',
                           query=query, query_by_label=query_by_label,
-                          direct=direct)
+                          direct=direct, verbose=verbose)
+        if not isinstance(out,list):
+            print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
+            print("Query: " + query)
+            print("Results: " + str(self.query(query_type='subclasses', return_type='superClassOf',
+                          query=query, query_by_label=query_by_label,
+                          direct=direct, verbose=True)))
+            return []
         if return_short_forms:
             return list(map(gen_short_form, out))
         else:
             return out
 
-    def get_instances(self, query, query_by_label=True, direct=False, return_short_forms=True):
+    def get_instances(self, query, query_by_label=True, direct=False, return_short_forms=True, verbose=False):
         """Generate list of IDs of all instances of class_expression.
 
                 :param class_expression: A valid OWL class expression, e.g. the name of a class.
@@ -115,25 +122,39 @@ class OWLeryConnect:
                 """
         out = self.query(query_type='instances', return_type='hasInstance',
                           query=query, query_by_label=query_by_label,
-                          direct=direct)
+                          direct=direct, verbose=verbose)
+        if not isinstance(out,list):
+            print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
+            print("Query: " + query)
+            print("Results: " + str(self.query(query_type='subclasses', return_type='superClassOf',
+                          query=query, query_by_label=query_by_label,
+                          direct=direct, verbose=True)))
+            return []
         if return_short_forms:
             return list(map(gen_short_form, out))
         else:
             return out
 
-    def get_superclasses(self, query, query_by_label=True, direct=False, return_short_forms=True):
+    def get_superclasses(self, query, query_by_label=True, direct=False, return_short_forms=True, verbose=False):
         """Generate list of IDs of all superclasses of class_expression.
 
-                       :param class_expression: A valid OWL class expression, e.g. the name (or CURIE) of a class.
-                       :param query_by_label: Optional.  If `False``, class_expression takes CURIEs instead of labels.  Default `False`
-                       :param direct: Return direct instances only.  Default `False`
-                       :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs. Default `True`
-                       :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
-                       :rtype: list of IRIs or short_forms (depending on return_short_form option)
-                       """
+        :param class_expression: A valid OWL class expression, e.g. the name (or CURIE) of a class.
+        :param query_by_label: Optional.  If `False``, class_expression takes CURIEs instead of labels.  Default `False`
+        :param direct: Return direct instances only.  Default `False`
+        :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs. Default `True`
+        :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
+        :rtype: list of IRIs or short_forms (depending on return_short_form option)
+        """
         out = self.query(query_type='superclasses', return_type='subClassOf',
                           query=query, query_by_label=query_by_label,
-                          direct=direct)
+                          direct=direct, verbose=verbose)
+        if not isinstance(out,list):
+            print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
+            print("Query: " + query)
+            print("Results: " + str(self.query(query_type='subclasses', return_type='superClassOf',
+                          query=query, query_by_label=query_by_label,
+                          direct=direct, verbose=True)))
+            return []
         if return_short_forms:
             return list(map(gen_short_form, out))
         else:
@@ -147,9 +168,9 @@ class OWLeryConnect:
         single quotes should be escaped with a backslash.
         :return: query string in which labels have been converted to unquoted CURIEs.
         """
-        from ..cross_server_tools import VfbConnect
+        from vfb_connect import vfb
         def subgp1_or_fail(m):
-            out = VfbConnect.lookup_id(self, m.group(1), return_curie=True)
+            out = vfb.lookup_id(m.group(1), return_curie=True)
             if not out:
                 raise ValueError("Query includes unknown term label: " + query_string)
             else:

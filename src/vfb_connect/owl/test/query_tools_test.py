@@ -20,7 +20,7 @@ class OwleryConnectTest(unittest.TestCase):
                           'fan-shaped body': 'FBbt:00003679'}
         # This isn't a test so far! unittest support for exception tests seems to be poor.
         try:
-            self.oc.labels_2_ids("'overlaps' some 'fan-shaped boody'"),
+            self.oc.labels_2_ids("'overlaps' some 'fan-shaped body'"),
         except:
             pass
 
