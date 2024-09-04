@@ -936,7 +936,7 @@ class VfbConnect:
                 symbol_query += "WHERE i:Site OR i:API "
             symbol_query += "AND exists(i.symbol) AND i.symbol[0] <> '' RETURN i.symbol[0] as symbol"
 
-            symbol_results = self._query(symbol_query)
+            symbol_results = self.cypher_query(symbol_query)
             dbs.extend([d['symbol'] for d in symbol_results if d['symbol']])
 
         # Cache the results for this combination of parameters
