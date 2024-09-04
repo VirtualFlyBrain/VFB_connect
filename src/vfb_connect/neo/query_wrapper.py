@@ -329,8 +329,11 @@ class QueryWrapper(Neo4jConnect):
                     continue
                 for imv in image_matches:
                     if imv['template_anatomy']['label'] == template:
-                        r = requests.get(imv['image_folder'] + '/volume.' + image_type)
-                        ### Slightly dodgy warning - could mask network errors
+                        try:
+                            r = requests.get(imv['image_folder'] + '/volume.' + image_type)
+                        except requests.exceptions.RequestException as e:
+                            print(f"\033[33mWarning:\033[0m No '{image_type}' file found for '{label}'. Error: {e}")
+                            continue
                         if not r.ok:
                             print("33mWarning:\033[0m No '%s' file found for '%s'." % (image_type, label))
                             continue
