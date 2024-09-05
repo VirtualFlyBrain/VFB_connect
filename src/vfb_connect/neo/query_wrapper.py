@@ -444,18 +444,16 @@ class QueryWrapper(Neo4jConnect):
         mapping = self.vfb_id_2_xrefs(vfb_id, db=db, reverse_return=True)
         return [int(k) for k, v in mapping.items()]
 
-    def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False, verbose=False):
-        """Map a list external DB IDs to VFB IDs
+    def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False, verbose=False, datasource_only=False):
+        """Map a list of external DB IDs to VFB short_form IDs
 
-          :param acc: An iterable (e.g. a list) of external IDs (e.g. neuprint bodyIDs).
-          :param db: optional specify the VFB id (short_form) of an external DB to map to. (use get_dbs to find options)
-          :param id_type: optionally specify an external id_type
-          :param reverse_return: Boolean: Optional (see return)
-          :return: if `reverse_return` is False:
-                dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
-              Return if `reverse_return` is `True`:
-                dict { VFB_id : [{ db: <db> : acc : <acc> }
-          """
+        :param acc: An iterable (e.g., a list) of external DB IDs.
+        :param db: Optional. Specify the VFB ID (short_form) of an external database to map to. (Use `get_dbs()` to find options).
+        :param id_type: Optional. Specify an external ID type to filter the mapping results.
+        :param reverse_return: Optional. If `True`, returns the results in reverse order. Default is `False`.
+        :return: A dictionary of mappings from external DB IDs to VFB IDs.
+        :rtype: dict
+        """
         if isinstance(acc, str):
             acc = [acc]
         match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) WHERE"
@@ -467,6 +465,8 @@ class QueryWrapper(Neo4jConnect):
             conditions.append("s.short_form = '%s'" % db)
         if id_type:
             conditions.append("r.id_type = '%s'" % id_type)
+        if datasource_only:
+            conditions.append("s.is_data_source = [True]")
         condition_clauses = ' AND '.join(conditions)
         ret = "RETURN r.accession[0] as key, " \
               "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
