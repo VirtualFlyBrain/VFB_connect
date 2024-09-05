@@ -864,7 +864,7 @@ class VfbConnect:
             id_list = []
             for id in acc:
                 if id not in result.keys():
-                    print(f"No match found for {id} returning xref {":".join([db,id])}") if verbose else None
+                    print(f"No match found for {id} returning xref {':'.join([db,id])}") if verbose else None
                     id_list.append(":".join([db,id]))
                     continue
                 id_list.append(result[id][0]['vfb_id']) # This takes the first match only
