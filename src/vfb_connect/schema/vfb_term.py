@@ -2806,6 +2806,10 @@ class VFBTerm:
                 
                 # Attach connectors to the skeleton
                 aligned_connectors['type'] = aligned_connectors['type'].str.lower()  # Ensure 'type' is lowercase
+                if verbose:
+                    print(f"Setting connectors for {self.name}...")
+                if verbose:
+                    print("Connectors: ", aligned_connectors)
                 self._skeleton._set_connectors(aligned_connectors)
                 if verbose:
                     print(f"Connectors set for {self.name}")

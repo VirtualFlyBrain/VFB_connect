@@ -506,7 +506,7 @@ class VfbTermTest(unittest.TestCase):
         term = self.vfb.term('VFB_jrchk6dr')
         print("got term ", term)
         term.load_skeleton(template='JRC2018Unisex')
-        con = term.load_skeleton_synaptic_connections().to_dict('records')
+        con = term.load_skeleton_synaptic_connections(verbose=True).to_dict('records')
         print(con[0])
         self.assertGreater(len(con),10)
         term = self.vfb.term('VFB_00102gjr')
