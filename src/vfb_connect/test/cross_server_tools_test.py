@@ -143,6 +143,10 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(fu)
         print(fu)
         self.assertNotEqual(fu.keys(),['VFB_jrchk3bp'])
+        
+    def test_get_neuron_pubs(self):
+        fu = self.vc.get_neuron_pubs('Kenyon cell')
+        self.assertTrue(len(fu)> 9)
 
 class VfbTermTests(unittest.TestCase):
 
