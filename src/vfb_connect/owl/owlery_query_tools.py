@@ -71,7 +71,7 @@ class OWLeryConnect:
         if query_by_label:
             query = self.labels_2_ids(query)
         if verbose:
-            print("Running query: " + query) 
+            print("Running query: " + query)
         payload = {'object': query, 'prefixes': json.dumps(self.curies),
                    'direct': direct}
         # print(payload)
