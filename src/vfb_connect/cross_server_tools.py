@@ -862,6 +862,9 @@ class VfbConnect:
         if return_just_ids and not reverse_return:
             id_list = []
             for id in acc:
+                if id not in result.keys():
+                    print(f"No match found for {id}")
+                    continue
                 id_list.append(result[id][0]['vfb_id']) # This takes the first match only
                 if len(result[id]) > 1:
                     print(f"Multiple matches found for {id}: {result[id]}")
