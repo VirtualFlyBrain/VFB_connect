@@ -17,6 +17,10 @@ from colormath.color_objects import LabColor, sRGBColor
 from colormath.color_conversions import convert_color
 from scipy.spatial import KDTree
 
+VFB_DBS_2_SYMBOLS = {"JRC_OpticLobe":"neuprint_JRC_OpticLobe_v1_0_1", "FAFB":"catmaid_fafb", "L1EM":"catmaid_l1em", "MANC":"neuprint_JRC_Manc_1_2_1", 
+                     "FlyEM-HB":"neuprint_JRC_Hemibrain_1point1","ol":"neuprint_JRC_OpticLobe_v1_0_1", "fafb":"catmaid_fafb", "l1em":"catmaid_l1em", 
+                     "fw":"flywire783", "mv":"neuprint_JRC_Manc_1_2_1", "hb":"neuprint_JRC_Hemibrain_1point1"}
+
 
 def gen_short_form(iri):
     """Generate short_form (string) from an IRI string.
@@ -795,6 +799,12 @@ class VfbConnect:
                 `return_dataframe` is `True` and `summary` is `True`.
         :rtype: list of dicts or pandas.DataFrame
         """
+        if isinstance(xrefs, str):
+            xrefs = [xrefs]
+
+        if db in VFB_DBS_2_SYMBOLS.keys():
+            db = VFB_DBS_2_SYMBOLS[db]
+
         return self.neo_query_wrapper.get_terms_by_xref(xrefs, db=db, summary=summary, return_dataframe=False)
 
     def xref_2_vfb_id(self, acc=None, db='', id_type='', reverse_return=False, return_just_ids=True, verbose=False):
@@ -817,6 +827,10 @@ class VfbConnect:
             if ':' in acc and db == '':
                 db, acc = acc.split(':')
             acc = [acc]
+        
+        if db in VFB_DBS_2_SYMBOLS.keys():
+            db = VFB_DBS_2_SYMBOLS[db]
+        
         elif isinstance(acc, list) and all(isinstance(x, str) for x in acc):
             new_acc = []
             for xref in acc:
@@ -828,6 +842,7 @@ class VfbConnect:
                         new_acc.append(xref.split(':')[-1])
             acc = new_acc
         result = self.neo_query_wrapper.xref_2_vfb_id(acc=acc, db=db, id_type=id_type, reverse_return=reverse_return, verbose=verbose)
+        print(result) if verbose else None
         if return_just_ids & reverse_return:
             return [x.key for x in result]
         if return_just_ids and not reverse_return:
@@ -883,8 +898,7 @@ class VfbConnect:
         print(short_forms) if verbose else None
         return self.neo_query_wrapper.get_TermInfo(short_forms, summary=summary, cache=cache, return_dataframe=False, limit=limit, verbose=verbose) 
 
-    @batch_query
-    def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
+    def vfb_id_2_xrefs(self, vfb_id, db='', id_type='', reverse_return=False, verbose=False, datasource_only=True):
         """Map a list of short_form IDs in VFB to external DB IDs
 
         :param vfb_id: An iterable (e.g. a list) of VFB short_form IDs.
@@ -896,7 +910,31 @@ class VfbConnect:
             Return if `reverse_return` is `True`:
                 dict { acc : [{ db: <db> : vfb_id : <VFB_id> }
         """
-        return self.neo_query_wrapper.vfb_id_2_xrefs(vfb_id=vfb_id, db=db, id_type=id_type, reverse_return=reverse_return)
+        if isinstance(vfb_id, str):
+            vfb_id = [vfb_id]
+        if db in VFB_DBS_2_SYMBOLS.keys():
+            db = VFB_DBS_2_SYMBOLS[db]
+        print(f"vfb_id_2_xrefs: {vfb_id}, {db}, {id_type}, {reverse_return}") if verbose else None
+        result = self.neo_query_wrapper.vfb_id_2_xrefs(vfb_id=vfb_id, db=db, id_type=id_type, reverse_return=False, verbose=verbose, datasource_only=datasource_only)
+        print(f"Returned: {result}") if verbose else None
+        rl = {}
+        if reverse_return:
+            for id in vfb_id:
+                if id not in result.keys():
+                    print(f"No match found for {id}")
+                else:
+                    for r in result[id]:
+                        rl[":".join([r['db'], r['acc']])] = id
+        else:
+            for id in vfb_id:
+                if id not in result.keys():
+                    print(f"No match found for {id}")
+                else:
+                    rl[id] = []
+                    for r in result[id]:
+                        rl[id].append(":".join([r['db'], r['acc']]))
+        print(rl) if verbose else None
+        return rl
 
     def get_dbs(self, include_symbols=True, data_sources_only=True, verbose=False):
         """Get all external databases in the database, optionally filtering by data sources and including symbols.
