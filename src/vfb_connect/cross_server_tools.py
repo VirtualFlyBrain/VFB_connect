@@ -1416,7 +1416,7 @@ class VfbConnect:
         rgb_colors = []
 
         # Select the first color
-        lab_tree = KDTree([(0, 0, 0)])  # Start tree with black
+        lab_tree = KDTree([(255,255,255),(0, 0, 0)])  # Start tree with black and white
 
         # Pick colors that are far apart from each other and from black
         for lab in lab_colors[0:]:
