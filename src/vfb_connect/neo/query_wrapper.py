@@ -18,7 +18,7 @@ from itertools import chain
 from vfb_connect.neo.neo4j_tools import chunks, Neo4jConnect, dict_cursor, escape_string
 
 # Connect to the VFB SOLR server
-vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990)
+vfb_solr = pysolr.Solr('http://solr.virtualflybrain.org/solr/vfb_json/', always_commit=False, timeout=990, retry_count=10, retry_timeout=10)
 
 
 def batch_query(func):
