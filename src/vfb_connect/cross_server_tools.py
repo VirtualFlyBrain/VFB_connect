@@ -725,33 +725,43 @@ class VfbConnect:
 
         """Get publications about a neuron type
 
-        :param neuron: An name, symbol, or ID of a neuron type
+        :param neuron: A name, symbol, or ID of a neuron type
         :param include_subclasses: Include references for subclasses (subtypes) of this neuron type, default: True
         :param include_nlp: Include experimental matches from natural language processing. Default = False
-        :param query_by_label: query using the label, symbol or ID of a neuron.
+        :param query_by_label: query using the label, symbol or ID of a neuron. Default: True
         :param verbose: Return underlying cypher query for debugging
         """
 
         if query_by_label:
             neuron = self.lookup_id(dequote(neuron))
+        cypher_ql = []
         if include_subclasses:
-            cypher_q = "MATCH (n:Neuron)<-[:SUBCLASSOF*0..]-() "
+            cypher_ql.append("MATCH (n:Neuron:Class)<-[:SUBCLASSOF*0..]-(:Class:Neuron)-[r:has_reference]->(pub:Individual)")
         else:
-            cypher_q = "MATCH (n:Neuron) "
-        cypher_q += """WHERE n.short_form = '%s'
-                      MATCH (n)-[r:has_reference]-(pub) 
-                      WHERE pub.title is not null """ % neuron
+            cypher_ql.append("MATCH (n:Class:Neuron)-[r:has_reference]->(pub:Individual) ")
+        cypher_ql.append("WHERE n.short_form = '%s' AND pub.title is not null " % neuron)
         if not include_nlp:
-            cypher_q += "AND NOT (r.typ = 'nlp') "
-        cypher_q += """WITH collect ({ type: r.typ, miniref: pub.miniref[0], PMID: pub.PMID[0], DOI: pub.DOI[0], FlyBase: pub.FlyBase, title: pub.title[0]}) as pubs1, n 
-                      MATCH (ep:Expression_pattern:Class)<-[ar:part_of]-(anoni:Individual)-[:INSTANCEOF]->(n)
-                      MATCH (pub:pub { short_form: ar.pub[0]}) 
-                      WITH pubs1, collect({ type: 'expression', miniref: pub.miniref[0], PMID: pub.PMID[0], DOI: pub.DOI[0], FlyBase: pub.FlyBase }) as pubs2 
-                      RETURN pubs1 + pubs2  as all_pubs"""
-        r = self.nc.commit_list([cypher_q])
-        dc = dict_cursor(r)
+            cypher_ql.append("AND NOT (r.typ = 'nlp') ")
+        cypher_ql.append("""RETURN distinct r.typ as source, ([]+pub.miniref)[0] as miniref, 
+                         ([]+pub.PMID)[0] as PMID, ([]+pub.DOI)[0] as DOI, ([]+pub.title)[0] as title""")
+        cypher_ql.append("UNION ALL ")
+        if include_subclasses:
+            cypher_ql.append("MATCH (n:Neuron:Class)<-[:SUBCLASSOF*0..]-(:Class:Neuron)")
+        else:
+            cypher_ql.append("MATCH (n:Neuron:Class)")
+        cypher_ql.append("""-[:INSTANCEOF]-(anoni:Individual)-[ar:part_of]->(ep:Expression_pattern:Class) 
+                         WHERE n.short_form = '%s' AND exists(ar.pub)""" % neuron)
+        cypher_ql.append("MATCH (pub:pub { short_form : ar.pub[0]}) ")
+        cypher_ql.append("""RETURN DISTINCT 'exp' as source, ([]+pub.miniref)[0] as miniref,
+                        ([]+pub.PMID)[0] as PMID, ([]+pub.DOI)[0] as DOI, ([]+pub.title)[0] as title""")
+        cypher_q = ' \n'.join(cypher_ql)
         print(cypher_q) if verbose else None
-        return pd.DataFrame.from_records(dc[0]['all_pubs'])
+        r = self.nc.commit_list([cypher_q])
+        if not r:
+            warnings.warn("No results returned")
+            return False
+        dc = dict_cursor(r)
+        return pd.DataFrame.from_records(dc)
 
     #  Wrapped neo_query_wrapper methods
     def get_datasets(self, summary=True, return_dataframe=True):
