@@ -1667,6 +1667,7 @@ class VFBTerm:
                     if xref.is_data_source:
                         self.data_source = xref.site_name
                         self.xref_id = xref.id
+                        self.xref_accession = xref.accession if hasattr(xref, 'accession') else None
                         self.xref_url = xref.link if hasattr(xref, 'link') and xref.link else xref.homepage
                         self.xref_name = xref.name
 

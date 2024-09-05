@@ -132,6 +132,18 @@ class VfbConnectTest(unittest.TestCase):
         print(bar)
         self.assertTrue(len(bar) > 9)
 
+    def test_xref_to_id(self):
+        fu = self.vc.xref_2_vfb_id('FlyEM-HB:1353544607')
+        self.assertTrue(fu)
+        print(fu)
+        self.assertTrue(fu == ['VFB_jrchk3bp'])
+
+    def test_id_to_xref(self):
+        fu = self.vc.vfb_id_2_xrefs('VFB_jrchk3bp', verbose=True)
+        self.assertTrue(fu)
+        print(fu)
+        self.assertNotEqual(fu.keys(),['VFB_jrchk3bp'])
+        
     def test_get_neuron_pubs(self):
         fu = self.vc.get_neuron_pubs('Kenyon cell')
         self.assertTrue(len(fu)> 9)

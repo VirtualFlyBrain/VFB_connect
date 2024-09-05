@@ -401,7 +401,7 @@ class QueryWrapper(Neo4jConnect):
             short_forms.extend([d['s'] for d in dc if d['s']])
         return self.get_anatomical_individual_TermInfo(short_forms, summary=summary, return_dataframe=return_dataframe)
 
-    def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False):
+    def vfb_id_2_xrefs(self, vfb_id: iter, db='', id_type='', reverse_return=False, verbose=False, datasource_only=False):
         """Map a list of short_form IDs in VFB to external DB IDs
 
         :param vfb_id: An iterable (e.g. a list) of VFB short_form IDs.
@@ -422,14 +422,19 @@ class QueryWrapper(Neo4jConnect):
         clause2 = ''
         if id_type:
             clause2 = "AND r.id_type = '%s'" % id_type
+        if datasource_only:
+            clause2 = "AND s.is_data_source = [True]"
         ret = "RETURN i.short_form as key, " \
               "collect({ db: s.short_form, acc: r.accession[0]}) as mapping"
         if reverse_return:
             ret = "RETURN r.accession[0] as key, " \
-                  "collect({ db: s.short_form, vfb_id: i.short_form }) as mapping"
+                  "collect({ db: CASE WHEN s.symbol IS NOT NULL AND size(s.symbol) > 0 AND NOT s.symbol[0] = '' THEN s.symbol[0] ELSE s.short_form END, vfb_id: i.short_form }) as mapping"
         q = ' '.join([match, clause1, clause2, ret])
+        print(q) if verbose else None
         dc = self._query(q)
+        print(dc) if verbose else None
         mapping = {d['key']: d['mapping'] for d in dc}
+        print(mapping) if verbose else None
         unmapped = set(vfb_id)-set(mapping.keys())
         if unmapped:
             print("33mWarning:\033[0m The following IDs do not match DB &/or id_type constraints: %s" % str(unmapped))
