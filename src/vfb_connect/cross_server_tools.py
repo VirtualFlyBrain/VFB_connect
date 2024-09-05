@@ -833,10 +833,6 @@ class VfbConnect:
             if ':' in acc and db == '':
                 db, acc = acc.split(':')
             acc = [acc]
-        
-        if db in VFB_DBS_2_SYMBOLS.keys():
-            db = VFB_DBS_2_SYMBOLS[db]
-        
         elif isinstance(acc, list) and all(isinstance(x, str) for x in acc):
             new_acc = []
             for xref in acc:
@@ -847,6 +843,8 @@ class VfbConnect:
                     else:
                         new_acc.append(xref.split(':')[-1])
             acc = new_acc
+        if db in VFB_DBS_2_SYMBOLS.keys():
+            db = VFB_DBS_2_SYMBOLS[db]
         result = self.neo_query_wrapper.xref_2_vfb_id(acc=acc, db=db, id_type=id_type, reverse_return=reverse_return, verbose=verbose)
         print(result) if verbose else None
         if return_just_ids & reverse_return:

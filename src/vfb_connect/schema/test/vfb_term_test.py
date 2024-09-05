@@ -499,6 +499,7 @@ class VfbTermTest(unittest.TestCase):
         self.assertTrue(term.xref_id)
         print(dir(term))
         print(term.xref_id)
+        print(self.vfb.xref_2_vfb_id(term.xref_id, return_just_ids=True, verbose=True))
         self.assertEqual(self.vfb.xref_2_vfb_id(term.xref_id, return_just_ids=True)[0], term.id)
 
 if __name__ == "__main__":
