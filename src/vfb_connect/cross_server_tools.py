@@ -122,7 +122,7 @@ class VfbConnect:
 
         print("\033[32mSession Established!\033[0m")
         print("")
-        print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.terms)\033[0m")
+        print("\033[33mType \033[35mvfb. \033[33mand press \033[35mtab\033[33m to see available queries. You can run help against any query e.g. \033[35mhelp(vfb.terms)\033[0m") if vfb_launch else None
 
     def __dir__(self):
         return [attr for attr in list(self.__dict__.keys()) if not attr.startswith('_')] + [attr for attr in dir(self.__class__) if not attr.startswith('_') and not attr.startswith('add_')]
@@ -852,6 +852,9 @@ class VfbConnect:
                 else:
                     new_acc.append(xref)
             acc = new_acc
+        if isinstance(acc, list) and all(isinstance(x, int) for x in acc):
+            acc = [str(x) for x in acc]
+            print(f"Converted to strings: {acc}") if verbose else None
         if db in VFB_DBS_2_SYMBOLS.keys():
             db = VFB_DBS_2_SYMBOLS[db]
         if db not in self.get_dbs():
@@ -1418,7 +1421,7 @@ class VfbConnect:
         rgb_colors = []
 
         # Select the first color
-        lab_tree = KDTree([(0, 0, 0)])  # Start tree with black
+        lab_tree = KDTree([(255,255,255),(0, 0, 0)])  # Start tree with black and white
 
         # Pick colors that are far apart from each other and from black
         for lab in lab_colors[0:]:

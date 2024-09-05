@@ -4,6 +4,7 @@ import re
 import shutil
 from inspect import getfullargspec
 from string import Template
+from time import sleep
 from xml.sax import saxutils
 import pandas as pd
 import pkg_resources
@@ -609,7 +610,13 @@ class QueryWrapper(Neo4jConnect):
             short_forms = list(chain.from_iterable(short_forms)) if any(isinstance(i, list) for i in short_forms) else short_forms
         print(f"Checking cache for results: short_forms={short_forms}") if verbose else None
         print(f"Looking for {len(short_forms)} results.") if verbose else None
-        results = self._serialize_solr_output(vfb_solr.search('*', **{'fl': 'term_info','df': 'id', 'defType': 'edismax', 'q.op': 'OR','rows': len(short_forms)+10,'fq':'{!terms f=id}'+ ','.join(short_forms)}))
+        try:
+            result = vfb_solr.search('*', **{'fl': 'term_info','df': 'id', 'defType': 'edismax', 'q.op': 'OR','rows': len(short_forms)+10,'fq':'{!terms f=id}'+ ','.join(short_forms)})
+        except Exception as e:
+            print(f"\033[33mWarning:\033[0m Cache query failed. Error: {e}")
+            sleep(15) # Sleep for 15 seconds to avoid overloading the server
+            return self._get_Cached_TermInfo(short_forms, summary=summary, return_dataframe=return_dataframe, verbose=verbose)
+        results = self._serialize_solr_output(result)
         print(f"Got {len(results)} results.") if verbose else None
         if len(short_forms) != len(results):
             print(f"Warning: Cache didn't return all results. Got {len(results)} out of {len(short_forms)}") if verbose else None

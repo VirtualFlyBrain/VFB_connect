@@ -1572,7 +1572,7 @@ class VFBTerm:
         from vfb_connect import vfb
         self.vfb = vfb
         self.debug = verbose
-        self._return_type = self.vfb._return_type # Default to global version but can be set to id, name (list) or full (VFBTerms)
+        self._return_type = self.vfb._return_type if hasattr(self.vfb, '_return_type') else "full"
         if id is not None:
             if isinstance(id, list):
                 id = id[0]
@@ -1681,7 +1681,6 @@ class VFBTerm:
             self._instances = None
             self._instances_ids = None
             self._instances_names = None
-            self._return_type = self.vfb._return_type # Default to global version but can be set to id, name (list) or full (VFBTerms)
             self._skeleton = None
             self._mesh = None
             self._volume = None

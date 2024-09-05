@@ -1,3 +1,4 @@
+from time import sleep
 import requests
 import re
 import json
@@ -70,11 +71,16 @@ class OWLeryConnect:
         if query_by_label:
             query = self.labels_2_ids(query)
         if verbose:
-            print("Running query: " + query) 
+            print("Running query: " + query)
         payload = {'object': query, 'prefixes': json.dumps(self.curies),
                    'direct': direct}
         # print(payload)
-        r = requests.get(url=owl_endpoint, params=payload)
+        try:
+            r = requests.get(url=owl_endpoint, params=payload)
+        except requests.exceptions.RequestException as e:
+            print("\033[31mConnection Error:\033[0m " + str(e))
+            sleep(15)
+            return query(query_type, return_type, query, query_by_label, direct, verbose)
         if verbose:
             print("Query URL: " + r.url)
         if r.status_code == 200:
