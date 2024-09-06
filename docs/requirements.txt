@@ -3,7 +3,7 @@ psycopg2
 pandas==1.5.3
 pandasql
 jsonpath_rw
-setuptools~=50.3.2
+setuptools~=70.0.0
 jupyter
 nbsphinx
 matplotlib
