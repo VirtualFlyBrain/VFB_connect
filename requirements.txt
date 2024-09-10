@@ -10,7 +10,7 @@ python-catmaid
 nbformat>=4.2.0
 ipywidgets
 vispy
-colormath
+basic-colormath
 tqdm
 sphinx-autodoc-typehints
 numpy>=1.26.4,<2.0.0

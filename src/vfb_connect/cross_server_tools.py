@@ -13,9 +13,7 @@ from .default_servers import get_default_servers
 from .schema.vfb_term import VFBTerm, VFBTerms, Partner
 import pandas as pd
 import numpy as np
-from colormath.color_objects import LabColor, sRGBColor
-from colormath.color_conversions import convert_color
-from scipy.spatial import KDTree
+import basic_colormath as bcm
 
 VFB_DBS_2_SYMBOLS = {"JRC_OpticLobe":"neuprint_JRC_OpticLobe_v1_0_1", "FAFB":"catmaid_fafb", "L1EM":"catmaid_l1em", "MANC":"neuprint_JRC_Manc_1_2_1", 
                      "FlyEM-HB":"neuprint_JRC_Hemibrain_1point1","ol":"neuprint_JRC_OpticLobe_v1_0_1", "fafb":"catmaid_fafb", "l1em":"catmaid_l1em", 
@@ -1393,7 +1391,7 @@ class VfbConnect:
         print(terms) if verbose else None
         return VFBTerms(terms, verbose=verbose)
 
-    def generate_lab_colors(self, num_colors, min_distance=100, verbose=False):
+    def generate_lab_colors(self, num_colors, min_distance=10, verbose=False):
         """
         Generate a list of Lab colors and convert them to RGB tuples.
 
@@ -1401,44 +1399,26 @@ class VfbConnect:
         :param min_distance: Minimum perceptual distance between colors.
         :return: A list of RGB tuples.
         """
-        # Generate a large set of candidate colors in Lab space
+        # Generate a large set of candidate colors in RGB space
         grid_size = int(np.ceil((num_colors * 5) ** (1 / 3)))  # Generating more candidates
-        l_values = np.linspace(0, 100, grid_size)
-        a_values = np.linspace(-100, 100, grid_size)
-        b_values = np.linspace(-100, 100, grid_size)
+        r_values = np.linspace(0, 255, grid_size, dtype=int)
+        g_values = np.linspace(0, 255, grid_size, dtype=int)
+        b_values = np.linspace(0, 255, grid_size, dtype=int)
+        starter_colors = np.array(np.meshgrid(r_values, g_values, b_values)).T.reshape(-1, 3)
+        np.random.shuffle(starter_colors)  # Randomize the order of the colors
 
-        lab_colors = np.array(np.meshgrid(l_values, a_values, b_values)).T.reshape(-1, 3)
-
-        # Shuffle the candidate colors to introduce randomness
-        np.random.shuffle(lab_colors)
-
-        selected_lab_colors = []
-        rgb_colors = []
-
-        # Select the first color
-        lab_tree = KDTree([(255,255,255),(0, 0, 0)])  # Start tree with black and white
-
-        # Pick colors that are far apart from each other and from black
-        for lab in lab_colors[0:]:
-            distances, _ = lab_tree.query([lab], k=1)
-            if distances[0] >= min_distance:
-                selected_lab_colors.append(lab)
-                lab_tree = KDTree(selected_lab_colors)  # Update tree with the new color
-            if len(selected_lab_colors) >= num_colors:
+        # Select the colors that are at least min_distance apart
+        selected_colors = [(0, 0, 0), (255, 255, 255)]  # Start with black and white
+        for x in starter_colors:
+            if len(selected_colors) >= (num_colors + 2):
+                del selected_colors[:2]  # remove the first two (black and white)
                 break
-
-        # Convert Lab to RGB
-        for lab in selected_lab_colors:
-            lab_color = LabColor(lab[0], lab[1], lab[2])
-            rgb_color = convert_color(lab_color, sRGBColor)
-            rgb_tuple = (int(round(rgb_color.clamped_rgb_r * 255)),
-                         int(round(rgb_color.clamped_rgb_g * 255)),
-                         int(round(rgb_color.clamped_rgb_b * 255)))
-            rgb_colors.append(rgb_tuple)
+            elif all(bcm.get_delta_e(x, y) >= min_distance for y in selected_colors):
+                selected_colors.append(tuple(x))
 
         if verbose:
-            print(f"Generated RGB colors: {rgb_colors}")
+            print(f"Generated RGB colors: {selected_colors}")
 
-        return rgb_colors
+        return selected_colors
 
       
