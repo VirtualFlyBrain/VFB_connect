@@ -2928,7 +2928,7 @@ class VFBTerm:
             max_weight = max(weights)
             min_weight = min(weights)
             normalized_weights = [(weight - min_weight) / (max_weight - min_weight) for weight in weights]
-            colours = self.vfb.generate_lab_colors(len(neurons)-1)
+            colours = self.vfb.generate_lab_colors(len(neurons)-1, verbose=verbose)
             colours = [(0,0,0)] + colours  # Reverse the colours to match the order of the neurons
             alphas = []
             max_alpha = int(255)
@@ -2963,7 +2963,7 @@ class VFBTerm:
             max_weight = max(weights)
             min_weight = min(weights)
             normalized_weights = [(weight - min_weight) / (max_weight - min_weight) for weight in weights]
-            colours = self.vfb.generate_lab_colors(len(neurons)-1)
+            colours = self.vfb.generate_lab_colors(len(neurons)-1, verbose=verbose)
             colours = [(0,0,0)] + colours
             alphas = []
             max_alpha = int(255)
@@ -3436,7 +3436,7 @@ class VFBTerms:
 
         # Generate colors for unique property values
         sorted_result = sorted(result)
-        color_list = self.vfb.generate_lab_colors(len(sorted_result))
+        color_list = self.vfb.generate_lab_colors(len(sorted_result), verbose=verbose)
         value_to_color = dict(zip(sorted_result, color_list))
 
         # Map each term's property value to its corresponding color
