@@ -12,6 +12,9 @@ from ..neo.neo4j_tools import chunks, Neo4jConnect, dict_cursor, escape_string
 
 import webbrowser
 
+NEUPRINT_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZmYndvcmtzaG9wLm5ldXJvZmx5MjAyMEBnbWFpbC5jb20iLCJsZXZlbCI6Im5vYXV0aCIsImltYWdlLXVybCI6Imh0dHBzOi8vbGg2Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tWXFDN21NRXd3TlEvQUFBQUFBQUFBQUkvQUFBQUFBQUFBQUEvQU1adXVjbU5zaXhXZDRhM0VyTTQ0ODBMa2IzNDdvUlpfUS9zOTYtYy9waG90by5qcGc_c3o9NTA_c3o9NTAiLCJleHAiOjE3OTQwOTE4ODd9.ceg4mrj2o-aOhK0NHNGmBacg8R34PBPoLBwhCo4uOCQ'
+CATMAID_TOKEN = None
+
 neuron_containing_anatomy_tags = [
             "Painted_domain",
             "Synaptic_neuropil_domain",
@@ -2684,21 +2687,175 @@ class VFBTerm:
                 self._volume.label = self.name
                 self._volume.id = self.id
 
+    def _extract_url_parameter(self, url, parameter='dataset', verbose=False):
+        """
+        Extract the value of a query parameter from a URL.
+        """
+        from urllib.parse import urlparse, parse_qs
+        # Parse the URL
+        parsed_url = urlparse(url)
+        print("Parsed URL: ", parsed_url) if verbose else None
+        # Extract the query parameters as a dictionary
+        query_params = parse_qs(parsed_url.query)
+        print("Query Params: ", query_params) if verbose else None
+        # Get the value of the 'dataset' parameter
+        param_value = query_params.get(parameter)
+        print("Param Value: ", param_value) if verbose else None
+        # Return the first value if the parameter exists
+        if param_value:
+            print(f"Found {parameter} parameter {param_value} of type {type(param_value)}") if verbose else None
+            if isinstance(param_value, list):
+                print("Returning first value: ", param_value[0]) if verbose else None
+                return param_value[0]
+            if isinstance(param_value, str):
+                print("Returning value: ", param_value) if verbose else None
+                return param_value
+        return None
+
     def load_skeleton_synaptic_connections(self, template=None, verbose=False):
         """
         Load the synaptic connections for the neuron's skeleton.
         """
+        import flybrains
+        import navis
+        from navis import transforms
+        import pymaid
+        from navis.interfaces.neuprint import fetch_synapses, Client
+        
+        # Load the correct template
         template = self.get_default_template(template=template)
+        
+        # Check if skeleton is loaded, else load it
         if not self._skeleton or self._skeleton_template != template:
-            print(f"No skeleton loaded yet for {self.name} so loading...") if verbose else None
-            template = self.get_default_template(template=template)
+            if verbose:
+                print(f"No skeleton loaded yet for {self.name} so loading...")
             self.load_skeleton(template=template, verbose=verbose)
+        
         if self._skeleton:
-            print(f"Loading synaptic connections for {self.name}...") if verbose else None
-            xref = self.xref
-            # TODO: Load synaptic connections
-            # see https://github.com/navis-org/navis/blob/1eead062710af6adabc9e9c40196ad7be029cb52/navis/interfaces/neuprint.py#L491
-        print("FEATURE NOT YET IMPLEMENTED")
+            if verbose:
+                print(f"Loading synaptic connections for {self.name}...")
+            
+            if 'catmaid' in self.xref_url:
+                if verbose:
+                    print("Loading synaptic connections from CATMAID...")
+                
+                skid = int(self.xref_accession)
+                db = self.xref_id.split(':')[0]
+                server = "https://" + self.xref_url.split('://')[-1].split('/')[0]
+                pid = self._extract_url_parameter(self.xref_url, parameter='pid', verbose=verbose)
+                
+                # Connect to CATMAID
+                catmaid = pymaid.connect_catmaid(server=server, project_id=pid, api_token=CATMAID_TOKEN, max_threads=10)
+                connectors = pymaid.get_connectors([skid], remote_instance=catmaid)
+                
+                # Get connector details to link node_ids
+                links = pymaid.get_connector_details(connectors.connector_id)
+                connectors['node_id'] = connectors.connector_id.map(links.set_index('connector_id').node_id.to_dict())
+                
+                # Perform alignment if needed
+                available_transforms = transforms.registry.summary()
+                source, target = self.determine_transform(db, available_transforms, template)
+                
+                if source and target:
+                    if verbose:
+                        print(f"Transforming from {source} to {target}...")
+                    aligned_connectors = navis.xform_brain(connectors, source=source, target=target)
+                else:
+                    aligned_connectors = connectors
+                
+                # Attach connectors to the skeleton
+                aligned_connectors['type'] = aligned_connectors['type'].str.lower()  # Ensure 'type' is lowercase
+                self._skeleton._set_connectors(aligned_connectors)
+                if verbose:
+                    print(f"Connectors set for {self.name}")
+                return aligned_connectors
+            
+            elif 'neuprint' in self.xref_url:
+                if verbose:
+                    print("Loading synaptic connections from neuprint...")
+                
+                bodyId = int(self.xref_accession)
+                db = self.xref_id.split(':')[0]
+                server = self.xref_url.split('://')[-1].split('/')[0]
+                ds = self._extract_url_parameter(self.xref_url, parameter='dataset', verbose=verbose)
+                
+                # Connect to neuprint
+                client = Client(server=server, dataset=ds, token=NEUPRINT_TOKEN)
+                connectors = fetch_synapses(bodyId, client=client)
+                
+                # Get transforms if needed
+                available_transforms = transforms.registry.summary()
+                source, target = self.determine_transform(ds, available_transforms, template)
+                
+                if source and target:
+                    if verbose:
+                        print(f"Transforming from {source} to {target}...")
+                    aligned_connectors = navis.xform_brain(connectors, source=source, target=target)
+                else:
+                    aligned_connectors = connectors
+                
+                # Ensure 'connector_id' exists and bodyId gets mapped to 'id'
+                if 'connector_id' not in aligned_connectors.columns:
+                    aligned_connectors['connector_id'] = aligned_connectors.index
+                if 'id' not in aligned_connectors.columns:
+                    acc = aligned_connectors.bodyId.to_list()
+                    vfb_ids = self.vfb.xref_2_vfb_id(acc=acc, db=db, return_just_ids=True, verbose=verbose)
+                    if len(vfb_ids) != len(acc):
+                        print("Some bodyIds could not be mapped to VFB IDs.")
+                    aligned_connectors['id'] = vfb_ids
+                
+                # Attach connectors to the skeleton
+                aligned_connectors['type'] = aligned_connectors['type'].str.lower()  # Ensure 'type' is lowercase
+                if verbose:
+                    print(f"Setting connectors for {self.name}...")
+                if verbose:
+                    print("Connectors: ", aligned_connectors)
+                self._skeleton._set_connectors(aligned_connectors)
+                if verbose:
+                    print(f"Connectors set for {self.name}")
+                return aligned_connectors
+            
+            else:
+                if verbose:
+                    print("Unknown data source for synaptic connections.")
+                return None
+            
+        else:
+            if verbose:
+                print("Skeleton not loaded; cannot load synaptic connections.")
+            return None
+
+    def determine_transform(self, name, available_transforms, template):
+        """
+        Determine the source and target brain space for the transformation.
+        """
+        source = None
+        target = None
+        
+        if name.upper() in available_transforms.source.to_list():
+            source = name.upper()
+        elif name.lower() in available_transforms.source.to_list():
+            source = name.lower()
+        
+        if self.vfb.lookup_name(template) in available_transforms.target.to_list():
+            target = template
+        
+        if not source or not target:
+            if 'fafb' in name.lower():
+                source = 'FAFB'
+                target = 'JRC2018U'
+            elif 'fanc' in name.lower():
+                source = 'FANC'
+                target = 'JRC2018U'
+            elif 'hemibrain' in name.lower():
+                source = 'hemibrain'
+                target = 'JRC2018U'
+            elif 'optic-lobe' in name.lower():
+                source = 'JRCFIB2022Mraw'
+                target = 'JRC2018U'
+        
+        return source, target
+
 
 
     def get_default_template(self, template=None):
