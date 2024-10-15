@@ -20,3 +20,4 @@ matplotlib>3.9
 seaborn>0.13
 fonttools>=4.43.0 # not directly required, pinned by Snyk to avoid a vulnerability
 pillow>=10.3.0 # not directly required, pinned by Snyk to avoid a vulnerability
+plotly
