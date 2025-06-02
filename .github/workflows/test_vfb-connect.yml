@@ -17,6 +17,7 @@ jobs:
         run: |
           python -m pip install -U pip
           python -m pip install -r requirements.txt
+          python -m pip install -r .github/workflows/requirements.txt
           
       - name: Run the query_tools tests
         run: |
