@@ -614,6 +614,9 @@ class QueryWrapper(Neo4jConnect):
             result = vfb_solr.search('*', **{'fl': 'term_info','df': 'id', 'defType': 'edismax', 'q.op': 'OR','rows': len(short_forms)+10,'fq':'{!terms f=id}'+ ','.join(short_forms)})
         except Exception as e:
             print(f"\033[33mWarning:\033[0m Cache query failed. Error: {e}")
+            if verbose:
+                import traceback
+                print(f"Stack trace:\n{traceback.format_exc()}")
             sleep(15) # Sleep for 15 seconds to avoid overloading the server
             return self._get_Cached_TermInfo(short_forms, summary=summary, return_dataframe=return_dataframe, verbose=verbose)
         results = self._serialize_solr_output(result)
