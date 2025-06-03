@@ -18,8 +18,8 @@ from colormath.color_conversions import convert_color
 from scipy.spatial import KDTree
 
 VFB_DBS_2_SYMBOLS = {"JRC_OpticLobe":"neuprint_JRC_OpticLobe_v1_0_1", "FAFB":"catmaid_fafb", "L1EM":"catmaid_l1em", "MANC":"neuprint_JRC_Manc_1_2_1", 
-                     "FlyEM-HB":"neuprint_JRC_Hemibrain_1point1","ol":"neuprint_JRC_OpticLobe_v1_0_1", "fafb":"catmaid_fafb", "l1em":"catmaid_l1em", 
-                     "fw":"flywire783", "mv":"neuprint_JRC_Manc_1_2_1", "hb":"neuprint_JRC_Hemibrain_1point1"}
+                     "FlyEM-HB":"neuprint_JRC_Hemibrain_1point2point1","ol":"neuprint_JRC_OpticLobe_v1_0_1", "fafb":"catmaid_fafb", "l1em":"catmaid_l1em", 
+                     "fw":"flywire783", "mv":"neuprint_JRC_Manc_1_2_1", "hb":"neuprint_JRC_Hemibrain_1point2point1"}
 
 
 def gen_short_form(iri):

@@ -461,7 +461,7 @@ class QueryWrapper(Neo4jConnect):
         if isinstance(acc, str):
             acc = [acc]
         match = "MATCH (s:Individual)<-[r:database_cross_reference]-(i:Entity) WHERE"
-        conditions = []
+        conditions = ["NOT s:Deprecated"]
         if not (acc is None):
             acc = [str(a) for a in set(acc)]
             conditions.append("r.accession[0] in %s" % str(acc))
