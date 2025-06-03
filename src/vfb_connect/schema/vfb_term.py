@@ -2935,7 +2935,7 @@ class VFBTerm:
             colours = self.vfb.generate_lab_colors(len(neurons)-1)
             colours = [(0,0,0)] + colours  # Reverse the colours to match the order of the neurons
             alphas = []
-            max_alpha = int(255)
+            max_alpha = float(1)
             for i, neuron in enumerate(neurons):
                 if i == 0:
                     alpha = max_alpha
@@ -2970,7 +2970,7 @@ class VFBTerm:
             colours = self.vfb.generate_lab_colors(len(neurons)-1)
             colours = [(0,0,0)] + colours
             alphas = []
-            max_alpha = int(255)
+            max_alpha = float(1)
             for i, neuron in enumerate(neurons):
                 if i == 0:
                     alpha = max_alpha
