@@ -2,6 +2,7 @@ import json
 import os
 import re
 import shutil
+import traceback
 from inspect import getfullargspec
 from string import Template
 from time import sleep
@@ -613,9 +614,8 @@ class QueryWrapper(Neo4jConnect):
         try:
             result = vfb_solr.search('*', **{'fl': 'term_info','df': 'id', 'defType': 'edismax', 'q.op': 'OR','rows': len(short_forms)+10,'fq':'{!terms f=id}'+ ','.join(short_forms)})
         except Exception as e:
-            print(f"\033[33mWarning:\033[0m Cache query failed. Error: {e}")
+            print(f"\033[33mWarning:\033[0m Cache query failed for {short_forms}. Error: {e}")
             if verbose:
-                import traceback
                 print(f"Stack trace:\n{traceback.format_exc()}")
             sleep(15) # Sleep for 15 seconds to avoid overloading the server
             return self._get_Cached_TermInfo(short_forms, summary=summary, return_dataframe=return_dataframe, verbose=verbose)

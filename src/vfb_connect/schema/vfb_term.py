@@ -1760,10 +1760,14 @@ class VFBTerm:
                     if 'lineage_' in tag:
                         lineage = tag.split('_')[1]
                         id = self.vfb.lookup_id(lineage + ' lineage neuron')
-                        if id and id != self.id:
-                            self.lineage = self.vfb.term(id)
-                            print(f"Lineage term: {self.lineage}") if verbose else None
-                            break
+                        if id:
+                            if id != self.term.core.short_form:
+                                self.lineage = self.vfb.term(id)
+                                print(f"Lineage term: {self.lineage}") if verbose else None
+                                break
+                            else:
+                                print (f"Lineage term is the same as the current term: {self.id}") if verbose else None
+                                break
 
             if self.vfb._use_cache:
                 if isinstance(self.vfb._term_cache, VFBTerms):
