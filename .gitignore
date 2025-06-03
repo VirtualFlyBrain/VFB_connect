@@ -11,3 +11,5 @@ docs/source/_build
 /image_folder_tmp
 /src/vfb_connect.egg-info
 /src/vfb_connect.egg-info/*
+.venv
+venv_py310

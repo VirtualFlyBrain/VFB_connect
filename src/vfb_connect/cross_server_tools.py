@@ -259,6 +259,7 @@ class VfbConnect:
 
                 if len(matches) == 1:
                     print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
+                    self.lookup[key] = matches[matched_key]
                     return matches[matched_key] if not return_curie else matches[matched_key].replace('_', ':')
 
                 all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])

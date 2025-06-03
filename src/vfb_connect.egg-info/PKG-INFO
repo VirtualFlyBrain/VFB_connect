@@ -1,14 +1,14 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: vfb_connect
-Version: 2.2.10.dev8+970cf66.dirty
+Version: 2.2.17.dev9+6acf8c4.dirty
 Summary: Wrapper for querying VirtualFlyBrain servers.
 Home-page: https://github.com/VirtualFlyBrain/VFB_connect
-Author: David Osumi-Sutherland
-Author-email: dosumis@gmail.com
+Author: Robert Court
+Author-email: rcourt@ed.ac.uk
 Project-URL: Bug Reports, https://github.com/VirtualFlyBrain/VFB_connect/issues
 Project-URL: Source, https://github.com/VirtualFlyBrain/VFB_connect
 Project-URL: Documentation, https://vfb-connect.readthedocs.io/en/stable/
-Classifier: Development Status :: 4 - Beta
+Classifier: Development Status :: 5 - Production/Stable
 Classifier: Intended Audience :: Science/Research
 Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
 Classifier: Programming Language :: Python :: 3
@@ -19,16 +19,20 @@ Requires-Dist: pandas
 Requires-Dist: jsonpath_rw
 Requires-Dist: pysolr
 Requires-Dist: navis
-Requires-Dist: flybrains
 Requires-Dist: numpy<2.0.0,>=1.26.4
-Requires-Dist: neuprint-python
-Requires-Dist: python-catmaid
-Requires-Dist: matplotlib>3.9
 Requires-Dist: seaborn>0.13
 Requires-Dist: colormath
 Requires-Dist: tqdm
-Requires-Dist: vispy
-Requires-Dist: ipywidgets
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: project-url
+Dynamic: requires-dist
+Dynamic: summary
 
 # VFB_connect [![test_vfb-connect](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/test_vfb-connect.yml/badge.svg)](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/test_vfb-connect.yml) [![publish-to-pypi](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/publish-to-pypi.yml/badge.svg)](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/publish-to-pypi.yml) [![PyPI version](https://badge.fury.io/py/vfb-connect.svg)](https://pypi.org/project/vfb-connect/) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.13376947.svg)](https://doi.org/10.5281/zenodo.13376947)
 [![test_notebooks](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/test_notebooks.yml/badge.svg)](https://github.com/VirtualFlyBrain/VFB_connect/actions/workflows/test_notebooks.yml) [![Documentation Status](https://readthedocs.org/projects/vfb-connect/badge/?version=stable)](https://vfb-connect.readthedocs.io/en/stable/?badge=latest)
