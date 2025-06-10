@@ -63,14 +63,39 @@ jobs:
               sys.exit(1)
           "
           
-      - name: Run essential tests (core functionality)
-        timeout-minutes: 8
+      - name: Run comprehensive tests (all modules)
+        timeout-minutes: 15
         run: |
           cd src
-          echo "Running core lookup tests..."
-          python -m unittest \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_lookups \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_lookups_matching \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_lookup_names \
-            vfb_connect.test.cross_server_tools_test.VfbConnectTest.test_lookup_id \
-            -v
+          echo "Running comprehensive test suite..."
+          python ../run_all_tests.py
+          
+      - name: Run the query_tools tests  
+        timeout-minutes: 10
+        run: |
+          cd src
+          python -m vfb_connect.owl.test.query_tools_test
+          
+      - name: Run the cross_server_tools tests
+        timeout-minutes: 10
+        run: |
+          cd src
+          python -m vfb_connect.test.cross_server_tools_test
+          
+      - name: Run the neo_tools tests
+        timeout-minutes: 10
+        run: |
+          cd src
+          python -m vfb_connect.neo.test.neo_tools_test
+
+      - name: Run the VFBterms tests
+        timeout-minutes: 10
+        run: |
+          cd src
+          python -m vfb_connect.schema.test.vfb_term_test
+          
+      - name: Run VFB term query tests
+        timeout-minutes: 10
+        run: |
+          cd src
+          python -m vfb_connect.schema.test.vfb_term_query_test
