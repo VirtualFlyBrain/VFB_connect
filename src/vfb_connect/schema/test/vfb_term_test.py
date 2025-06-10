@@ -1,13 +1,104 @@
 import unittest
 import time
+import functools
 from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm, Score, Relations, Xref, ExpressionList, Expression
 
-class VfbTermTest(unittest.TestCase):
+class TimedTestCase(unittest.TestCase):
+    """Base test case that adds timing to all test methods"""
+    
+    @classmethod
+    def setUpClass(cls):
+        """Initialize timing storage"""
+        cls._test_times = []
+    
+    @classmethod 
+    def tearDownClass(cls):
+        """Display test timing summary"""
+        if hasattr(cls, '_test_times') and cls._test_times:
+            print("\n" + "="*60)
+            print("TEST TIMING SUMMARY")
+            print("="*60)
+            
+            # Sort by duration (longest first)
+            sorted_times = sorted(cls._test_times, key=lambda x: x[1], reverse=True)
+            
+            total_time = sum(duration for _, duration in sorted_times)
+            print(f"Total test time: {total_time:.2f} seconds")
+            print("\nTests sorted by duration:")
+            print("-" * 60)
+            
+            for test_name, duration in sorted_times:
+                if duration > 10:
+                    status = "🔴 VERY SLOW"
+                elif duration > 5:
+                    status = "🟡 SLOW"
+                elif duration > 2:
+                    status = "🟠 MODERATE"
+                else:
+                    status = "🟢 FAST"
+                
+                print(f"{status:<12} {test_name:<40} {duration:>6.2f}s")
+            
+            # Show just the slowest tests
+            slow_tests = [t for t in sorted_times if t[1] > 5]
+            if slow_tests:
+                print(f"\n🚨 {len(slow_tests)} tests took longer than 5 seconds:")
+                for test_name, duration in slow_tests:
+                    print(f"   • {test_name}: {duration:.2f}s")
+            
+            print("="*60)
+    
+    def run(self, result=None):
+        """Override run to add timing around each test method"""
+        test_method = getattr(self, self._testMethodName)
+        start_time = time.time()
+        
+        try:
+            # Call the original run method
+            outcome = super().run(result)
+            end_time = time.time()
+            duration = end_time - start_time
+            
+            # Store timing in class variable for summary  
+            if not hasattr(self.__class__, '_test_times'):
+                self.__class__._test_times = []
+            self.__class__._test_times.append((self._testMethodName, duration))
+            
+            # Log individual test timing
+            if duration > 10:
+                print(f"\n⚠️  SLOW TEST: {self._testMethodName} took {duration:.2f} seconds")
+            elif duration > 5:
+                print(f"\n⏰ {self._testMethodName} took {duration:.2f} seconds")
+            else:
+                print(f"\n✅ {self._testMethodName} completed in {duration:.2f} seconds")
+                
+            return outcome
+            
+        except Exception as e:
+            end_time = time.time()
+            duration = end_time - start_time
+            
+            # Store timing even for failed tests
+            if not hasattr(self.__class__, '_test_times'):
+                self.__class__._test_times = []
+            self.__class__._test_times.append((self._testMethodName, duration))
+            
+            print(f"\n❌ {self._testMethodName} FAILED after {duration:.2f} seconds: {e}")
+            raise
+
+class VfbTermTest(TimedTestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        """Set up the VFB connection once for all tests"""
+        super().setUpClass()
+        from vfb_connect import vfb
+        cls.vfb = vfb
+        cls.vfb._load_limit = 10
 
     def setUp(self):
-        from vfb_connect import vfb
-        self.vfb = vfb
-        self.vfb._load_limit = 10
+        # vfb is now available as self.vfb via cls.vfb
+        self.vfb = self.__class__.vfb
 
     def test_create_vfbterm_from_json(self):
         self.assertTrue(

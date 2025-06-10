@@ -257,14 +257,25 @@ class VfbConnect:
                     for k, v in matches.items():
                         print(f"Matched: {k} -> {v}")
 
+                # Check if all matches point to the same ID (same term, different names)
+                unique_ids = set(matches.values())
+                
                 if len(matches) == 1:
                     print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
                     self.lookup[key] = matches[matched_key]
                     return matches[matched_key] if not return_curie else matches[matched_key].replace('_', ':')
-
-                all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
-                print(f"\033[33mWarning:\033[0m Ambiguous match for '\033[33m{key}\033[0m'. Using '{matched_key}' -> '\033[32m{matches[matched_key]}\033[0m'. Other possible matches: {all_matches}")
-                return matches[matched_key] if not return_curie else matches[matched_key].replace('_', ':')
+                elif len(unique_ids) == 1:
+                    # Multiple names but same ID - not truly ambiguous, just pick the shortest/cleanest name
+                    if verbose:
+                        print(f"Multiple names for same term found: {matches}")
+                    print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
+                    self.lookup[key] = matches[matched_key]
+                    return matches[matched_key] if not return_curie else matches[matched_key].replace('_', ':')
+                else:
+                    # Multiple different IDs - truly ambiguous
+                    all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
+                    print(f"\033[33mWarning:\033[0m Ambiguous match for '\033[33m{key}\033[0m'. Using '{matched_key}' -> '\033[32m{matches[matched_key]}\033[0m'. Other possible matches: {all_matches}")
+                    return matches[matched_key] if not return_curie else matches[matched_key].replace('_', ':')
 
             starts_with_matches = {k: v for k, v in self.lookup.items() if k.lower().startswith(key.lower())}
             if starts_with_matches:
