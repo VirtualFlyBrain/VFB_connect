@@ -388,6 +388,16 @@ class Neo4jConnect:
                 out.append(result)
                 name_to_id[name] = id
 
+    def normalize_key(self, key):
+        """
+        Normalize the key for comparison by making it lowercase and removing special characters.
+        This should match the normalize_key method in VfbConnect for consistency.
+        
+        :param key: The key to normalize.
+        :return: A normalized string.
+        """
+        return key.lower().replace('_', '').replace('-', '').replace(' ', '').replace(':', '').replace(';', '')
+
     def process_results(self, out, curies):
         """Remove duplicates and prepare the final lookup dictionary.
 
@@ -395,6 +405,7 @@ class Neo4jConnect:
         :param curies: If `True`, convert IDs to CURIE format.
         :return: Final lookup dictionary.
         """
+        # First, remove exact duplicates of (name, id) pairs
         seen = set()
         unique_out = []
         for item in out:
@@ -403,11 +414,37 @@ class Neo4jConnect:
                 seen.add(pair)
                 unique_out.append(item)
 
+        # Now deduplicate based on normalized keys to prevent ambiguous matches
+        normalized_seen = {}
+        final_out = []
+        
+        for item in unique_out:
+            normalized_name = self.normalize_key(item['name'])
+            
+            if normalized_name not in normalized_seen:
+                # First occurrence of this normalized key
+                normalized_seen[normalized_name] = item
+                final_out.append(item)
+            else:
+                # Duplicate normalized key found - prefer shorter, cleaner names
+                existing_item = normalized_seen[normalized_name]
+                current_name = item['name']
+                existing_name = existing_item['name']
+                
+                # Prefer the name with no leading/trailing spaces and shorter length
+                if (len(current_name.strip()) < len(existing_name.strip()) or
+                    (len(current_name.strip()) == len(existing_name.strip()) and 
+                     current_name.strip() == current_name)):  # No leading/trailing spaces
+                    
+                    # Replace the existing item with the current one
+                    final_out = [item if x == existing_item else x for x in final_out]
+                    normalized_seen[normalized_name] = item
+
         if curies:
-            lookup = {x['name']: x['id'].replace('_', ':') for x in unique_out}
-            lookup.update({x['id'].replace(':', '_'): x['id'] for x in unique_out})
+            lookup = {x['name']: x['id'].replace('_', ':') for x in final_out}
+            lookup.update({x['id'].replace(':', '_'): x['id'] for x in final_out})
         else:
-            lookup = {x['name']: x['id'] for x in unique_out}
+            lookup = {x['name']: x['id'] for x in final_out}
 
         return lookup
 
