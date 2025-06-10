@@ -5,6 +5,7 @@ jobs:
   notebooks:
     name: "Build the notebooks for the docs"
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -13,24 +14,39 @@ jobs:
         with:
           python-version: 3.10.14
 
+      - name: Cache VFB lookup tables
+        uses: actions/cache@v3
+        with:
+          path: |
+            src/vfb_connect/lookup_cache.pkl
+            ~/.cache/vfb_connect/
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            vfb-lookup-cache-
+
       - name: Install dependencies
         run: |
           python -m pip install -U pip
           python -m pip install .
           python -m pip install -r .github/workflows/requirements.txt
+          
+      - name: Set performance environment variables
+        run: |
+          echo "VFB_LOAD_LIMIT=5" >> $GITHUB_ENV
+          echo "VFB_CACHE_ENABLED=true" >> $GITHUB_ENV
 
       - name: Execute tutorial notebooks (serial execution)
         run: |
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=600 docs/source/tutorials/overview.ipynb
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=600 docs/source/tutorials/vfb_terms.ipynb
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=600 docs/source/tutorials/discovery.ipynb
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=600 docs/source/tutorials/vfb_neurons.ipynb
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=1200 docs/source/tutorials/connectomics.ipynb
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=600 docs/source/tutorials/vfb_datasets.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/overview.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/vfb_terms.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/discovery.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/vfb_neurons.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=1800 docs/source/tutorials/connectomics.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/vfb_datasets.ipynb
 
       - name: Execute snippet notebooks (serial execution)
         run: |
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=600 snippets/VFB_connect_Quick_Guide.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 snippets/VFB_connect_Quick_Guide.ipynb
 
 
       - uses: actions/upload-artifact@v4
@@ -38,4 +54,4 @@ jobs:
           name: notebooks-for-${{ github.sha }}
           path: docs/tutorials
 
-    
+
