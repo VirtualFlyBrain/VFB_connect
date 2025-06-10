@@ -19,13 +19,18 @@ jobs:
           python -m pip install .
           python -m pip install -r .github/workflows/requirements.txt
 
-      - name: Execute the tutorial notebooks
+      - name: Execute tutorial notebooks (serial execution)
         run: |
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=None docs/source/tutorials/*.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=None docs/source/tutorials/overview.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=None docs/source/tutorials/vfb_terms.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=None docs/source/tutorials/discovery.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=None docs/source/tutorials/vfb_neurons.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=None docs/source/tutorials/connectomics.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=None docs/source/tutorials/vfb_datasets.ipynb
 
-      - name: Execute the snippet notebooks
+      - name: Execute snippet notebooks (serial execution)
         run: |
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=None snippets/*.ipynb
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=None snippets/VFB_connect_Quick_Guide.ipynb
 
 
       - uses: actions/upload-artifact@v4
