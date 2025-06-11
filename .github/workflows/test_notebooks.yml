@@ -1,19 +1,35 @@
 name: Jupyter Notebook checks
-on: [push, release]
+on: 
+  push:
+    paths:
+      - 'docs/source/tutorials/**'
+      - 'snippets/**'
+      - 'src/vfb_connect/**'
+      - 'requirements.txt'
+      - '.github/workflows/requirements.txt'
+      - '.github/workflows/test_notebooks.yml'
+  release:
+    types: [published]
 
 jobs:
-  notebooks:
-    name: "Build the notebooks for the docs"
+  # Overview Tutorial
+  overview-notebook:
+    name: "Test overview tutorial"
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    if: |
+      github.event_name == 'release' ||
+      contains(github.event.head_commit.modified, 'docs/source/tutorials/overview.ipynb') ||
+      contains(github.event.head_commit.added, 'docs/source/tutorials/overview.ipynb') ||
+      contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
+      contains(github.event.head_commit.modified, 'requirements.txt') ||
+      contains(github.event.head_commit.modified, '.github/workflows/requirements.txt')
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: 3.10.14
-
       - name: Cache VFB lookup tables
         uses: actions/cache@v3
         with:
@@ -23,35 +39,285 @@ jobs:
           key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             vfb-lookup-cache-
-
       - name: Install dependencies
         run: |
           python -m pip install -U pip
           python -m pip install .
           python -m pip install -r .github/workflows/requirements.txt
-          
       - name: Set performance environment variables
         run: |
           echo "VFB_LOAD_LIMIT=5" >> $GITHUB_ENV
           echo "VFB_CACHE_ENABLED=true" >> $GITHUB_ENV
-
-      - name: Execute tutorial notebooks (serial execution)
+      - name: Execute overview notebook
         run: |
           jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/overview.ipynb
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/vfb_terms.ipynb
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/discovery.ipynb
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/vfb_neurons.ipynb
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=1800 docs/source/tutorials/connectomics.ipynb
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/vfb_datasets.ipynb
-
-      - name: Execute snippet notebooks (serial execution)
-        run: |
-          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 snippets/VFB_connect_Quick_Guide.ipynb
-
-
       - uses: actions/upload-artifact@v4
         with:
-          name: notebooks-for-${{ github.sha }}
-          path: docs/tutorials
+          name: overview-notebook-${{ github.sha }}
+          path: docs/source/tutorials/overview.nbconvert.ipynb
+
+  # VFB Terms Tutorial
+  vfb-terms-notebook:
+    name: "Test VFB terms tutorial"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: |
+      github.event_name == 'release' ||
+      contains(github.event.head_commit.modified, 'docs/source/tutorials/vfb_terms.ipynb') ||
+      contains(github.event.head_commit.added, 'docs/source/tutorials/vfb_terms.ipynb') ||
+      contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
+      contains(github.event.head_commit.modified, 'requirements.txt') ||
+      contains(github.event.head_commit.modified, '.github/workflows/requirements.txt')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10.14
+      - name: Cache VFB lookup tables
+        uses: actions/cache@v3
+        with:
+          path: |
+            src/vfb_connect/lookup_cache.pkl
+            ~/.cache/vfb_connect/
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            vfb-lookup-cache-
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install .
+          python -m pip install -r .github/workflows/requirements.txt
+      - name: Set performance environment variables
+        run: |
+          echo "VFB_LOAD_LIMIT=5" >> $GITHUB_ENV
+          echo "VFB_CACHE_ENABLED=true" >> $GITHUB_ENV
+      - name: Execute VFB terms notebook
+        run: |
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/vfb_terms.ipynb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vfb-terms-notebook-${{ github.sha }}
+          path: docs/source/tutorials/vfb_terms.nbconvert.ipynb
+
+  # Discovery Tutorial
+  discovery-notebook:
+    name: "Test discovery tutorial"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: |
+      github.event_name == 'release' ||
+      contains(github.event.head_commit.modified, 'docs/source/tutorials/discovery.ipynb') ||
+      contains(github.event.head_commit.added, 'docs/source/tutorials/discovery.ipynb') ||
+      contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
+      contains(github.event.head_commit.modified, 'requirements.txt') ||
+      contains(github.event.head_commit.modified, '.github/workflows/requirements.txt')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10.14
+      - name: Cache VFB lookup tables
+        uses: actions/cache@v3
+        with:
+          path: |
+            src/vfb_connect/lookup_cache.pkl
+            ~/.cache/vfb_connect/
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            vfb-lookup-cache-
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install .
+          python -m pip install -r .github/workflows/requirements.txt
+      - name: Set performance environment variables
+        run: |
+          echo "VFB_LOAD_LIMIT=5" >> $GITHUB_ENV
+          echo "VFB_CACHE_ENABLED=true" >> $GITHUB_ENV
+      - name: Execute discovery notebook
+        run: |
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/discovery.ipynb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: discovery-notebook-${{ github.sha }}
+          path: docs/source/tutorials/discovery.nbconvert.ipynb
+
+  # VFB Neurons Tutorial
+  vfb-neurons-notebook:
+    name: "Test VFB neurons tutorial"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: |
+      github.event_name == 'release' ||
+      contains(github.event.head_commit.modified, 'docs/source/tutorials/vfb_neurons.ipynb') ||
+      contains(github.event.head_commit.added, 'docs/source/tutorials/vfb_neurons.ipynb') ||
+      contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
+      contains(github.event.head_commit.modified, 'requirements.txt') ||
+      contains(github.event.head_commit.modified, '.github/workflows/requirements.txt')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10.14
+      - name: Cache VFB lookup tables
+        uses: actions/cache@v3
+        with:
+          path: |
+            src/vfb_connect/lookup_cache.pkl
+            ~/.cache/vfb_connect/
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            vfb-lookup-cache-
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install .
+          python -m pip install -r .github/workflows/requirements.txt
+      - name: Set performance environment variables
+        run: |
+          echo "VFB_LOAD_LIMIT=5" >> $GITHUB_ENV
+          echo "VFB_CACHE_ENABLED=true" >> $GITHUB_ENV
+      - name: Execute VFB neurons notebook
+        run: |
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/vfb_neurons.ipynb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vfb-neurons-notebook-${{ github.sha }}
+          path: docs/source/tutorials/vfb_neurons.nbconvert.ipynb
+
+  # Connectomics Tutorial (longer timeout)
+  connectomics-notebook:
+    name: "Test connectomics tutorial"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: |
+      github.event_name == 'release' ||
+      contains(github.event.head_commit.modified, 'docs/source/tutorials/connectomics.ipynb') ||
+      contains(github.event.head_commit.added, 'docs/source/tutorials/connectomics.ipynb') ||
+      contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
+      contains(github.event.head_commit.modified, 'requirements.txt') ||
+      contains(github.event.head_commit.modified, '.github/workflows/requirements.txt')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10.14
+      - name: Cache VFB lookup tables
+        uses: actions/cache@v3
+        with:
+          path: |
+            src/vfb_connect/lookup_cache.pkl
+            ~/.cache/vfb_connect/
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            vfb-lookup-cache-
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install .
+          python -m pip install -r .github/workflows/requirements.txt
+      - name: Set performance environment variables
+        run: |
+          echo "VFB_LOAD_LIMIT=5" >> $GITHUB_ENV
+          echo "VFB_CACHE_ENABLED=true" >> $GITHUB_ENV
+      - name: Execute connectomics notebook
+        run: |
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=1800 docs/source/tutorials/connectomics.ipynb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: connectomics-notebook-${{ github.sha }}
+          path: docs/source/tutorials/connectomics.nbconvert.ipynb
+
+  # VFB Datasets Tutorial
+  vfb-datasets-notebook:
+    name: "Test VFB datasets tutorial"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: |
+      github.event_name == 'release' ||
+      contains(github.event.head_commit.modified, 'docs/source/tutorials/vfb_datasets.ipynb') ||
+      contains(github.event.head_commit.added, 'docs/source/tutorials/vfb_datasets.ipynb') ||
+      contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
+      contains(github.event.head_commit.modified, 'requirements.txt') ||
+      contains(github.event.head_commit.modified, '.github/workflows/requirements.txt')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10.14
+      - name: Cache VFB lookup tables
+        uses: actions/cache@v3
+        with:
+          path: |
+            src/vfb_connect/lookup_cache.pkl
+            ~/.cache/vfb_connect/
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            vfb-lookup-cache-
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install .
+          python -m pip install -r .github/workflows/requirements.txt
+      - name: Set performance environment variables
+        run: |
+          echo "VFB_LOAD_LIMIT=5" >> $GITHUB_ENV
+          echo "VFB_CACHE_ENABLED=true" >> $GITHUB_ENV
+      - name: Execute VFB datasets notebook
+        run: |
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 docs/source/tutorials/vfb_datasets.ipynb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vfb-datasets-notebook-${{ github.sha }}
+          path: docs/source/tutorials/vfb_datasets.nbconvert.ipynb
+
+  # Quick Guide Snippet
+  quick-guide-notebook:
+    name: "Test quick guide snippet"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: |
+      github.event_name == 'release' ||
+      contains(github.event.head_commit.modified, 'snippets/VFB_connect_Quick_Guide.ipynb') ||
+      contains(github.event.head_commit.added, 'snippets/VFB_connect_Quick_Guide.ipynb') ||
+      contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
+      contains(github.event.head_commit.modified, 'requirements.txt') ||
+      contains(github.event.head_commit.modified, '.github/workflows/requirements.txt')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10.14
+      - name: Cache VFB lookup tables
+        uses: actions/cache@v3
+        with:
+          path: |
+            src/vfb_connect/lookup_cache.pkl
+            ~/.cache/vfb_connect/
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            vfb-lookup-cache-
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install .
+          python -m pip install -r .github/workflows/requirements.txt
+      - name: Set performance environment variables
+        run: |
+          echo "VFB_LOAD_LIMIT=5" >> $GITHUB_ENV
+          echo "VFB_CACHE_ENABLED=true" >> $GITHUB_ENV
+      - name: Execute quick guide notebook
+        run: |
+          jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=900 snippets/VFB_connect_Quick_Guide.ipynb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quick-guide-notebook-${{ github.sha }}
+          path: snippets/VFB_connect_Quick_Guide.nbconvert.ipynb
 
 
