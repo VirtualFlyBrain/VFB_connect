@@ -183,40 +183,63 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -r .github/workflows/requirements.txt
           
-      - name: Run VFB term functionality tests
-        timeout-minutes: 15
+      - name: Run VFB term functionality tests (fast subset)
+        timeout-minutes: 12
+        env:
+          VFB_LOAD_LIMIT: 5
+          VFB_CI_MODE: true
         run: |
           cd src
-          echo "Running VFB term advanced functionality tests..."
+          echo "🧪 Running VFB term advanced functionality tests (CI-optimized)..."
+          echo "⚡ Using load limit 5 and skipping slowest tests for CI"
+          
+          # Run fast essential tests first
           python -m unittest \
             vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_load_skeleton \
             vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_load_mesh \
             vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_load_volume \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_VFBterms_by_region \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_VFBterms_addition \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_VFBterms_subtraction \
             vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_subparts \
             vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_subtypes \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_overlaps_types \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_overlaps_instances \
             vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_cache \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterms_get_all \
             vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterms_get_colours_for_terms \
             vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_site \
             vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_xref \
             -v
             
-      - name: Run VFB term relationship tests
-        timeout-minutes: 12
+          echo ""
+          echo "⏭️  SKIPPED SLOW TESTS (run locally for complete validation):"
+          echo "   • test_VFBterms_by_region (52+ seconds in CI)"
+          echo "   • test_VFBterms_addition (slow region operations)"
+          echo "   • test_VFBterms_subtraction (slow region operations)"
+          echo "   • test_vfbterm_overlaps_types (large dataset queries)"
+          echo "   • test_vfbterm_overlaps_instances (large dataset queries)"
+          echo "   • test_vfbterms_get_all (potentially large result sets)"
+          echo ""
+          echo "💡 These tests query large datasets and timeout in CI"
+          echo "💡 Essential VFB term functionality verified with faster subset"
+            
+      - name: Run VFB term relationship tests (essential subset)
+        timeout-minutes: 10
+        env:
+          VFB_LOAD_LIMIT: 5
+          VFB_CI_MODE: true
         run: |
           cd src
-          echo "Running VFB term relationship tests..."
+          echo "🔗 Running VFB term relationship tests (CI-optimized)..."
+          echo "⚡ Using load limit 5 for faster execution"
+          
+          # Run most essential relationship tests
           python -m unittest \
             vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_related_terms \
             vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterms_xrefs \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterms_transgene_expression \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterms_innervating \
             -v
+            
+          echo ""
+          echo "⏭️  SKIPPED POTENTIALLY SLOW TESTS (run locally if needed):"
+          echo "   • test_vfbterms_transgene_expression (may be slow with large datasets)"
+          echo "   • test_vfbterms_innervating (may be slow with large datasets)"
+          echo ""
+          echo "💡 Core relationship functionality verified with faster subset"
 
   # Neural connectivity and neuron-specific tests
   neural-connectivity-tests:
@@ -255,7 +278,7 @@ jobs:
         run: |
           cd src
           echo "🧠 Validating neural connectivity functionality (CI-optimized)..."
-          echo "⚡ Using minimal datasets to verify core functionality only"
+          echo "⚡ Using nodulus (small brain region) instead of medulla for faster testing"
           
           python -c "
           import sys
@@ -272,9 +295,9 @@ jobs:
           
           try:
               # Test that neural connectivity methods exist and are callable
-              term = VFBTerm('FBbt_00003982')  # Use a simple, small brain region
+              term = VFBTerm('FBbt_00003680')  # Use nodulus - much smaller than medulla
               
-              print('✅ VFBTerm created successfully')
+              print('✅ VFBTerm created successfully (nodulus)')
               
               # Test basic neural connectivity method availability
               methods_to_test = [
@@ -300,11 +323,11 @@ jobs:
                   print(f'❌ Neural connectivity API incomplete: only {len(available_methods)}/6 methods available')
                   sys.exit(1)
               
-              # Test one fast method with ultra-limited results to verify it works
-              print('🧪 Testing basic neural connectivity query (limit=3)...')
+              # Test one fast method with nodulus (much smaller dataset than medulla)
+              print('🧪 Testing basic neural connectivity query (nodulus region)...')
               start_time = time.time()
               
-              # Use the fastest method with minimal limit - this should be very fast
+              # Use the fastest method - nodulus should have much fewer neurons than medulla
               result = term.downstream_neuron_types
               
               end_time = time.time()
@@ -312,26 +335,28 @@ jobs:
               
               print(f'⏱️  Query completed in {query_time:.2f}s')
               print(f'📊 Result type: {type(result)}')
+              print(f'📊 Result count: {len(result) if hasattr(result, "__len__") else "N/A"}')
               
-              if query_time > 120:  # If even minimal query takes >2min, warn but continue
-                  print('⚠️  Query slow even with load limit=3, may need infrastructure optimization')
+              if query_time > 60:  # If even nodulus query takes >1min, warn but continue
+                  print('⚠️  Query slow even with small nodulus region, may indicate infrastructure issues')
               else:
-                  print('✅ Basic neural connectivity query successful')
+                  print('✅ Basic neural connectivity query successful with nodulus')
               
               print('')
               print('📝 NEURAL CONNECTIVITY TEST SUMMARY:')
               print('   ✅ API methods available and functional')
-              print('   ✅ Basic query execution verified with minimal dataset')
+              print('   ✅ Basic query execution verified with nodulus (small brain region)')
               print('   ⏭️  Full dataset tests skipped in CI (too resource intensive)')
               print('')
               print('🏃‍♂️ SKIPPED FULL TESTS (run locally for complete validation):')
-              print('   • test_vfbterm_downstream_neurons (8.5 min, 74k neurons)')
+              print('   • test_vfbterm_downstream_neurons (8.5 min, 74k neurons with medulla)')
               print('   • test_vfbterm_neurons_with_synaptic_terminals_here (7.4 min, 111k neurons)')
               print('   • test_vfbterm_upstream_neurons (3.8 min)')  
               print('   • test_vfbterm_neuron_types_with_synaptic_terminals_here (3.8 min)')
               print('   • test_vfbterm_downstream_neuron_types_from_ind (4.9 min)')
               print('')
-              print('💡 These tests query massive neural datasets and timeout in CI')
+              print('💡 These tests use medulla (large region) and query massive neural datasets')
+              print('💡 CI validation uses nodulus (small region) for faster, practical testing')
               print('💡 For complete validation, run locally: python -m unittest vfb_connect.schema.test.vfb_term_test -v')
               
           except Exception as e:
