@@ -10,6 +10,16 @@ on:
       - '.github/workflows/test_notebooks.yml'
   release:
     types: [published]
+  workflow_dispatch:
+  schedule:
+    # Monthly scheduled runs on different days to spread load
+    - cron: '0 2 1 * *'   # Overview: 1st of month at 2 AM UTC
+    - cron: '0 2 5 * *'   # VFB Terms: 5th of month at 2 AM UTC
+    - cron: '0 2 10 * *'  # Discovery: 10th of month at 2 AM UTC
+    - cron: '0 2 15 * *'  # VFB Neurons: 15th of month at 2 AM UTC
+    - cron: '0 2 20 * *'  # Connectomics: 20th of month at 2 AM UTC
+    - cron: '0 2 25 * *'  # VFB Datasets: 25th of month at 2 AM UTC
+    - cron: '0 2 28 * *'  # Quick Guide: 28th of month at 2 AM UTC
 
 jobs:
   # Overview Tutorial
@@ -19,6 +29,8 @@ jobs:
     timeout-minutes: 15
     if: |
       github.event_name == 'release' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 2 1 * *') ||
       contains(github.event.head_commit.modified, 'docs/source/tutorials/overview.ipynb') ||
       contains(github.event.head_commit.added, 'docs/source/tutorials/overview.ipynb') ||
       contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
@@ -63,6 +75,8 @@ jobs:
     timeout-minutes: 15
     if: |
       github.event_name == 'release' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 2 5 * *') ||
       contains(github.event.head_commit.modified, 'docs/source/tutorials/vfb_terms.ipynb') ||
       contains(github.event.head_commit.added, 'docs/source/tutorials/vfb_terms.ipynb') ||
       contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
@@ -107,6 +121,8 @@ jobs:
     timeout-minutes: 15
     if: |
       github.event_name == 'release' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 2 10 * *') ||
       contains(github.event.head_commit.modified, 'docs/source/tutorials/discovery.ipynb') ||
       contains(github.event.head_commit.added, 'docs/source/tutorials/discovery.ipynb') ||
       contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
@@ -151,6 +167,8 @@ jobs:
     timeout-minutes: 15
     if: |
       github.event_name == 'release' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 2 15 * *') ||
       contains(github.event.head_commit.modified, 'docs/source/tutorials/vfb_neurons.ipynb') ||
       contains(github.event.head_commit.added, 'docs/source/tutorials/vfb_neurons.ipynb') ||
       contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
@@ -195,6 +213,8 @@ jobs:
     timeout-minutes: 30
     if: |
       github.event_name == 'release' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 2 20 * *') ||
       contains(github.event.head_commit.modified, 'docs/source/tutorials/connectomics.ipynb') ||
       contains(github.event.head_commit.added, 'docs/source/tutorials/connectomics.ipynb') ||
       contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
@@ -239,6 +259,8 @@ jobs:
     timeout-minutes: 15
     if: |
       github.event_name == 'release' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 2 25 * *') ||
       contains(github.event.head_commit.modified, 'docs/source/tutorials/vfb_datasets.ipynb') ||
       contains(github.event.head_commit.added, 'docs/source/tutorials/vfb_datasets.ipynb') ||
       contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
@@ -283,6 +305,8 @@ jobs:
     timeout-minutes: 15
     if: |
       github.event_name == 'release' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 2 28 * *') ||
       contains(github.event.head_commit.modified, 'snippets/VFB_connect_Quick_Guide.ipynb') ||
       contains(github.event.head_commit.added, 'snippets/VFB_connect_Quick_Guide.ipynb') ||
       contains(github.event.head_commit.modified, 'src/vfb_connect/') ||
