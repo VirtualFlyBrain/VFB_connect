@@ -82,8 +82,9 @@ jobs:
         # Verify the wheel metadata (optional, but good practice)
         WHEEL_NAME="vfb_connect-${VERSION}-py3-none-any.whl"
         WHEEL_FILE="dist/${WHEEL_NAME}"
-        echo "Extracting Version from METADATA in ${WHEEL_FILE}"
-        unzip -p "${WHEEL_FILE}" METADATA | grep "^Version:"
+        DIST_INFO_PATH="vfb_connect-${VERSION}.dist-info/METADATA"
+        echo "Extracting Version from ${DIST_INFO_PATH} in ${WHEEL_FILE}"
+        unzip -p "${WHEEL_FILE}" "${DIST_INFO_PATH}" | grep "^Version:"
     
     - name: Verify metadata with twine
       run: |
