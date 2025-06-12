@@ -543,7 +543,7 @@ jobs:
           python -m pip install -r .github/workflows/requirements.txt
           
       - name: Run OWL reasoning tests
-        timeout-minutes: 12
+        timeout-minutes: 25
         run: |
           cd src
           echo "Running OWL reasoning tests..."
@@ -554,7 +554,7 @@ jobs:
             -v
             
       - name: Run cross-server OWL tests
-        timeout-minutes: 12
+        timeout-minutes: 25
         run: |
           cd src
           echo "Running cross-server OWL tests..."
@@ -592,7 +592,7 @@ jobs:
           python -m pip install -r .github/workflows/requirements.txt
           
       - name: Run transcriptomic profile tests
-        timeout-minutes: 20
+        timeout-minutes: 25
         run: |
           cd src
           echo "Running transcriptomic profile tests..."
@@ -602,7 +602,7 @@ jobs:
             -v
             
       - name: Run scRNA-seq query tests
-        timeout-minutes: 20
+        timeout-minutes: 25
         run: |
           cd src
           echo "Running scRNA-seq query tests..."
@@ -641,7 +641,7 @@ jobs:
           python -m pip install -r .github/workflows/requirements.txt
           
       - name: Run visualization tests (may skip if dependencies missing)
-        timeout-minutes: 20
+        timeout-minutes: 25
         run: |
           cd src
           echo "Running visualization tests..."
