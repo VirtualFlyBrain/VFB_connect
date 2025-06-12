@@ -73,7 +73,17 @@ jobs:
         
         # Verify the source distribution metadata
         echo "Checking source distribution metadata:"
-        tar -zxf dist/*.tar.gz -O '*/PKG-INFO' | grep "^Version:"
+        SDIST_NAME_BASE="vfb-connect-${VERSION}"
+        SDIST_FILE="dist/${SDIST_NAME_BASE}.tar.gz"
+        PKG_INFO_PATH="${SDIST_NAME_BASE}/PKG-INFO"
+        echo "Extracting Version from PKG-INFO in ${SDIST_FILE} (path: ${PKG_INFO_PATH})"
+        tar -zxf "${SDIST_FILE}" -O "${PKG_INFO_PATH}" | grep "^Version:"
+        
+        # Verify the wheel metadata (optional, but good practice)
+        WHEEL_NAME="vfb_connect-${VERSION}-py3-none-any.whl"
+        WHEEL_FILE="dist/${WHEEL_NAME}"
+        echo "Extracting Version from METADATA in ${WHEEL_FILE}"
+        unzip -p "${WHEEL_FILE}" METADATA | grep "^Version:"
     
     - name: Verify metadata with twine
       run: |
