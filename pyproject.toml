@@ -53,3 +53,4 @@ vfb_connect = ["resources/*.json", "*.pkl"]
 [tool.setuptools_scm]
 write_to = "src/vfb_connect/_version.py"
 fallback_version = "0.0.0"
+version_scheme = "release-branch-semver"
