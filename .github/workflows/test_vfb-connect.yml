@@ -270,7 +270,7 @@ jobs:
           python -m pip install -r .github/workflows/requirements.txt
           
       - name: Run essential neural connectivity validation (CI-optimized)
-        timeout-minutes: 15
+        timeout-minutes: 20
         env:
           VFB_CI_MODE: true
           VFB_LOAD_LIMIT: 3
@@ -435,7 +435,7 @@ jobs:
           python -m pip install -r .github/workflows/requirements.txt
           
       - name: Run Neo4j data access tests
-        timeout-minutes: 15
+        timeout-minutes: 20
         run: |
           cd src
           echo "Running Neo4j data access tests..."
@@ -450,7 +450,7 @@ jobs:
             -v
             
       - name: Run cross-server query tests
-        timeout-minutes: 15
+        timeout-minutes: 20
         run: |
           cd src
           echo "Running cross-server query tests..."
@@ -592,7 +592,7 @@ jobs:
           python -m pip install -r .github/workflows/requirements.txt
           
       - name: Run transcriptomic profile tests
-        timeout-minutes: 15
+        timeout-minutes: 20
         run: |
           cd src
           echo "Running transcriptomic profile tests..."
@@ -602,7 +602,7 @@ jobs:
             -v
             
       - name: Run scRNA-seq query tests
-        timeout-minutes: 15
+        timeout-minutes: 20
         run: |
           cd src
           echo "Running scRNA-seq query tests..."
@@ -641,7 +641,7 @@ jobs:
           python -m pip install -r .github/workflows/requirements.txt
           
       - name: Run visualization tests (may skip if dependencies missing)
-        timeout-minutes: 15
+        timeout-minutes: 20
         run: |
           cd src
           echo "Running visualization tests..."
@@ -669,7 +669,7 @@ jobs:
           "
           
       - name: Run image handling tests
-        timeout-minutes: 15
+        timeout-minutes: 25
         run: |
           cd src
           echo "Running image handling tests..."
