@@ -43,11 +43,13 @@ Repository = "https://github.com/VirtualFlyBrain/VFB_connect"
 [tool.setuptools]
 package-dir = {"" = "src"}
 
+[tool.setuptools.package-data]
+vfb_connect = ["resources/*.json", "*.pkl"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-"vfb_connect" = ["resources/*.json"]
+include = ["vfb_connect*"]
 
 [tool.setuptools_scm]
 write_to = "src/vfb_connect/_version.py"
+fallback_version = "0.0.0"
