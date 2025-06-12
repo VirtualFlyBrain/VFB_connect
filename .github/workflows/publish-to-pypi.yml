@@ -14,23 +14,92 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Fetch full history including tags for setuptools_scm
+        ref: ${{ github.ref }}  # Explicitly checkout the tag
+    
     - name: Set up Python 3.10.18
       uses: actions/setup-python@v5
       with:
         python-version: 3.10.18
+    
     - name: Install build dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install build wheel setuptools
-    - name: Debug version detection
+        python -m pip install build wheel "setuptools>=45,<69" "setuptools_scm[toml]>=6.2" twine
+        python -m pip list
+    
+    - name: Set version from GitHub Release tag
       run: |
-        echo "Git tags:"
+        echo "Git information:"
         git tag -l
-        echo "Current commit:"
         git log -1 --oneline
-        echo "setuptools_scm version:"
-        python -m setuptools_scm
-    - name: Build a binary wheel and a source tarball
-      run: python -m build
+        git describe --tags --always
+        
+        # When running from a release, extract version from tag
+        if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+          # Extract clean version number from tag (removes v prefix)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Running from GitHub release tag: v$VERSION"
+          
+          # Set environment variables for the build
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION" >> $GITHUB_ENV
+          
+          # Create a version file that will override setuptools_scm
+          # This ensures the exact version from the tag is used
+          mkdir -p src/vfb_connect
+          echo "# Direct version from GitHub release tag v$VERSION" > src/vfb_connect/_version.py
+          echo "__version__ = '$VERSION'" >> src/vfb_connect/_version.py
+          echo "version = '$VERSION'" >> src/vfb_connect/_version.py
+          echo "__version_tuple__ = (${VERSION//./,})" >> src/vfb_connect/_version.py
+          echo "version_tuple = (${VERSION//./,})" >> src/vfb_connect/_version.py
+          
+          echo "Created direct version file with version $VERSION:"
+          cat src/vfb_connect/_version.py
+        else
+          # Not running from a tag, just show what setuptools_scm detects
+          echo "Not running from a tag, using setuptools_scm for version detection"
+          python -c "from setuptools_scm import get_version; print(f'setuptools_scm version: {get_version()}')"
+        fi
+    
+    - name: Build distributions
+      run: |
+        if [[ -n "$SETUPTOOLS_SCM_PRETEND_VERSION" ]]; then
+          echo "Building with explicit version $SETUPTOOLS_SCM_PRETEND_VERSION"
+          python -m build
+        else
+          echo "Building with setuptools_scm version detection"
+          python -m build
+        fi
+        
+        # Verify the source distribution metadata
+        echo "Checking source distribution metadata:"
+        tar -zxf dist/*.tar.gz -O '*/PKG-INFO' | grep "^Version:"
+    
+    - name: Verify metadata with twine
+      run: |
+        python -m twine check dist/*
+    
+    - name: Install and verify wheel version
+      run: |
+        # Install the wheel
+        python -m pip install dist/*.whl
+        
+        # Verify the installed version matches the expected version
+        if [[ -n "$VERSION" ]]; then
+          INSTALLED_VERSION=$(python -c "import vfb_connect; print(getattr(vfb_connect, '__version__', 'unknown'))")
+          echo "Expected version: $VERSION"
+          echo "Installed version: $INSTALLED_VERSION"
+          
+          if [[ "$VERSION" != "$INSTALLED_VERSION" ]]; then
+            echo "ERROR: Version mismatch!"
+            exit 1
+          fi
+          
+          echo "Version verification successful"
+        else
+          echo "No explicit version set, skipping version verification"
+          python -c "import vfb_connect; print(f'Installed version: {getattr(vfb_connect, \"__version__\", \"unknown\")}')"
+        fi
+    
     - name: Publish distribution 📦 to PyPI
       uses: pypa/gh-action-pypi-publish@v1.12.2
