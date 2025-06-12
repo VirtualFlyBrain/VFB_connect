@@ -8,7 +8,7 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md')) as f:
     long_description = f.read()
 
-setup(name='vfb_connect',  
+setup(name='vfb-connect',  
       packages=find_packages(where='src'),
       package_dir={'': 'src'},
       py_modules=[path.splitext(path.basename(path))[0] for path in glob.glob('src/*.py')],

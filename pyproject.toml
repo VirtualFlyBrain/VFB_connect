@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vfb_connect"
+name = "vfb-connect"
 dynamic = ["version"]
 description = "Wrapper for querying VirtualFlyBrain servers."
 readme = "README.md"
@@ -47,7 +47,7 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-vfb_connect = ["resources/*.json"]
+"vfb_connect" = ["resources/*.json"]
 
 [tool.setuptools_scm]
 write_to = "src/vfb_connect/_version.py"
