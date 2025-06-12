@@ -141,11 +141,15 @@ class MinimalEdgeInfo:
         :return: A string representation of the MinimalEdgeInfo object.
         """
         if self.confidence_value and self.database_cross_reference:
-            return f"MinimalEdgeInfo(label={self.label}, confidence={self.confidence_value}, reference={'; '.join(self.database_cross_reference)})"
+            # Handle case where database_cross_reference might not be iterable
+            ref_str = "; ".join(self.database_cross_reference) if isinstance(self.database_cross_reference, (list, tuple)) else str(self.database_cross_reference)
+            return f"MinimalEdgeInfo(label={self.label}, confidence={self.confidence_value}, reference={ref_str})"
         if self.confidence_value:
             return f"MinimalEdgeInfo(label={self.label}, confidence={self.confidence_value})"
         if self.database_cross_reference:
-            return f"MinimalEdgeInfo(label={self.label}, reference={'; '.join(self.database_cross_reference)})"
+            # Handle case where database_cross_reference might not be iterable
+            ref_str = "; ".join(self.database_cross_reference) if isinstance(self.database_cross_reference, (list, tuple)) else str(self.database_cross_reference)
+            return f"MinimalEdgeInfo(label={self.label}, reference={ref_str})"
         return f"MinimalEdgeInfo(label={self.label}, type={self.type})"
 
 
@@ -611,7 +615,11 @@ class Rel:
         if hasattr(self.relation, 'confidence_value'):
             summary['confidence'] = self.relation.confidence_value
         if hasattr(self.relation, 'database_cross_reference'):
-            summary['reference'] = "; ".join(self.relation.database_cross_reference)
+            # Handle case where database_cross_reference might not be iterable
+            if isinstance(self.relation.database_cross_reference, (list, tuple)):
+                summary['reference'] = "; ".join(self.relation.database_cross_reference)
+            else:
+                summary['reference'] = str(self.relation.database_cross_reference)
         if return_dataframe:
             return pandas.DataFrame(summary)
         return summary
