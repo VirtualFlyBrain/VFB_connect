@@ -7,6 +7,7 @@ __pycache__
 .DS_store
 docs/source/_build
 /build
+/dist
 /src/vfb_connect.egg-info
 /image_folder_tmp
 /src/vfb_connect.egg-info

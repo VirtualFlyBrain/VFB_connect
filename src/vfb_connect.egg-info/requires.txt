@@ -1,9 +1,0 @@
-requests
-pandas
-jsonpath_rw
-pysolr
-navis
-numpy<2.0.0,>=1.26.4
-seaborn>0.13
-colormath
-tqdm

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=45,<69", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,7 @@ name = "vfb-connect"
 dynamic = ["version"]
 description = "Wrapper for querying VirtualFlyBrain servers."
 readme = "README.md"
-license = "GPL-3.0-or-later"
+license = {text = "GPL-3.0-or-later"}
 authors = [
     {name = "Robert Court", email = "rcourt@ed.ac.uk"}
 ]
@@ -43,12 +43,12 @@ Repository = "https://github.com/VirtualFlyBrain/VFB_connect"
 [tool.setuptools]
 package-dir = {"" = "src"}
 
-[tool.setuptools.package-data]
-vfb_connect = ["resources/*.json", "*.pkl"]
-
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["vfb_connect*"]
+
+[tool.setuptools.package-data]
+vfb_connect = ["resources/*.json", "*.pkl"]
 
 [tool.setuptools_scm]
 write_to = "src/vfb_connect/_version.py"
