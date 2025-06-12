@@ -97,7 +97,7 @@ jobs:
         
         # Verify the installed version matches the expected version
         if [[ -n "$VERSION" ]]; then
-          INSTALLED_VERSION=$(python -c "import vfb_connect; print(getattr(vfb_connect, '__version__', 'unknown'))")
+          INSTALLED_VERSION=$(python -c "import vfb_connect; print(getattr(vfb_connect, '__version__', 'unknown'))" | tail -n 1)
           echo "Expected version: $VERSION"
           echo "Installed version: $INSTALLED_VERSION"
           
