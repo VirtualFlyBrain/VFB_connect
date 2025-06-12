@@ -220,11 +220,26 @@ class Neo4jConnect:
         """
         try:
             three_months_in_seconds = 3 * 30 * 24 * 60 * 60
-            if cache and os.path.exists(cache) and os.path.getctime(cache) > time.time() - three_months_in_seconds:
+            if cache and os.path.exists(cache):
                 if verbose:
                     print("Loading cache lookup from disk...")
                 with open(cache, 'rb') as f:
-                    return pickle.load(f)
+                    cached_data = pickle.load(f)
+                # Check if this is the new format with embedded timestamp
+                if isinstance(cached_data, dict) and 'cache_timestamp' in cached_data and 'lookup_data' in cached_data:
+                    # New format with embedded timestamp
+                    cache_age = time.time() - cached_data['cache_timestamp']
+                    if cache_age < three_months_in_seconds:
+                        if verbose:
+                            cache_age_days = cache_age / (24 * 60 * 60)
+                            print(f"Using cached data (age: {cache_age_days:.1f} days)")
+                        return cached_data['lookup_data']
+                    else:
+                        if verbose:
+                            cache_age_days = cache_age / (24 * 60 * 60)
+                            print(f"Cache too old ({cache_age_days:.1f} days), regenerating...")
+                else:
+                    print("Legacy cache too old, regenerating...")
         except Exception as e:
             print(f"Failed to load cache lookup from disk: {e}")
 
@@ -380,6 +395,7 @@ class Neo4jConnect:
         :param curies: If `True`, convert IDs to CURIE format.
         :return: Final lookup dictionary.
         """
+        # Remove exact duplicates of (name, id) pairs
         seen = set()
         unique_out = []
         for item in out:
@@ -398,14 +414,22 @@ class Neo4jConnect:
 
     def save_to_cache(self, lookup, cache):
         """Save the lookup to a cache file if caching is enabled.
+        
+        Saves the lookup data with an embedded timestamp for accurate age detection.
 
         :param lookup: The lookup dictionary to save.
         :param cache: The cache file path.
         """
         if cache:
             try:
+                # Create cache data with embedded timestamp
+                cache_data = {
+                    'cache_timestamp': time.time(),
+                    'cache_version': '1.0',  # For future format changes
+                    'lookup_data': lookup
+                }
                 with open(cache, 'wb') as f:
-                    pickle.dump(lookup, f)
+                    pickle.dump(cache_data, f)
             except Exception as e:
                 print(f"Failed to save cache lookup to disk: {e}")
 

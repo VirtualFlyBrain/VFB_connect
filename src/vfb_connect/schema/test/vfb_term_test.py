@@ -1,13 +1,104 @@
 import unittest
 import time
+import functools
 from vfb_connect.schema.vfb_term import create_vfbterm_from_json, VFBTerms, VFBTerm, Score, Relations, Xref, ExpressionList, Expression
 
-class VfbTermTest(unittest.TestCase):
+class TimedTestCase(unittest.TestCase):
+    """Base test case that adds timing to all test methods"""
+    
+    @classmethod
+    def setUpClass(cls):
+        """Initialize timing storage"""
+        cls._test_times = []
+    
+    @classmethod 
+    def tearDownClass(cls):
+        """Display test timing summary"""
+        if hasattr(cls, '_test_times') and cls._test_times:
+            print("\n" + "="*60)
+            print("TEST TIMING SUMMARY")
+            print("="*60)
+            
+            # Sort by duration (longest first)
+            sorted_times = sorted(cls._test_times, key=lambda x: x[1], reverse=True)
+            
+            total_time = sum(duration for _, duration in sorted_times)
+            print(f"Total test time: {total_time:.2f} seconds")
+            print("\nTests sorted by duration:")
+            print("-" * 60)
+            
+            for test_name, duration in sorted_times:
+                if duration > 10:
+                    status = "🔴 VERY SLOW"
+                elif duration > 5:
+                    status = "🟡 SLOW"
+                elif duration > 2:
+                    status = "🟠 MODERATE"
+                else:
+                    status = "🟢 FAST"
+                
+                print(f"{status:<12} {test_name:<40} {duration:>6.2f}s")
+            
+            # Show just the slowest tests
+            slow_tests = [t for t in sorted_times if t[1] > 5]
+            if slow_tests:
+                print(f"\n🚨 {len(slow_tests)} tests took longer than 5 seconds:")
+                for test_name, duration in slow_tests:
+                    print(f"   • {test_name}: {duration:.2f}s")
+            
+            print("="*60)
+    
+    def run(self, result=None):
+        """Override run to add timing around each test method"""
+        test_method = getattr(self, self._testMethodName)
+        start_time = time.time()
+        
+        try:
+            # Call the original run method
+            outcome = super().run(result)
+            end_time = time.time()
+            duration = end_time - start_time
+            
+            # Store timing in class variable for summary  
+            if not hasattr(self.__class__, '_test_times'):
+                self.__class__._test_times = []
+            self.__class__._test_times.append((self._testMethodName, duration))
+            
+            # Log individual test timing
+            if duration > 10:
+                print(f"\n⚠️  SLOW TEST: {self._testMethodName} took {duration:.2f} seconds")
+            elif duration > 5:
+                print(f"\n⏰ {self._testMethodName} took {duration:.2f} seconds")
+            else:
+                print(f"\n✅ {self._testMethodName} completed in {duration:.2f} seconds")
+                
+            return outcome
+            
+        except Exception as e:
+            end_time = time.time()
+            duration = end_time - start_time
+            
+            # Store timing even for failed tests
+            if not hasattr(self.__class__, '_test_times'):
+                self.__class__._test_times = []
+            self.__class__._test_times.append((self._testMethodName, duration))
+            
+            print(f"\n❌ {self._testMethodName} FAILED after {duration:.2f} seconds: {e}")
+            raise
+
+class VfbTermTest(TimedTestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        """Set up the VFB connection once for all tests"""
+        super().setUpClass()
+        from vfb_connect import vfb
+        cls.vfb = vfb
+        cls.vfb._load_limit = 10
 
     def setUp(self):
-        from vfb_connect import vfb
-        self.vfb = vfb
-        self.vfb._load_limit = 10
+        # vfb is now available as self.vfb via cls.vfb
+        self.vfb = self.__class__.vfb
 
     def test_create_vfbterm_from_json(self):
         self.assertTrue(
@@ -52,15 +143,13 @@ class VfbTermTest(unittest.TestCase):
     def test_VFBterms_plot3d(self):
         terms = self.vfb.terms(['VFB_jrchjwj7', 'VFB_jrchjwim', 'VFB_00004023', 'VFB_jrchk3b0', 'VFB_jrchk3b1', 'VFB_jrchk3b2', 'VFB_jrchk3b3', 'VFB_jrchk3b4', 'VFB_jrchk3b5', 'VFB_jrchk3b6', 'VFB_jrchk3b7', 'VFB_jrchk3b8', 'VFB_jrchk3b9', 'VFB_00007403', 'VFB_jrchk3ao', 'VFB_jrchk3ap', 'VFB_jrchk3aq', 'VFB_jrchk3ar', 'VFB_jrchk3as', 'VFB_jrchk3at', 'VFB_jrchk3au', 'VFB_jrchk3av', 'VFB_jrchk3aw', 'VFB_jrchk3ax', 'VFB_jrchk3ay', 'VFB_jrchk3az', 'VFB_jrchk3ba', 'VFB_jrchk3bb', 'VFB_jrchk3bc', 'VFB_jrchk3bd', 'VFB_jrchk3be', 'VFB_jrchk3bf', 'VFB_jrchk3bg', 'VFB_jrchk3bh', 'VFB_jrchk3bi', 'VFB_jrchk3bj', 'VFB_jrchk3bk', 'VFB_jrchk3bl', 'VFB_jrchk3bm', 'VFB_jrchk3bn', 'VFB_jrchk3bo', 'VFB_jrchk3bp', 'VFB_jrchk3bq', 'VFB_jrchk3br', 'VFB_jrchk3bs', 'VFB_jrchk3bt', 'VFB_jrchk3e0', 'VFB_jrchk3e1', 'VFB_jrchk3e2', 'VFB_jrchk3e3', 'VFB_jrchk3e4', 'VFB_jrchk3e5', 'VFB_001012bm', 'VFB_001012bk', 'VFB_001012bj', 'VFB_001012bi', 'VFB_001012bh', 'VFB_00013165', 'VFB_001001dr', 'VFB_00005531', 'VFB_00007701', 'VFB_jrchk8iq', 'VFB_jrchk3gx', 'VFB_jrchk3gy', 'VFB_jrchk3gz', 'VFB_jrchk3ha', 'VFB_jrchk3hb', 'VFB_jrchk3hc', 'VFB_jrchk3hd', 'VFB_jrchk3he', 'VFB_jrchk3hf', 'VFB_jrchk3hg', 'VFB_jrchk3hh', 'VFB_jrchk3hi', 'VFB_jrchk3hj', 'VFB_jrchk3hk', 'VFB_jrchk3hl', 'VFB_jrchk3hm', 'VFB_jrchk3hn', 'VFB_jrchk3j0', 'VFB_jrchk3ho', 'VFB_jrchk3j1', 'VFB_00005875', 'VFB_jrchk3j2', 'VFB_jrchk3hp', 'VFB_jrchk3hq', 'VFB_jrchk3j3', 'VFB_jrchk3hr', 'VFB_jrchk3j4', 'VFB_jrchk3j5', 'VFB_jrchk3hs', 'VFB_jrchk3ht', 'VFB_jrchk3j6', 'VFB_jrchk3j7', 'VFB_jrchk3hu', 'VFB_jrchk3j8', 'VFB_jrchk3hv', 'VFB_jrchk3j9', 'VFB_jrchk3hw', 'VFB_jrchk3hx'])
         terms = (terms[1:10:]+terms[0:10:])[0:2]
-        terms = (terms[1:10:]+terms[0:10:])[0:2]
         self.assertTrue(isinstance(terms, VFBTerms))
         self.assertTrue(len(terms) > 0)
-        self.assertTrue(isinstance(terms, VFBTerms))
         try:
             terms.plot3d(template='JRC2018Unisex', verbose=True, limit = 2)
         except Exception as e:
             print("plot3d expectedly failed with ", e)
-        self.assertTrue([True for term in terms if hasattr(term, 'skeleton') or hasattr(term, 'mesh') or hasattr(term, 'volume')])
+        self.assertTrue(any(hasattr(term, 'skeleton') or hasattr(term, 'mesh') or hasattr(term, 'volume') for term in terms))
 
     def test_VFBterms_plot2d(self):
         terms = self.vfb.terms(['VFB_00000001','VFB_00010001'])
@@ -336,7 +425,7 @@ class VfbTermTest(unittest.TestCase):
 
     def test_vfbterms_xrefs(self):
         self.vfb._dbs = None
-        terms = self.vfb.terms(['catmaid_l1em:17545695', 'neuprint_JRC_Hemibrain_1point1:2039100722'])
+        terms = self.vfb.terms(['catmaid_l1em:17545695', 'neuprint_JRC_Hemibrain_1point2point1:2039100722'])
         print("got terms ", terms)
         print(self.vfb._dbs)
         self.assertEqual(len(terms), 2)

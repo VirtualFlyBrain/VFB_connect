@@ -18,8 +18,8 @@ from colormath.color_conversions import convert_color
 from scipy.spatial import KDTree
 
 VFB_DBS_2_SYMBOLS = {"JRC_OpticLobe":"neuprint_JRC_OpticLobe_v1_0_1", "FAFB":"catmaid_fafb", "L1EM":"catmaid_l1em", "MANC":"neuprint_JRC_Manc_1_2_1", 
-                     "FlyEM-HB":"neuprint_JRC_Hemibrain_1point1","ol":"neuprint_JRC_OpticLobe_v1_0_1", "fafb":"catmaid_fafb", "l1em":"catmaid_l1em", 
-                     "fw":"flywire783", "mv":"neuprint_JRC_Manc_1_2_1", "hb":"neuprint_JRC_Hemibrain_1point1"}
+                     "FlyEM-HB":"neuprint_JRC_Hemibrain_1point2point1","ol":"neuprint_JRC_OpticLobe_v1_0_1", "fafb":"catmaid_fafb", "l1em":"catmaid_l1em", 
+                     "fw":"flywire783", "mv":"neuprint_JRC_Manc_1_2_1", "hb":"neuprint_JRC_Hemibrain_1point2point1"}
 
 
 def gen_short_form(iri):
@@ -257,13 +257,25 @@ class VfbConnect:
                     for k, v in matches.items():
                         print(f"Matched: {k} -> {v}")
 
+                # Check if all matches point to the same ID (same term, different names)
+                unique_ids = set(matches.values())
+                
                 if len(matches) == 1:
                     print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
+                    self.lookup[key] = matches[matched_key]
                     return matches[matched_key] if not return_curie else matches[matched_key].replace('_', ':')
-
-                all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
-                print(f"\033[33mWarning:\033[0m Ambiguous match for '\033[33m{key}\033[0m'. Using '{matched_key}' -> '\033[32m{matches[matched_key]}\033[0m'. Other possible matches: {all_matches}")
-                return matches[matched_key] if not return_curie else matches[matched_key].replace('_', ':')
+                elif len(unique_ids) == 1:
+                    # Multiple names but same ID - not truly ambiguous, just pick the shortest/cleanest name
+                    if verbose:
+                        print(f"Multiple names for same term found: {matches}")
+                    print(f"\033[33mWarning:\033[0m Substitution made. '\033[33m{key}\033[0m' was matched to '\033[32m{matched_key}\033[0m'.")
+                    self.lookup[key] = matches[matched_key]
+                    return matches[matched_key] if not return_curie else matches[matched_key].replace('_', ':')
+                else:
+                    # Multiple different IDs - truly ambiguous
+                    all_matches = ", ".join([f"'{k}': '{v}'" for k, v in matches.items()])
+                    print(f"\033[33mWarning:\033[0m Ambiguous match for '\033[33m{key}\033[0m'. Using '{matched_key}' -> '\033[32m{matches[matched_key]}\033[0m'. Other possible matches: {all_matches}")
+                    return matches[matched_key] if not return_curie else matches[matched_key].replace('_', ':')
 
             starts_with_matches = {k: v for k, v in self.lookup.items() if k.lower().startswith(key.lower())}
             if starts_with_matches:
