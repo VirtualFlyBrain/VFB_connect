@@ -723,6 +723,8 @@ class VfbConnect:
                  "RETURN DISTINCT c2.label AS cell_type, c2.short_form AS cell_type_id, "
                  "sex.label AS sample_sex, COLLECT(tis.label) AS sample_tissue, "
                  "ds.short_form AS dataset_id, p.miniref[0] as ref, "
+                 "clus.filtered_gene_count[0] as cluster_filtered_gene_count, "
+                 "clus.total_gene_count[0] as cluster_total_gene_count, "
                  "sw.link_base[0] + dbxw.accession[0] AS website_linkout, "
                  "sd.link_base[0] + dbxd.accession[0] + sd.postfix[0] AS download_linkout, "
                  "g.label AS gene, g.short_form AS gene_id, "
