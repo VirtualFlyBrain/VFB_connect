@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=45,<69", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vfb-connect"
+dynamic = ["version"]
+description = "Wrapper for querying VirtualFlyBrain servers."
+readme = "README.md"
+license = {text = "GPL-3.0-or-later"}
+authors = [
+    {name = "Robert Court", email = "rcourt@ed.ac.uk"}
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "requests",
+    "pandas",
+    "jsonpath_rw",
+    "pysolr",
+    "navis",
+    "numpy>=1.26.4, <2.0.0",
+    "seaborn>0.13",
+    "colormath",
+    "tqdm",
+]
+
+[project.urls]
+Homepage = "https://github.com/VirtualFlyBrain/VFB_connect"
+Documentation = "https://vfb-connect.readthedocs.io/en/stable/"
+Repository = "https://github.com/VirtualFlyBrain/VFB_connect"
+"Bug Reports" = "https://github.com/VirtualFlyBrain/VFB_connect/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["vfb_connect*"]
+
+[tool.setuptools.package-data]
+vfb_connect = ["resources/*.json", "*.pkl"]
+
+[tool.setuptools_scm]
+write_to = "src/vfb_connect/_version.py"
+fallback_version = "0.0.0"
+local_scheme = "no-local-version"  # Don't add local version identifiers
+tag_regex = "^v(?P<version>[0-9]+\\.[0-9]+\\.[0-9]+)$"  # Match tags like v2.3.6
+git_describe_command = "git describe --tags --match v*.*.*"  # Removed --long for exact tag matches
+version_scheme = "release-branch-semver"  # Use semver-based versioning
+relative_to = "__file__"
+normalize = true

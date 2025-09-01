@@ -8,28 +8,109 @@ jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
-    - uses: actions/checkout@master
-    - name: Set up Python 3.10.14
-      uses: actions/setup-python@v1
+    - uses: actions/checkout@v4
       with:
-        python-version: 3.10.14
-    - name: Install wheel and setuptools
-      run: >-
-        python -m
-        pip install
-        wheel
-        setuptools
-        --user
-        --upgrade
-    - name: Build a binary wheel and a source tarball
-      run: >-
-        python3
-        setup.py
-        sdist
-        bdist_wheel
+        fetch-depth: 0  # Fetch full history including tags for setuptools_scm
+        ref: ${{ github.ref }}  # Explicitly checkout the tag
+    
+    - name: Set up Python 3.10.18
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.10.18
+    
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install build wheel "setuptools>=45,<69" "setuptools_scm[toml]>=6.2" twine
+        python -m pip list
+    
+    - name: Set version from GitHub Release tag
+      run: |
+        echo "Git information:"
+        git tag -l
+        git log -1 --oneline
+        git describe --tags --always
+        
+        # When running from a release, extract version from tag
+        if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+          # Extract clean version number from tag (removes v prefix)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Running from GitHub release tag: v$VERSION"
+          
+          # Set environment variables for the build
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION" >> $GITHUB_ENV
+          
+          # Create a version file that will override setuptools_scm
+          # This ensures the exact version from the tag is used
+          mkdir -p src/vfb_connect
+          echo "# Direct version from GitHub release tag v$VERSION" > src/vfb_connect/_version.py
+          echo "__version__ = '$VERSION'" >> src/vfb_connect/_version.py
+          echo "version = '$VERSION'" >> src/vfb_connect/_version.py
+          echo "__version_tuple__ = (${VERSION//./,})" >> src/vfb_connect/_version.py
+          echo "version_tuple = (${VERSION//./,})" >> src/vfb_connect/_version.py
+          
+          echo "Created direct version file with version $VERSION:"
+          cat src/vfb_connect/_version.py
+        else
+          # Not running from a tag, just show what setuptools_scm detects
+          echo "Not running from a tag, using setuptools_scm for version detection"
+          python -c "from setuptools_scm import get_version; print(f'setuptools_scm version: {get_version()}')"
+        fi
+    
+    - name: Build distributions
+      run: |
+        if [[ -n "$SETUPTOOLS_SCM_PRETEND_VERSION" ]]; then
+          echo "Building with explicit version $SETUPTOOLS_SCM_PRETEND_VERSION"
+          python -m build
+        else
+          echo "Building with setuptools_scm version detection"
+          python -m build
+        fi
+        
+        # Verify the source distribution metadata
+        echo "Checking source distribution metadata:"
+        SDIST_NAME_BASE="vfb-connect-${VERSION}"
+        SDIST_FILE="dist/${SDIST_NAME_BASE}.tar.gz"
+        PKG_INFO_PATH="${SDIST_NAME_BASE}/PKG-INFO"
+        echo "Extracting Version from PKG-INFO in ${SDIST_FILE} (path: ${PKG_INFO_PATH})"
+        tar -zxf "${SDIST_FILE}" -O "${PKG_INFO_PATH}" | grep "^Version:"
+        
+        # Verify the wheel metadata (optional, but good practice)
+        WHEEL_NAME="vfb_connect-${VERSION}-py3-none-any.whl"
+        WHEEL_FILE="dist/${WHEEL_NAME}"
+        DIST_INFO_PATH="vfb_connect-${VERSION}.dist-info/METADATA"
+        echo "Extracting Version from ${DIST_INFO_PATH} in ${WHEEL_FILE}"
+        unzip -p "${WHEEL_FILE}" "${DIST_INFO_PATH}" | grep "^Version:"
+    
+    - name: Verify metadata with twine
+      run: |
+        python -m twine check dist/*
+    
+    - name: Install and verify wheel version
+      run: |
+        # Install the wheel
+        python -m pip install dist/*.whl
+        
+        # Verify the installed version matches the expected version
+        if [[ -n "$VERSION" ]]; then
+          INSTALLED_VERSION=$(python -c "import vfb_connect; print(getattr(vfb_connect, '__version__', 'unknown'))" | tail -n 1)
+          echo "Expected version: $VERSION"
+          echo "Installed version: $INSTALLED_VERSION"
+          
+          if [[ "$VERSION" != "$INSTALLED_VERSION" ]]; then
+            echo "ERROR: Version mismatch!"
+            exit 1
+          fi
+          
+          echo "Version verification successful"
+        else
+          echo "No explicit version set, skipping version verification"
+          python -c "import vfb_connect; print(f'Installed version: {getattr(vfb_connect, \"__version__\", \"unknown\")}')"
+        fi
+    
     - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
+      uses: pypa/gh-action-pypi-publish@v1.12.2
