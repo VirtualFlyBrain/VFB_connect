@@ -672,27 +672,32 @@ class VfbConnect:
 
         Returns a DataFrame of gene expression data for clusters of cells annotated as the specified cell type (or subtypes).
         Optionally restricts to a gene type, which can be retrieved using `get_gene_function_filters`.
-        If no data is found, returns False.
+        If no data is found, returns Empty DataFrame.
 
-        :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
+        :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt) or a list of these.
+            NB lists must contain either no FBbt IDs or only FBbt IDs (with query_by_label=False).
         :param gene_type: Optional. A gene function label retrieved using `get_gene_function_filters`.
         :param no_subtypes: Optional. If `True`, only clusters for the specified cell_type will be returned and not subtypes. Default `False`.
         :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
-        :return: A DataFrame with gene expression data for clusters of cells annotated as the specified cell type.
+        :return: A DataFrame with gene expression data for clusters of cells annotated as the specified cell_type.
         :rtype: pandas.DataFrame or list of dicts
         :raises KeyError: If the cell_type or gene_type is invalid.
         """
+        if isinstance(cell_type, str):
+            cell_type = [cell_type]
         if query_by_label:
-            cell_type_short_form = self.lookup_id(cell_type)
-        else:
-            if cell_type in self.lookup.values():
-                cell_type_short_form = cell_type
+            if any(c.startswith('FBbt') for c in cell_type):
+                raise KeyError("If using FBbt IDs for cell_type, please use query_by_label=False.")
             else:
-                raise KeyError("cell_type must be a valid ID from the Drosophila Anatomy Ontology")
-
-        if not cell_type_short_form.startswith('FBbt'):
-            raise KeyError("cell_type must be a valid ID, label or symbol from the Drosophila Anatomy Ontology")
+                cell_type_short_form = [self.lookup_id(c) for c in cell_type]
+        else:
+            if any(not c.startswith('FBbt') for c in cell_type):
+                raise KeyError("When using query_by_label=False, all values in cell_type must be valid FBbt IDs.")
+            else:
+                cell_type_short_form = [c.replace(':', '_') for c in cell_type]
+        if any(c not in self.lookup.values() or not c.startswith('FBbt') for c in cell_type_short_form):
+            raise KeyError("cell_type must be valid IDs, labels or symbols from the Drosophila Anatomy Ontology.")
 
         if gene_type:
             if gene_type not in self.get_gene_function_filters():
@@ -709,7 +714,7 @@ class VfbConnect:
 
         query = ("MATCH (g:Gene:Class%s)<-[e:expresses]-(clus:Cluster:Individual)-"
                  "[:composed_primarily_of]->(c2:Class)-[:SUBCLASSOF*0..]->(c1:Neuron:Class) "
-                 "WHERE c1.short_form = '%s' %s"
+                 "WHERE c1.short_form IN %s %s"
                  "MATCH (clus)-[:part_of]->()-[:has_part]->(sa:Sample:Individual) "
                  "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) "
                  "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] "
