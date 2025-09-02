@@ -743,6 +743,72 @@ class VfbConnect:
         else:
             return dc
 
+    def get_expressed_genes_by_cell_and_gene_type(self, cell_type, gene_type, no_subtypes=False, query_by_label=True, return_dataframe=True):
+        """Get expressed genes (as a list) for scRNAseq clusters of a given cell type.
+
+        Returns a DataFrame with one cluster per row, annotated as the specified cell type (or subtypes).
+        Must restrict to a gene type (to prevent overly long gene lists), which can be retrieved using `get_gene_function_filters`.
+        If no data is found, returns Empty DataFrame.
+
+        :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt) or a list of these.
+            NB lists must contain either no FBbt IDs or only FBbt IDs (with query_by_label=False).
+        :param gene_type: A gene function label retrieved using `get_gene_function_filters`.
+        :param no_subtypes: Optional. If `True`, only clusters for the specified cell_type will be returned and not subtypes. Default `False`.
+        :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame with genes of the given gene_type expressed in clusters of cells of the specified cell_type.
+        :rtype: pandas.DataFrame or list of dicts
+        :raises KeyError: If the cell_type or gene_type is invalid.
+        """
+        if isinstance(cell_type, str):
+            cell_type = [cell_type]
+        if query_by_label:
+            if any(c.startswith('FBbt') for c in cell_type):
+                raise KeyError("If using FBbt IDs for cell_type, please use query_by_label=False.")
+            else:
+                cell_type_short_form = [self.lookup_id(c) for c in cell_type]
+        else:
+            if any(not c.startswith('FBbt') for c in cell_type):
+                raise KeyError("When using query_by_label=False, all values in cell_type must be valid FBbt IDs.")
+            else:
+                cell_type_short_form = [c.replace(':', '_') for c in cell_type]
+        if any(c not in self.lookup.values() or not c.startswith('FBbt') for c in cell_type_short_form):
+            raise KeyError("cell_type must be valid IDs, labels or symbols from the Drosophila Anatomy Ontology.")
+
+        if gene_type not in self.get_gene_function_filters():
+            raise KeyError("gene_type must be a valid gene function label, try running get_gene_function_filters()")
+        else:
+            gene_label = ':' + gene_type
+
+        if no_subtypes:
+            equal_condition = 'AND c1.short_form = c2.short_form '
+        else:
+            equal_condition = ''
+
+        query = ("MATCH (g:Gene:Class%s)<-[:expresses]-(clus:Cluster:Individual)-"
+                 "[:composed_primarily_of]->(c2:Class)-[:SUBCLASSOF*0..]->(c1:Neuron:Class) "
+                 "WHERE c1.short_form IN %s %s"
+                 "MATCH (clus)-[:part_of]->()-[:has_part]->(sa:Sample:Individual) "
+                 "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) "
+                 "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] "
+                 "OPTIONAL MATCH (sa)-[:overlaps]->(tis:Class:Anatomy) "
+                 "OPTIONAL MATCH (clus)-[:has_source]->(ds:DataSet:Individual) "
+                 "OPTIONAL MATCH (ds)-[:has_reference]->(p:pub:Individual) "
+                 "RETURN DISTINCT c2.label AS cell_type, c2.short_form AS cell_type_id, "
+                 "sex.label AS sample_sex, COLLECT(tis.label) AS sample_tissue, "
+                 "ds.short_form AS dataset_id, p.miniref[0] as ref, "
+                 "clus.filtered_gene_count[0] as cluster_filtered_gene_count, "
+                 "clus.total_gene_count[0] as cluster_total_gene_count, "
+                 "COLLECT(g.label) AS genes "
+                 "ORDER BY cluster_filtered_gene_count DESC" % (gene_label, cell_type_short_form, equal_condition))
+        print(query)
+        r = self.nc.commit_list([query])
+        dc = dict_cursor(r)
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
+        else:
+            return dc
+
     def get_neuron_pubs(self, neuron, include_subclasses=True, include_nlp=False,
                         query_by_label=True, verbose=False):
 
