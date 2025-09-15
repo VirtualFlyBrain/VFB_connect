@@ -781,26 +781,31 @@ class VfbConnect:
             gene_label = ':' + gene_type
 
         if no_subtypes:
-            equal_condition = 'AND c1.short_form = c2.short_form '
+            equal_condition = 'WHERE c1.short_form = c2.short_form '
         else:
             equal_condition = ''
 
-        query = ("MATCH (g:Gene:Class%s)<-[:expresses]-(clus:Cluster:Individual)-"
-                 "[:composed_primarily_of]->(c2:Class)-[:SUBCLASSOF*0..]->(c1:Neuron:Class) "
-                 "WHERE c1.short_form IN %s %s"
-                 "MATCH (clus)-[:part_of]->()-[:has_part]->(sa:Sample:Individual) "
+        query = ("MATCH (c1:Neuron:Class) WHERE c1.short_form IN %s "
+                 "MATCH (c1)<-[:SUBCLASSOF*0..]-(c2:Class)<-[:composed_primarily_of]-(clus:Cluster:Individual)"
+                 "-[:expresses]->(g:Gene:Class%s) %s"
+                 "WITH clus, c2, collect(g.label) AS cluster_genes "
+                 "MATCH (clus)-[:has_source]->(ds:DataSet:Individual) "
+                 "MATCH (ds)<-[:has_source]-(:Cluster:Individual)-[:expresses]->(g2:Gene:Class%s) "
+                 "WITH clus, c2, ds, cluster_genes, collect(g2.label) AS dataset_genes "
+                 "MATCH (clus)-[:part_of]->(x)-[:has_part]->(sa:Sample:Individual) "
                  "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) "
                  "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] "
                  "OPTIONAL MATCH (sa)-[:overlaps]->(tis:Class:Anatomy) "
-                 "OPTIONAL MATCH (clus)-[:has_source]->(ds:DataSet:Individual) "
                  "OPTIONAL MATCH (ds)-[:has_reference]->(p:pub:Individual) "
-                 "RETURN DISTINCT c2.label AS cell_type, c2.short_form AS cell_type_id, "
-                 "sex.label AS sample_sex, COLLECT(tis.label) AS sample_tissue, "
-                 "ds.short_form AS dataset_id, p.miniref[0] as ref, "
-                 "clus.filtered_gene_count[0] as cluster_filtered_gene_count, "
-                 "clus.total_gene_count[0] as cluster_total_gene_count, "
-                 "COLLECT(g.label) AS genes "
-                 "ORDER BY cluster_filtered_gene_count DESC" % (gene_label, cell_type_short_form, equal_condition))
+                 "return DISTINCT clus.label AS cluster, c2.label AS cell_type, c2.short_form AS cell_type_id, "
+                 "COLLECT(DISTINCT sex.label) AS sample_sex, COLLECT(DISTINCT tis.label) AS sample_tissue, "
+                 "ds.short_form AS dataset_id, p.label as ref, "
+                 "clus.filtered_gene_count[0] AS cluster_filtered_gene_count, "
+                 "clus.total_gene_count[0] AS cluster_total_gene_count, "
+                 "ds.filtered_gene_count[0] AS dataset_filtered_gene_count, "
+                 "ds.total_gene_count[0] AS dataset_total_gene_count, cluster_genes, "
+                 "apoc.coll.sort(apoc.coll.subtract(dataset_genes, cluster_genes)) AS genes_in_dataset_not_cluster"
+                 % (cell_type_short_form, gene_label, equal_condition, gene_label))
         print(query)
         r = self.nc.commit_list([query])
         dc = dict_cursor(r)
