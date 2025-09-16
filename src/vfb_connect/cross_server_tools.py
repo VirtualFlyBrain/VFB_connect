@@ -549,11 +549,11 @@ class VfbConnect:
         cypher_ql = []
 
         cypher_ql.append(
-            "MATCH %s(c1:Class) "
-            % ('(:Class {short_form:"'+upstream_type+'"})<-[:SUBCLASSOF*0..]-' if upstream_type else ""))
+            "MATCH %s(c1:Class:Neuron) "
+            % ('(:Class:Neuron {short_form:"'+upstream_type+'"})<-[:SUBCLASSOF*0..]-' if upstream_type else ""))
         cypher_ql.append(
-            "MATCH %s(c2:Class) "
-            % ('(:Class {short_form:"'+downstream_type+'"})<-[:SUBCLASSOF*0..]-' if downstream_type else ""))
+            "MATCH %s(c2:Class:Neuron) "
+            % ('(:Class:Neuron {short_form:"'+downstream_type+'"})<-[:SUBCLASSOF*0..]-' if downstream_type else ""))
 
         cypher_ql.append("MATCH(c1)<-[:INSTANCEOF]-(n1:has_neuron_connectivity)-"
                          "[r:synapsed_to]->(n2:has_neuron_connectivity)-[:INSTANCEOF]->(c2) "
