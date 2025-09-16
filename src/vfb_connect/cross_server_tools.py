@@ -549,40 +549,21 @@ class VfbConnect:
         cypher_ql = []
 
         cypher_ql.append(
-            "MATCH (up:Class)<-[:SUBCLASSOF*0..]-(c1:Class)<-[:INSTANCEOF]-(n1:has_neuron_connectivity) ")
-        if upstream_type:
-            cypher_ql.append(
-                "WHERE up.short_form = '%s' " % upstream_type)
+            "MATCH %s(c1:Class) "
+            % ('(:Class {short_form:"'+upstream_type+'"})<-[:SUBCLASSOF*0..]-' if upstream_type else ""))
         cypher_ql.append(
-            "MATCH (down:Class)<-[:SUBCLASSOF*0..]-(c2:Class)<-[:INSTANCEOF]-(n2:has_neuron_connectivity) ")
-        if downstream_type:
-            cypher_ql.append(
-                "WHERE down.short_form = '%s' " % downstream_type)
-        if not group_by_class:
-            cypher_ql.append("MATCH (n1)-[r:synapsed_to]->(n2) WHERE r.weight[0] >= %d " % weight)
-        else:
-            cypher_ql.append("WITH c1, c2, n1, n2, collect(distinct n1) as n1s "
-                             "MATCH (x)-[r:synapsed_to]->(n2) WHERE x in n1s "
-                             "AND r.weight[0] >= %d " % weight)
+            "MATCH %s(c2:Class) "
+            % ('(:Class {short_form:"'+downstream_type+'"})<-[:SUBCLASSOF*0..]-' if downstream_type else ""))
+
+        cypher_ql.append("MATCH(c1)<-[:INSTANCEOF]-(n1:has_neuron_connectivity)-"
+                         "[r:synapsed_to]->(n2:has_neuron_connectivity)-[:INSTANCEOF]->(c2) "
+                         "WHERE r.weight[0] >= %s " % weight)
         if not group_by_class:
             cypher_ql.append("OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) "
-                            "WHERE exists(s1.is_data_source) AND s1.is_data_source = [True] ")
-            cypher_ql.append("OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Site) "
-                            "WHERE exists(s2.is_data_source) AND s2.is_data_source = [True] ")
-        if group_by_class:
-            cypher_ql.append("RETURN c1.label AS upstream_class, "
-                             "c1.short_form AS upstream_class_id, "
-                             "c2.label AS downstream_class, "
-                             "c2.short_form AS downstream_class_id, "
-                             "count(distinct n1) as upstream_count, "
-                             "count(distinct x) as connected_upstream_count, "
-                             "round((toFloat(count(distinct x))/toFloat(count(distinct n1)))*100) as percent_connected, "
-                             "count(distinct r) as pairwise_connections, "
-                             "sum(r.weight[0]) as total_weight, "
-                             "sum(r.weight[0])/count(distinct r) as average_weight "
-                             "ORDER BY pairwise_connections DESC, average_weight DESC")
-        else:
-            cypher_ql.append("RETURN apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, "
+                             "WHERE exists(s1.is_data_source) AND s1.is_data_source = [True] "
+                             "OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Site) "
+                             "WHERE exists(s2.is_data_source) AND s2.is_data_source = [True] "
+                             "RETURN apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, "
                              "apoc.text.join(collect(distinct c1.short_form),'|') AS upstream_class_id, "
                              "n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name,"
                              "r.weight[0] as weight, n2.short_form as downstream_neuron_id, "
@@ -591,6 +572,24 @@ class VfbConnect:
                              "apoc.text.join(collect(distinct c2.short_form),'|') as downstream_class_id, "
                              "s1.short_form AS up_data_source, r1.accession[0] as up_accession, "
                              "s2.short_form AS down_source, r2.accession[0] AS down_accession")
+        else:
+            cypher_ql.append("WITH c1, c2, count(*) as pairwise_connections, sum(r.weight[0]) as total_weight, "
+                             "count(distinct n1) as connected_upstream_count "
+                             "MATCH (c1)<-[:INSTANCEOF]-(all_n1:has_neuron_connectivity) "
+                             "WITH c1, c2, pairwise_connections, total_weight, connected_upstream_count, "
+                             "count(distinct all_n1) as total_upstream_count "
+                             "RETURN c1.label AS upstream_class, "
+                             "c1.short_form AS upstream_class_id, "
+                             "c2.label AS downstream_class, "
+                             "c2.short_form AS downstream_class_id, "
+                             "total_upstream_count, "
+                             "connected_upstream_count, "
+                             "round((toFloat(connected_upstream_count)/toFloat(total_upstream_count))*100) as percent_connected, "
+                             "pairwise_connections, "
+                             "total_weight, "
+                             "total_weight/pairwise_connections as average_weight "
+                             "ORDER BY pairwise_connections DESC, average_weight DESC")
+
         cypher_q = ' \n'.join(cypher_ql)
         print(cypher_q) if verbose else None
         r = self.nc.commit_list([cypher_q])
