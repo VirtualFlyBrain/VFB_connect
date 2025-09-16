@@ -78,6 +78,8 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(len(fu) > 0)
         fu = self.vc.get_connected_neurons_by_type(downstream_type='FBbt_00051488', weight=5)
         self.assertTrue(len(fu) > 0)
+        fu = self.vc.get_connected_neurons_by_type(weight=1, upstream_type='C2', downstream_type='visual projection neuron', group_by_class=True)
+        self.assertTrue(len(fu) > 0)
 
 
     def test_get_vfb_link(self):
