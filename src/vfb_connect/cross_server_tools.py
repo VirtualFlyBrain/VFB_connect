@@ -550,34 +550,35 @@ class VfbConnect:
 
         cypher_ql.append(
             "MATCH %s(c1:Class:Neuron) "
-            % ('(:Class:Neuron {short_form:"'+upstream_type+'"})<-[:SUBCLASSOF*0..]-' if upstream_type else ""))
+            % ('(:Class:Neuron {short_form:"' + upstream_type + '"})<-[:SUBCLASSOF*0..]-' if upstream_type else ""))
         cypher_ql.append(
             "MATCH %s(c2:Class:Neuron) "
-            % ('(:Class:Neuron {short_form:"'+downstream_type+'"})<-[:SUBCLASSOF*0..]-' if downstream_type else ""))
+            % ('(:Class:Neuron {short_form:"' + downstream_type + '"})<-[:SUBCLASSOF*0..]-' if downstream_type else ""))
 
-        cypher_ql.append("MATCH(c1)<-[:INSTANCEOF]-(n1:has_neuron_connectivity)-"
-                         "[r:synapsed_to]->(n2:has_neuron_connectivity)-[:INSTANCEOF]->(c2) "
+        cypher_ql.append("MATCH(c1)<-[:INSTANCEOF]-(n1:Individual:Neuron:has_neuron_connectivity)-"
+                         "[r:synapsed_to]->(n2:Individual:Neuron:has_neuron_connectivity)-[:INSTANCEOF]->(c2) "
                          "WHERE r.weight[0] >= %s " % weight)
         if not group_by_class:
-            cypher_ql.append("OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) "
+            cypher_ql.append("OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Individual:Site) "
                              "WHERE exists(s1.is_data_source) AND s1.is_data_source = [True] "
-                             "OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Site) "
+                             "OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Individual:Site) "
                              "WHERE exists(s2.is_data_source) AND s2.is_data_source = [True] "
                              "RETURN apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, "
                              "apoc.text.join(collect(distinct c1.short_form),'|') AS upstream_class_id, "
-                             "n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name,"
+                             "n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name, "
                              "r.weight[0] as weight, n2.short_form as downstream_neuron_id, "
                              "n2.label as downstream_neuron_name, "
                              "apoc.text.join(collect(distinct c2.label),'|') as downstream_class, "
                              "apoc.text.join(collect(distinct c2.short_form),'|') as downstream_class_id, "
                              "s1.short_form AS up_data_source, r1.accession[0] as up_accession, "
-                             "s2.short_form AS down_source, r2.accession[0] AS down_accession")
+                             "s2.short_form AS down_source, r2.accession[0] AS down_accession ")
+
         else:
             cypher_ql.append("WITH c1, c2, count(*) as pairwise_connections, sum(r.weight[0]) as total_weight, "
-                             "count(distinct n1) as connected_upstream_count "
-                             "MATCH (c1)<-[:INSTANCEOF]-(all_n1:has_neuron_connectivity) "
+                             "count(distinct n1) as connected_upstream_count \n\n"
+                             "MATCH (c1)<-[:INSTANCEOF]-(all_n1:Individual:has_neuron_connectivity) \n\n"
                              "WITH c1, c2, pairwise_connections, total_weight, connected_upstream_count, "
-                             "count(distinct all_n1) as total_upstream_count "
+                             "count(distinct all_n1) as total_upstream_count \n\n"
                              "RETURN c1.label AS upstream_class, "
                              "c1.short_form AS upstream_class_id, "
                              "c2.label AS downstream_class, "
@@ -590,7 +591,7 @@ class VfbConnect:
                              "total_weight/pairwise_connections as average_weight "
                              "ORDER BY pairwise_connections DESC, average_weight DESC")
 
-        cypher_q = ' \n'.join(cypher_ql)
+        cypher_q = ' \n\n'.join(cypher_ql)
         print(cypher_q) if verbose else None
         r = self.nc.commit_list([cypher_q])
         if not r:
