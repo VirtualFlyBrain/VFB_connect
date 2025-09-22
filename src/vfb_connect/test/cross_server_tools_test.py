@@ -72,13 +72,13 @@ class VfbConnectTest(unittest.TestCase):
 
     def test_get_connected_neurons_by_type(self):
         print()
-        fu = self.vc.get_connected_neurons_by_type(upstream_type='Kenyon cell', downstream_type='mushroom body output neuron', weight=20)
+        fu = self.vc.get_connected_neurons_by_type(upstream_type='Kenyon cell', exclude_dbs=[], downstream_type='mushroom body output neuron', weight=20)
         self.assertTrue(len(fu) > 0)
-        fu = self.vc.get_connected_neurons_by_type(upstream_type='FBbt_00051488', weight=5)
+        fu = self.vc.get_connected_neurons_by_type(upstream_type='FBbt_00051488', weight=5, exclude_dbs=[])
         self.assertTrue(len(fu) > 0)
-        fu = self.vc.get_connected_neurons_by_type(downstream_type='FBbt_00051488', weight=5)
+        fu = self.vc.get_connected_neurons_by_type(downstream_type='FBbt_00053287', weight=5)
         self.assertTrue(len(fu) > 0)
-        fu = self.vc.get_connected_neurons_by_type(weight=1, upstream_type='C2', downstream_type='visual projection neuron', group_by_class=True)
+        fu = self.vc.get_connected_neurons_by_type(weight=10, upstream_type='C2', downstream_type='visual projection neuron', group_by_class=True)
         self.assertTrue(len(fu) > 0)
 
 
