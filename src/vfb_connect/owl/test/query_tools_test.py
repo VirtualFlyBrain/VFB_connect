@@ -4,10 +4,17 @@ from ..owlery_query_tools import OWLeryConnect
 
 class OwleryConnectTest(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        """Set up the OWLery connection once for all tests"""
+        cls.oc = OWLeryConnect(obo_curies=['FBbt', 'RO', 'BFO'])
+        cls.test_query = "RO:0002131 some FBbt:00003679"
+        cls.test_query_labels = "'overlaps' some 'fan-shaped body'"
+
     def setUp(self):
-        self.oc = OWLeryConnect(obo_curies=['FBbt', 'RO', 'BFO'])
-        self.test_query = "RO:0002131 some FBbt:00003679"
-        self.test_query_labels = "'overlaps' some 'fan-shaped body'"
+        self.oc = self.__class__.oc
+        self.test_query = self.__class__.test_query
+        self.test_query_labels = self.__class__.test_query_labels
 
     def test_labels_2_ids(self):
         self.oc.lookup = {'overlaps': 'RO:0002131',

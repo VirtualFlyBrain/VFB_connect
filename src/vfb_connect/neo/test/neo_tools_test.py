@@ -4,9 +4,14 @@ from vfb_connect.neo.query_wrapper import QueryWrapper
 
 class NeoQueryWrapperTest(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        """Set up the query wrapper once for all tests"""
+        cls.qw = QueryWrapper()
+
     def setUp(self):
         # Using this as a convenient way to wrap default neo server call
-        self.qw = QueryWrapper()
+        self.qw = self.__class__.qw
 
     def test_get_term_info(self):
         fu = self.qw.get_TermInfo(['FBbt_00003686', 'VFB_00010001', 'Ito2013'], summary=False, return_dataframe=False)

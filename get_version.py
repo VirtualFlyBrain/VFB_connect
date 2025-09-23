@@ -166,6 +166,20 @@ def get_version(package: Union[Path, str]) -> str:
     Args:
        package: package name or module path (``…/module.py`` or ``…/module/__init__.py``)
     """
+    # Check if we're running in GitHub Actions with a tag or explicit VERSION
+    github_ref = os.environ.get("GITHUB_REF", "")
+    explicit_version = os.environ.get("VERSION", "")
+    
+    if explicit_version:
+        logger.info(f"Using explicit version from environment: {explicit_version}")
+        return explicit_version
+        
+    if github_ref.startswith("refs/tags/v"):
+        # Extract version from tag
+        tag_version = github_ref.replace("refs/tags/v", "")
+        logger.info(f"Extracted version from GitHub tag: {tag_version}")
+        return tag_version
+
     path = Path(package)
     if not path.suffix and len(path.parts) == 1:  # Is probably not a path
         v = get_version_from_metadata(package)

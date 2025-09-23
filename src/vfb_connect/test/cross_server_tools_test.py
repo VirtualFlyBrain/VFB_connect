@@ -6,8 +6,13 @@ from ..schema.vfb_term import VFBTerm, VFBTerms
 
 class VfbConnectTest(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        """Set up the VFB connection once for all tests"""
+        cls.vc = VfbConnect()
+
     def setUp(self):
-        self.vc = VfbConnect()
+        self.vc = self.__class__.vc
 
     def test_get_term_by_region(self):
         terms = self.vc.get_terms_by_region("fan-shaped body")
@@ -150,8 +155,13 @@ class VfbConnectTest(unittest.TestCase):
 
 class VfbTermTests(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        """Set up the VFB connection once for all tests"""
+        cls.vc = VfbConnect()
+
     def setUp(self):
-        self.vc = VfbConnect()
+        self.vc = self.__class__.vc
 
     def test_term(self):
         fu = self.vc.term('VFB_00010001')
