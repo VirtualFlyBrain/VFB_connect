@@ -736,7 +736,8 @@ class VfbConnect:
         else:
             return dc
 
-    def get_cell_types_by_genes(self, genes=None, gene_type=False, cell_type=None, query_by_label=True, return_dataframe=True):
+    def get_cell_types_by_genes(self, genes=None, gene_type=False, cell_type=None, query_by_label=True,
+                                return_dataframe=True, verbose=False):
         """Get cell types that express a given gene, list of genes and/or type of gene based on transcriptomics data.
 
         Returns a DataFrame of gene expression data for clusters of cells that express the specified gene(s).
@@ -823,6 +824,9 @@ class VfbConnect:
                  "sex.label AS sample_sex, COLLECT(tis.label) AS sample_tissue, "
                  "toFloat(e.expression_level[0]) as level, e.expression_extent[0] as extent "
                  "ORDER BY cell_type, gene" % (gene_filter, cell_type_filter))
+
+        if verbose:
+            print(query)
 
         r = self.nc.commit_list([query])
         dc = dict_cursor(r)
