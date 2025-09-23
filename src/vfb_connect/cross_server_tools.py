@@ -808,21 +808,21 @@ class VfbConnect:
             cell_type_filter = ''
 
         query = ("MATCH (g:Gene:Class) "
-                 "WHERE %s "
+                 "WHERE %s \n"
                  "MATCH (g)<-[e:expresses]-(clus:Cluster:Individual)-[:composed_primarily_of]->(anat:Class) "
-                 "%s"
-                 "MATCH (clus)-[:part_of]->(:Individual)-[:has_part]->(sa:Sample:Individual) "
-                 "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) "
-                 "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] "
-                 "OPTIONAL MATCH (sa)-[:overlaps]->(tis:Class:Anatomy) "
-                 "MATCH (clus)-[:has_source]->(ds:DataSet:Individual) "
-                 "OPTIONAL MATCH (ds)-[:has_reference]->(p:pub:Individual) "
+                 "%s\n"
+                 "MATCH (clus)-[:part_of]->(:Individual)-[:has_part]->(sa:Sample:Individual) \n"
+                 "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) \n"
+                 "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] \n"
+                 "OPTIONAL MATCH (sa)-[:overlaps]->(tis:Class:Anatomy) \n"
+                 "MATCH (clus)-[:has_source]->(ds:DataSet:Individual) \n"
+                 "OPTIONAL MATCH (ds)-[:has_reference]->(p:pub:Individual) \n"
                  "RETURN anat.label AS cell_type, anat.short_form AS cell_type_id, "
                  "g.label AS gene, g.short_form AS gene_id, "
                  "apoc.coll.subtract(labels(g), ['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS function, "
                  "ds.short_form AS dataset_id, p.miniref[0] as ref, "
                  "sex.label AS sample_sex, COLLECT(tis.label) AS sample_tissue, "
-                 "toFloat(e.expression_level[0]) as level, e.expression_extent[0] as extent "
+                 "toFloat(e.expression_level[0]) as level, e.expression_extent[0] as extent \n"
                  "ORDER BY cell_type, gene" % (gene_filter, cell_type_filter))
 
         if verbose:
