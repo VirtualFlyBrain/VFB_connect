@@ -69,10 +69,12 @@ class OWLeryConnect:
         """
         owl_endpoint = self.owlery_endpoint + query_type +"?"
         if query_by_label:
-            query = self.labels_2_ids(query)
+            processed_query = self.labels_2_ids(query)
+        else:
+            processed_query = query
         if verbose:
-            print("Running query: " + query)
-        payload = {'object': query, 'prefixes': json.dumps(self.curies),
+            print("Running query: " + processed_query)
+        payload = {'object': processed_query, 'prefixes': json.dumps(self.curies),
                    'direct': direct}
         # print(payload)
         try:
@@ -80,7 +82,7 @@ class OWLeryConnect:
         except requests.exceptions.RequestException as e:
             print("\033[31mConnection Error:\033[0m " + str(e))
             sleep(15)
-            return query(query_type, return_type, query, query_by_label, direct, verbose)
+            return self.query(query_type, return_type, query, query_by_label, direct, verbose)
         if verbose:
             print("Query URL: " + r.url)
         if r.status_code == 200:
