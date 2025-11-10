@@ -521,8 +521,8 @@ class VfbConnect:
                                               classification=classification, query_by_label=query_by_label,
                                               return_dataframe=return_dataframe, verbose=verbose)
 
-    def get_connected_neurons_by_type(self, weight, upstream_type=None, downstream_type=None, group_by_class=False,
-                                      query_by_label=True, exclude_dbs=['hb', 'fafb'], return_dataframe=True, verbose=False):
+    def get_connected_neurons_by_type(self, weight, upstream_type=None, downstream_type=None, query_by_label=True, 
+                                      group_by_class=False, exclude_dbs=['hb', 'fafb'], return_dataframe=True, verbose=False):
 
         """Get all synaptic connections between individual neurons of `upstream_type` and `downstream_type` where
              synapse count >= `weight`.  At least one of 'upstream_type' or downstream_type must be specified.
