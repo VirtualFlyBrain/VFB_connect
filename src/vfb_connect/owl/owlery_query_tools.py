@@ -69,13 +69,17 @@ class OWLeryConnect:
         """
         owl_endpoint = self.owlery_endpoint + query_type +"?"
         if query_by_label:
-            processed_query = self.labels_2_ids(query)
+            processed_query = self.labels_and_ids_2_iris(query)
         else:
-            processed_query = query
+            # If already contains angle brackets with IRIs, use as-is
+            if '<' in query and '>' in query and 'http' in query:
+                processed_query = query
+            else:
+                processed_query = self.labels_and_ids_2_iris(query)
         if verbose:
             print("Running query: " + processed_query)
-        payload = {'object': processed_query, 'prefixes': json.dumps(self.curies),
-                   'direct': direct}
+        payload = {'object': processed_query, 'direct': direct, 'includeDeprecated': 'false', 'includeEquivalent': 'true'}
+        # No longer send prefixes since we use full IRIs
         # print(payload)
         try:
             r = requests.get(url=owl_endpoint, params=payload)
@@ -186,6 +190,80 @@ class OWLeryConnect:
 
         # This doesn't deal well with failure -> lambda too separate function
         return re.sub(r"'(.+?)'", lambda m: subgp1_or_fail(m), query_string)
+
+    def labels_and_ids_2_iris(self, query_string):
+        """Converts labels, CURIEs, and short forms to IRIs in angle brackets
+
+        :param query_string: A OWL class expression containing quoted labels, CURIEs, or short forms
+        :return: query string with all identifiers converted to IRIs in angle brackets
+        """
+        # First convert quoted labels to CURIEs
+        curie_query = self.labels_2_ids(query_string)
+        
+        # Then convert CURIEs and short forms to IRIs in angle brackets
+        def convert_to_iri(match):
+            identifier = match.group(1)
+            # If already an IRI (contains /), leave as-is
+            if '/' in identifier:
+                return f"<{identifier}>"
+            # If it's a CURIE (contains :), convert using curies mapping
+            elif ':' in identifier:
+                prefix, local = identifier.split(':', 1)
+                if prefix == 'VFB':
+                    iri = f"http://virtualflybrain.org/reports/VFB_{local}"
+                    return f"<{iri}>"
+                elif prefix in self.curies:
+                    iri = self.curies[prefix] + local.replace(':', '_')
+                    return f"<{iri}>"
+                else:
+                    # Unknown prefix, try OBO
+                    iri = f"http://purl.obolibrary.org/obo/{identifier.replace(':', '_')}"
+                    return f"<{iri}>"
+            # If it's a short form (contains _), determine the prefix and convert
+            elif '_' in identifier:
+                # Special handling for VFB IDs
+                if identifier.startswith('VFB'):
+                    iri = f"http://virtualflybrain.org/reports/{identifier}"
+                    return f"<{iri}>"
+                # For FB* IDs, use OBO
+                elif identifier.startswith('FB'):
+                    iri = f"http://purl.obolibrary.org/obo/{identifier}"
+                    return f"<{iri}>"
+                # Try to find matching prefix from curies
+                else:
+                    for prefix, base_iri in self.curies.items():
+                        if identifier.startswith(prefix + '_'):
+                            local = identifier[len(prefix) + 1:]
+                            iri = base_iri + local
+                            return f"<{iri}>"
+                    # If no matching prefix, assume OBO format
+                    iri = f"http://purl.obolibrary.org/obo/{identifier}"
+                    return f"<{iri}>"
+            else:
+                # Unknown format, assume it's an ID and try OBO
+                iri = f"http://purl.obolibrary.org/obo/{identifier}"
+                return f"<{iri}>"
+        
+        # Find all identifiers that are not already in angle brackets
+        # This regex finds words that are not inside angle brackets
+        import re
+        # Split by angle brackets and process parts that are not in angle brackets
+        parts = re.split(r'(<[^>]*>)', curie_query)
+        result_parts = []
+        for part in parts:
+            if part.startswith('<') and part.endswith('>'):
+                # Already in angle brackets, keep as-is
+                result_parts.append(part)
+            else:
+                # Process identifiers in this part
+                # Find CURIEs (PREFIX:LOCAL) or short forms (PREFIX_LOCAL)
+                def replace_identifier(match):
+                    return convert_to_iri(match)
+                # Regex for CURIEs and short forms: word containing : or _ , but not standalone words
+                processed_part = re.sub(r'\b([A-Za-z]+[:_][A-Za-z0-9_:]+)\b', replace_identifier, part)
+                result_parts.append(processed_part)
+        
+        return ''.join(result_parts)
 
 
 
