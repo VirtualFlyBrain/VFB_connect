@@ -2277,7 +2277,7 @@ class VFBTerm:
             """
             if self._subtypes is None:
                 print("Loading subtypes for the first time...") if self.debug else None
-                self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"'{self.id}'", ), query_by_label=False)
+                self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"<{self.term.core.iri}>", query_by_label=False), query_by_label=False)
             return self._subtypes
 
         @property
@@ -2287,7 +2287,7 @@ class VFBTerm:
             """
             if self._subparts is None:
                 print("Loading subparts for the first time...") if self.debug else None
-                self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'is part of' some '{self.id}'"), query_by_label=False)
+                self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'is part of' some '{self.id}'"), query_by_label=True)
             return self._subparts
 
         @property
