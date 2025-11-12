@@ -687,10 +687,7 @@ class VfbConnect:
         if isinstance(cell_type, str):
             cell_type = [cell_type]
         if query_by_label:
-            if any(c.startswith('FBbt') for c in cell_type):
-                raise KeyError("If using FBbt IDs for cell_type, please use query_by_label=False.")
-            else:
-                cell_type_short_form = [self.lookup_id(c) for c in cell_type]
+            cell_type_short_form = [self.lookup_id(c) for c in cell_type]
         else:
             if any(not c.startswith('FBbt') for c in cell_type):
                 raise KeyError("When using query_by_label=False, all values in cell_type must be valid FBbt IDs.")

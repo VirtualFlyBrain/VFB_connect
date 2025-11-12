@@ -95,7 +95,8 @@ class OWLeryConnect:
             return r.json()[return_type]
         else:
             print("\033[31mConnection Error:\033[0m " + str(r.content))
-            return False
+            sleep(15)
+            return self.query(query_type, return_type, query, query_by_label, direct, verbose)
 
     def get_subclasses(self, query, query_by_label=True, direct=False, return_short_forms=True, verbose=False):
         """Generate list of IDs of all subclasses of class_expression.
