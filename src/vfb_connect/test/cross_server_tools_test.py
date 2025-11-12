@@ -139,6 +139,14 @@ class VfbConnectTest(unittest.TestCase):
         print(bar)
         self.assertTrue(len(bar) > 9)
 
+    def test_get_expressed_genes_by_cell_and_gene_type(self):
+        fu = self.vc.get_expressed_genes_by_cell_and_gene_type(cell_type=['Dm8a'], gene_type='Neurotransmitter_receptor', query_by_label=True)
+        print(fu)
+        self.assertTrue(len(fu) > 9)
+        bar = self.vc.get_expressed_genes_by_cell_and_gene_type(cell_type='FBbt_00013774', gene_type='Glutamate_receptor', query_by_label=False, return_dataframe=False)
+        print(bar)
+        self.assertTrue(len(bar) > 9)
+
     def test_xref_to_id(self):
         fu = self.vc.xref_2_vfb_id('FlyEM-HB:1353544607')
         self.assertTrue(fu)

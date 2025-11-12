@@ -698,27 +698,29 @@ class VfbConnect:
 
         Returns a DataFrame of gene expression data for clusters of cells annotated as the specified cell type (or subtypes).
         Optionally restricts to a gene type, which can be retrieved using `get_gene_function_filters`.
-        If no data is found, returns False.
+        If no data is found, returns Empty DataFrame.
 
-        :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
+        :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt) or a list of these.
+            NB lists must contain either no FBbt IDs or only FBbt IDs (with query_by_label=False).
         :param gene_type: Optional. A gene function label retrieved using `get_gene_function_filters`.
         :param no_subtypes: Optional. If `True`, only clusters for the specified cell_type will be returned and not subtypes. Default `False`.
         :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
-        :return: A DataFrame with gene expression data for clusters of cells annotated as the specified cell type.
+        :return: A DataFrame with gene expression data for clusters of cells annotated as the specified cell_type.
         :rtype: pandas.DataFrame or list of dicts
         :raises KeyError: If the cell_type or gene_type is invalid.
         """
+        if isinstance(cell_type, str):
+            cell_type = [cell_type]
         if query_by_label:
-            cell_type_short_form = self.lookup_id(cell_type)
+            cell_type_short_form = [self.lookup_id(c) for c in cell_type]
         else:
-            if cell_type in self.lookup.values():
-                cell_type_short_form = cell_type
+            if any(not c.startswith('FBbt') for c in cell_type):
+                raise KeyError("When using query_by_label=False, all values in cell_type must be valid FBbt IDs.")
             else:
-                raise KeyError("cell_type must be a valid ID from the Drosophila Anatomy Ontology")
-
-        if not cell_type_short_form.startswith('FBbt'):
-            raise KeyError("cell_type must be a valid ID, label or symbol from the Drosophila Anatomy Ontology")
+                cell_type_short_form = [c.replace(':', '_') for c in cell_type]
+        if any(c not in self.lookup.values() or not c.startswith('FBbt') for c in cell_type_short_form):
+            raise KeyError("cell_type must be valid IDs, labels or symbols from the Drosophila Anatomy Ontology.")
 
         if gene_type:
             if gene_type not in self.get_gene_function_filters():
@@ -735,7 +737,7 @@ class VfbConnect:
 
         query = ("MATCH (g:Gene:Class%s)<-[e:expresses]-(clus:Cluster:Individual)-"
                  "[:composed_primarily_of]->(c2:Class)-[:SUBCLASSOF*0..]->(c1:Neuron:Class) "
-                 "WHERE c1.short_form = '%s' %s"
+                 "WHERE c1.short_form IN %s %s"
                  "MATCH (clus)-[:part_of]->()-[:has_part]->(sa:Sample:Individual) "
                  "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) "
                  "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] "
@@ -749,11 +751,13 @@ class VfbConnect:
                  "RETURN DISTINCT c2.label AS cell_type, c2.short_form AS cell_type_id, "
                  "sex.label AS sample_sex, COLLECT(tis.label) AS sample_tissue, "
                  "ds.short_form AS dataset_id, p.miniref[0] as ref, "
+                 "clus.filtered_gene_count[0] as cluster_filtered_gene_count, "
+                 "clus.total_gene_count[0] as cluster_total_gene_count, "
                  "sw.link_base[0] + dbxw.accession[0] AS website_linkout, "
                  "sd.link_base[0] + dbxd.accession[0] + sd.postfix[0] AS download_linkout, "
                  "g.label AS gene, g.short_form AS gene_id, "
                  "apoc.coll.subtract(labels(g), ['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS function, "
-                 "e.expression_extent[0] as extent, toFloat(e.expression_level[0]) as level "
+                 "toFloat(e.expression_level[0]) as level, e.expression_extent[0] as extent "
                  "ORDER BY cell_type, g.label" % (gene_label, cell_type_short_form, equal_condition))
         r = self.nc.commit_list([query])
         dc = dict_cursor(r)
@@ -761,6 +765,170 @@ class VfbConnect:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
+
+    def get_expressed_genes_by_cell_and_gene_type(self, cell_type, gene_type, no_subtypes=False, query_by_label=True, return_dataframe=True):
+        """Get expressed genes (as a list) for scRNAseq clusters of a given cell type.
+
+        Returns a DataFrame with one cluster per row, annotated as the specified cell type (or subtypes).
+        Must restrict to a gene type (to prevent overly long gene lists), which can be retrieved using `get_gene_function_filters`.
+        If no data is found, returns Empty DataFrame.
+
+        :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt) or a list of these.
+            NB lists must contain either no FBbt IDs or only FBbt IDs (with query_by_label=False).
+        :param gene_type: A gene function label retrieved using `get_gene_function_filters`.
+        :param no_subtypes: Optional. If `True`, only clusters for the specified cell_type will be returned and not subtypes. Default `False`.
+        :param query_by_label: Optional. Query using cell type labels if `True`, or IDs if `False`. Default `True`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame with genes of the given gene_type expressed in clusters of cells of the specified cell_type.
+        :rtype: pandas.DataFrame or list of dicts
+        :raises KeyError: If the cell_type or gene_type is invalid.
+        """
+        if isinstance(cell_type, str):
+            cell_type = [cell_type]
+        if query_by_label:
+            if any(c.startswith('FBbt') for c in cell_type):
+                raise KeyError("If using FBbt IDs for cell_type, please use query_by_label=False.")
+            else:
+                cell_type_short_form = [self.lookup_id(c) for c in cell_type]
+        else:
+            if any(not c.startswith('FBbt') for c in cell_type):
+                raise KeyError("When using query_by_label=False, all values in cell_type must be valid FBbt IDs.")
+            else:
+                cell_type_short_form = [c.replace(':', '_') for c in cell_type]
+        if any(c not in self.lookup.values() or not c.startswith('FBbt') for c in cell_type_short_form):
+            raise KeyError("cell_type must be valid IDs, labels or symbols from the Drosophila Anatomy Ontology.")
+
+        if gene_type not in self.get_gene_function_filters():
+            raise KeyError("gene_type must be a valid gene function label, try running get_gene_function_filters()")
+        else:
+            gene_label = ':' + gene_type
+
+        if no_subtypes:
+            equal_condition = 'WHERE c1.short_form = c2.short_form '
+        else:
+            equal_condition = ''
+
+        query = ("MATCH (c1:Neuron:Class) WHERE c1.short_form IN %s "
+                 "MATCH (c1)<-[:SUBCLASSOF*0..]-(c2:Class)<-[:composed_primarily_of]-(clus:Cluster:Individual)"
+                 "-[:expresses]->(g:Gene:Class%s) %s"
+                 "WITH clus, c2, collect(g.label) AS cluster_genes "
+                 "MATCH (clus)-[:has_source]->(ds:DataSet:Individual) "
+                 "MATCH (ds)<-[:has_source]-(:Cluster:Individual)-[:expresses]->(g2:Gene:Class%s) "
+                 "WITH clus, c2, ds, cluster_genes, collect(g2.label) AS dataset_genes "
+                 "MATCH (clus)-[:part_of]->(x)-[:has_part]->(sa:Sample:Individual) "
+                 "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) "
+                 "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] "
+                 "OPTIONAL MATCH (sa)-[:overlaps]->(tis:Class:Anatomy) "
+                 "OPTIONAL MATCH (ds)-[:has_reference]->(p:pub:Individual) "
+                 "return DISTINCT clus.label AS cluster, c2.label AS cell_type, c2.short_form AS cell_type_id, "
+                 "COLLECT(DISTINCT sex.label) AS sample_sex, COLLECT(DISTINCT tis.label) AS sample_tissue, "
+                 "ds.short_form AS dataset_id, p.label as ref, "
+                 "clus.filtered_gene_count[0] AS cluster_filtered_gene_count, "
+                 "clus.total_gene_count[0] AS cluster_total_gene_count, "
+                 "ds.filtered_gene_count[0] AS dataset_filtered_gene_count, "
+                 "ds.total_gene_count[0] AS dataset_total_gene_count, cluster_genes, "
+                 "apoc.coll.sort(apoc.coll.subtract(dataset_genes, cluster_genes)) AS genes_in_dataset_not_cluster"
+                 % (cell_type_short_form, gene_label, equal_condition, gene_label))
+        print(query)
+    def get_cell_types_by_genes(self, genes=None, gene_type=False, cell_type=None, query_by_label=True,
+                                return_dataframe=True, verbose=False):
+        """Get cell types that express a given gene, list of genes and/or type of gene based on transcriptomics data.
+
+        Returns a DataFrame of gene expression data for clusters of cells that express the specified gene(s).
+        Optionally query by gene_type, which can be retrieved using `get_gene_function_filters`.
+        At least one of genes or gene_type must be specified. If both are given, these have an additive effect.
+        If no data is found, returns False.
+        Can optionally restrict the output to children of cell_type e.g. 'optic lobe intrinsic neuron'.
+
+        :param genes: Optional. A list of FlyBase gene (FBgn) IDs.
+        :param gene_type: Optional. A gene function label retrieved using `get_gene_function_filters` (can be a list).
+        :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
+        :param query_by_label: Optional. Query using cell type or gene labels if `True`, or IDs if `False`. Default `True`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame of cell types and scRNAseq expression data associated with clusters that express the given gene(s).
+        :rtype: pandas.DataFrame or list of dicts
+        :raises KeyError: If the genes, gene_type or cell_type are invalid.
+        """
+
+        if not (genes or gene_type):
+            raise ValueError("At least one gene or gene_type must be specified.")
+
+        if isinstance(genes, str):
+            genes = [genes]
+        if isinstance(gene_type, str):
+            gene_type = [gene_type]
+
+        if genes:
+            # self.lookup does not contain FBgns
+            FBgn_lookup = self.nc.get_lookup(limit_type_by_prefix='FBgn', include_individuals=False)
+            if query_by_label:
+                # this will be a bit broken until synonym unpacking is fixed
+                gene_short_forms = [FBgn_lookup.get(g, g) for g in genes]  # keep input if unmapped in case it is an ID
+            else:
+                if all(g in FBgn_lookup.values() for g in genes):
+                    gene_short_forms = genes
+                else:
+                    raise KeyError("genes must be a list of valid IDs from FlyBase.")
+            if not all(g.startswith('FBgn') for g in gene_short_forms):
+                raise KeyError("genes must be a list of valid IDs, labels or symbols from FlyBase.")
+            gene_filter = ["g.short_form IN ['%s']" % "','".join(gene_short_forms)]
+        else:
+            gene_filter = []
+
+        if gene_type:
+            if any(g not in self.get_gene_function_filters() for g in gene_type):
+                raise KeyError("gene_type must be a valid gene function label, try running get_gene_function_filters()")
+            else:
+                type_filter = [f"g:{t}" for t in gene_type]
+        else:
+            type_filter = []
+
+        gene_filter = ' OR '.join(type_filter + gene_filter)
+
+        if cell_type:
+            if query_by_label:
+                cell_type_short_form = self.lookup_id(cell_type)
+            else:
+                if cell_type in self.lookup.values():
+                    cell_type_short_form = cell_type
+                else:
+                    raise KeyError("cell_type must be a valid ID from the Drosophila Anatomy Ontology")
+
+            if not cell_type_short_form.startswith('FBbt'):
+                raise KeyError("cell_type must be a valid ID, label or symbol from the Drosophila Anatomy Ontology")
+
+            cell_type_filter = "MATCH (anat)-[:SUBCLASSOF*0..]->(:Class {short_form:'%s'}) " % cell_type_short_form
+        else:
+            cell_type_filter = ''
+
+        query = ("MATCH (g:Gene:Class) "
+                 "WHERE %s \n"
+                 "MATCH (g)<-[e:expresses]-(clus:Cluster:Individual)-[:composed_primarily_of]->(anat:Class) "
+                 "%s\n"
+                 "MATCH (clus)-[:part_of]->(:Individual)-[:has_part]->(sa:Sample:Individual) \n"
+                 "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) \n"
+                 "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] \n"
+                 "OPTIONAL MATCH (sa)-[:overlaps]->(tis:Class:Anatomy) \n"
+                 "MATCH (clus)-[:has_source]->(ds:DataSet:Individual) \n"
+                 "OPTIONAL MATCH (ds)-[:has_reference]->(p:pub:Individual) \n"
+                 "RETURN anat.label AS cell_type, anat.short_form AS cell_type_id, "
+                 "g.label AS gene, g.short_form AS gene_id, "
+                 "apoc.coll.subtract(labels(g), ['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS function, "
+                 "ds.short_form AS dataset_id, p.miniref[0] as ref, "
+                 "sex.label AS sample_sex, COLLECT(tis.label) AS sample_tissue, "
+                 "toFloat(e.expression_level[0]) as level, e.expression_extent[0] as extent \n"
+                 "ORDER BY cell_type, gene" % (gene_filter, cell_type_filter))
+
+        if verbose:
+            print(query)
+
+        r = self.nc.commit_list([query])
+        dc = dict_cursor(r)
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
+        else:
+            return dc
+
 
     def get_neuron_pubs(self, neuron, include_subclasses=True, include_nlp=False,
                         query_by_label=True, verbose=False):
