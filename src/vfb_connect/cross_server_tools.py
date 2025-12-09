@@ -519,15 +519,17 @@ class VfbConnect:
                                               classification=classification, query_by_label=query_by_label,
                                               return_dataframe=return_dataframe, verbose=verbose)
 
-    def get_connected_neurons_by_type(self, weight, upstream_type=None, downstream_type=None, query_by_label=True,
-                                      return_dataframe=True, verbose=False):
+    def get_connected_neurons_by_type(self, weight, upstream_type=None, downstream_type=None, query_by_label=True, 
+                                      group_by_class=False, exclude_dbs=['hb', 'fafb'], return_dataframe=True, verbose=False):
 
         """Get all synaptic connections between individual neurons of `upstream_type` and `downstream_type` where
              synapse count >= `weight`.  At least one of 'upstream_type' or downstream_type must be specified.
 
              :param upstream_type: The upstream neuron type (e.g., 'GABAergic neuron').
              :param downstream_type: The downstream neuron type (e.g., 'Descending neuron').
+             :param group_by_class: If `True`, return connectivity results aggregated by class rather than per neuron. Default `False`.
              :param query_by_label: Optional. Specify neuron type by label if `True` (default) or by short_form ID if `False`.
+             :param exclude_dbs: Optional. List of databases (short_forms or symbols) to exclude from results. Hemibrain and catmaid FAFB excluded by default.
              :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
              :return: A DataFrame or list of synaptic connections between specified neuron types.
              :rtype: pandas.DataFrame or list of dicts
@@ -544,36 +546,60 @@ class VfbConnect:
             if upstream_type: upstream_type = self.lookup_id(dequote(upstream_type))
             if downstream_type: downstream_type = self.lookup_id(dequote(downstream_type))
         cypher_ql = []
-        if upstream_type:
-            cypher_ql.append(
-                "MATCH (up:Class)<-[:SUBCLASSOF*0..]-(c1:Class)<-[:INSTANCEOF]-(n1:has_neuron_connectivity)"
-                " WHERE up.short_form = '%s' " % upstream_type)
-        if downstream_type:
-            cypher_ql.append(
-                "MATCH (down:Class)<-[:SUBCLASSOF*0..]-(c2:Class)<-[:INSTANCEOF]-(n2:has_neuron_connectivity)"
-                "WHERE down.short_form = '%s' " % downstream_type)
-        if not upstream_type:
-            cypher_ql.append(
-                "MATCH (c1:Class)<-[:INSTANCEOF]-(n1)-[r:synapsed_to]->(n2) WHERE r.weight[0] >= %d " % weight)
-        elif not downstream_type:
-            cypher_ql.append(
-                "MATCH (n1)-[r:synapsed_to]->(n2)-[:INSTANCEOF]->(c2:Class) WHERE r.weight[0] >= %d " % weight)
+
+        cypher_ql.append(
+            "MATCH %s(c1:Class:Neuron) "
+            % ('(:Class:Neuron {short_form:"' + upstream_type + '"})<-[:SUBCLASSOF*0..]-' if upstream_type else ""))
+        cypher_ql.append(
+            "MATCH %s(c2:Class:Neuron) "
+            % ('(:Class:Neuron {short_form:"' + downstream_type + '"})<-[:SUBCLASSOF*0..]-' if downstream_type else ""))
+
+        cypher_ql.append("MATCH (c1)<-[:INSTANCEOF]-(n1:Individual:Neuron:has_neuron_connectivity)-"
+                         "[r:synapsed_to]->(n2:Individual:Neuron:has_neuron_connectivity)-[:INSTANCEOF]->(c2) "
+                         "WHERE r.weight[0] >= %s " % weight)
+
+        if exclude_dbs:
+            cypher_ql.append("MATCH (n1)-[:database_cross_reference]->(s:Individual:Site {is_data_source:[True]}) \n"
+                             "WHERE NOT (s.short_form IN %s) \n"
+                             "AND NOT (s.symbol[0] IN %s) "
+                             % (exclude_dbs, exclude_dbs))
+
+        if not group_by_class:
+            cypher_ql.append("OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Individual:Site {is_data_source:[True]}) \n"
+                             "OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Individual:Site {is_data_source:[True]}) \n"
+                             "RETURN apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, "
+                             "apoc.text.join(collect(distinct c1.short_form),'|') AS upstream_class_id, "
+                             "n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name, "
+                             "r.weight[0] as weight, n2.short_form as downstream_neuron_id, "
+                             "n2.label as downstream_neuron_name, "
+                             "apoc.text.join(collect(distinct c2.label),'|') as downstream_class, "
+                             "apoc.text.join(collect(distinct c2.short_form),'|') as downstream_class_id, "
+                             "s1.short_form AS up_data_source, r1.accession[0] as up_accession, "
+                             "s2.short_form AS down_data_source, r2.accession[0] AS down_accession ")
+
         else:
-            cypher_ql.append("MATCH (n1)-[r:synapsed_to]->(n2) WHERE r.weight[0] >= %d " % weight)
-        cypher_ql.append("OPTIONAL MATCH (n1)-[r1:database_cross_reference]->(s1:Site) "
-                        "WHERE exists(s1.is_data_source) AND s1.is_data_source = [True] ")
-        cypher_ql.append("OPTIONAL MATCH (n2)-[r2:database_cross_reference]->(s2:Site) " 
-                        "WHERE exists(s2.is_data_source) AND s2.is_data_source = [True] " )
-        cypher_ql.append("RETURN apoc.text.join(collect(distinct c1.label),'|') AS upstream_class, "
-                         "apoc.text.join(collect(distinct c1.short_form),'|') AS upstream_class_id, "
-                         "n1.short_form as upstream_neuron_id, n1.label as upstream_neuron_name,"
-                         "r.weight[0] as weight, n2.short_form as downstream_neuron_id, "
-                         "n2.label as downstream_neuron_name, "
-                         "apoc.text.join(collect(distinct c2.label),'|') as downstream_class, "
-                         "apoc.text.join(collect(distinct c2.short_form),'|') as downstream_class_id, "
-                         "s1.short_form AS up_data_source, r1.accession[0] as up_accession, "
-                         "s2.short_form AS down_source, r2.accession[0] AS down_accession")
-        cypher_q = ' \n'.join(cypher_ql)
+            cypher_ql.append("WITH c1, c2, count(*) as pairwise_connections, sum(r.weight[0]) as total_weight, "
+                             "count(distinct n1) as connected_upstream_count \n\n"
+                             "MATCH (c1)<-[:INSTANCEOF]-(all_n1:Individual:has_neuron_connectivity)%s \n\n"
+                             "WITH c1, c2, pairwise_connections, total_weight, connected_upstream_count, "
+                             "count(distinct all_n1) as total_upstream_count \n\n"
+                             "RETURN c1.label AS upstream_class, "
+                             "c1.short_form AS upstream_class_id, "
+                             "c2.label AS downstream_class, "
+                             "c2.short_form AS downstream_class_id, "
+                             "total_upstream_count, "
+                             "connected_upstream_count, "
+                             "round((toFloat(connected_upstream_count)/toFloat(total_upstream_count))*100) as percent_connected, "
+                             "pairwise_connections, "
+                             "total_weight, "
+                             "total_weight/pairwise_connections as average_weight "
+                             "ORDER BY pairwise_connections DESC, average_weight DESC"
+                             % ("-[:database_cross_reference]->(s:Individual:Site {is_data_source:[True]}) \n"
+                                "WHERE NOT (s.short_form IN %s) \n"
+                                "AND NOT (s.symbol[0] IN %s) "
+                                % (exclude_dbs, exclude_dbs) if exclude_dbs else ""))
+
+        cypher_q = ' \n\n'.join(cypher_ql)
         print(cypher_q) if verbose else None
         r = self.nc.commit_list([cypher_q])
         if not r:
@@ -729,7 +755,7 @@ class VfbConnect:
                  "sd.link_base[0] + dbxd.accession[0] + sd.postfix[0] AS download_linkout, "
                  "g.label AS gene, g.short_form AS gene_id, "
                  "apoc.coll.subtract(labels(g), ['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS function, "
-                 "e.expression_extent[0] as extent, toFloat(e.expression_level[0]) as level "
+                 "toFloat(e.expression_level[0]) as level, e.expression_extent[0] as extent "
                  "ORDER BY cell_type, g.label" % (gene_label, cell_type_short_form, equal_condition))
         r = self.nc.commit_list([query])
         dc = dict_cursor(r)
@@ -802,12 +828,105 @@ class VfbConnect:
                  "apoc.coll.sort(apoc.coll.subtract(dataset_genes, cluster_genes)) AS genes_in_dataset_not_cluster"
                  % (cell_type_short_form, gene_label, equal_condition, gene_label))
         print(query)
+    def get_cell_types_by_genes(self, genes=None, gene_type=False, cell_type=None, query_by_label=True,
+                                return_dataframe=True, verbose=False):
+        """Get cell types that express a given gene, list of genes and/or type of gene based on transcriptomics data.
+
+        Returns a DataFrame of gene expression data for clusters of cells that express the specified gene(s).
+        Optionally query by gene_type, which can be retrieved using `get_gene_function_filters`.
+        At least one of genes or gene_type must be specified. If both are given, these have an additive effect.
+        If no data is found, returns False.
+        Can optionally restrict the output to children of cell_type e.g. 'optic lobe intrinsic neuron'.
+
+        :param genes: Optional. A list of FlyBase gene (FBgn) IDs.
+        :param gene_type: Optional. A gene function label retrieved using `get_gene_function_filters` (can be a list).
+        :param cell_type: The ID, name, or symbol of a class in the Drosophila Anatomy Ontology (FBbt).
+        :param query_by_label: Optional. Query using cell type or gene labels if `True`, or IDs if `False`. Default `True`.
+        :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :return: A DataFrame of cell types and scRNAseq expression data associated with clusters that express the given gene(s).
+        :rtype: pandas.DataFrame or list of dicts
+        :raises KeyError: If the genes, gene_type or cell_type are invalid.
+        """
+
+        if not (genes or gene_type):
+            raise ValueError("At least one gene or gene_type must be specified.")
+
+        if isinstance(genes, str):
+            genes = [genes]
+        if isinstance(gene_type, str):
+            gene_type = [gene_type]
+
+        if genes:
+            # self.lookup does not contain FBgns
+            FBgn_lookup = self.nc.get_lookup(limit_type_by_prefix='FBgn', include_individuals=False)
+            if query_by_label:
+                # this will be a bit broken until synonym unpacking is fixed
+                gene_short_forms = [FBgn_lookup.get(g, g) for g in genes]  # keep input if unmapped in case it is an ID
+            else:
+                if all(g in FBgn_lookup.values() for g in genes):
+                    gene_short_forms = genes
+                else:
+                    raise KeyError("genes must be a list of valid IDs from FlyBase.")
+            if not all(g.startswith('FBgn') for g in gene_short_forms):
+                raise KeyError("genes must be a list of valid IDs, labels or symbols from FlyBase.")
+            gene_filter = ["g.short_form IN ['%s']" % "','".join(gene_short_forms)]
+        else:
+            gene_filter = []
+
+        if gene_type:
+            if any(g not in self.get_gene_function_filters() for g in gene_type):
+                raise KeyError("gene_type must be a valid gene function label, try running get_gene_function_filters()")
+            else:
+                type_filter = [f"g:{t}" for t in gene_type]
+        else:
+            type_filter = []
+
+        gene_filter = ' OR '.join(type_filter + gene_filter)
+
+        if cell_type:
+            if query_by_label:
+                cell_type_short_form = self.lookup_id(cell_type)
+            else:
+                if cell_type in self.lookup.values():
+                    cell_type_short_form = cell_type
+                else:
+                    raise KeyError("cell_type must be a valid ID from the Drosophila Anatomy Ontology")
+
+            if not cell_type_short_form.startswith('FBbt'):
+                raise KeyError("cell_type must be a valid ID, label or symbol from the Drosophila Anatomy Ontology")
+
+            cell_type_filter = "MATCH (anat)-[:SUBCLASSOF*0..]->(:Class {short_form:'%s'}) " % cell_type_short_form
+        else:
+            cell_type_filter = ''
+
+        query = ("MATCH (g:Gene:Class) "
+                 "WHERE %s \n"
+                 "MATCH (g)<-[e:expresses]-(clus:Cluster:Individual)-[:composed_primarily_of]->(anat:Class) "
+                 "%s\n"
+                 "MATCH (clus)-[:part_of]->(:Individual)-[:has_part]->(sa:Sample:Individual) \n"
+                 "OPTIONAL MATCH (sa)-[:part_of]->(sex:Class) \n"
+                 "WHERE sex.short_form IN ['FBbt_00007011', 'FBbt_00007004'] \n"
+                 "OPTIONAL MATCH (sa)-[:overlaps]->(tis:Class:Anatomy) \n"
+                 "MATCH (clus)-[:has_source]->(ds:DataSet:Individual) \n"
+                 "OPTIONAL MATCH (ds)-[:has_reference]->(p:pub:Individual) \n"
+                 "RETURN anat.label AS cell_type, anat.short_form AS cell_type_id, "
+                 "g.label AS gene, g.short_form AS gene_id, "
+                 "apoc.coll.subtract(labels(g), ['Class', 'Entity', 'hasScRNAseq', 'Feature', 'Gene']) AS function, "
+                 "ds.short_form AS dataset_id, p.miniref[0] as ref, "
+                 "sex.label AS sample_sex, COLLECT(tis.label) AS sample_tissue, "
+                 "toFloat(e.expression_level[0]) as level, e.expression_extent[0] as extent \n"
+                 "ORDER BY cell_type, gene" % (gene_filter, cell_type_filter))
+
+        if verbose:
+            print(query)
+
         r = self.nc.commit_list([query])
         dc = dict_cursor(r)
         if return_dataframe:
             return pd.DataFrame.from_records(dc)
         else:
             return dc
+
 
     def get_neuron_pubs(self, neuron, include_subclasses=True, include_nlp=False,
                         query_by_label=True, verbose=False):
