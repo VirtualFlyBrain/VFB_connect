@@ -5,7 +5,7 @@ from string import Template
 from typing import List
 from xml.sax import saxutils
 
-import pkg_resources
+from importlib.resources import files
 from .owl.owlery_query_tools import OWLeryConnect
 from .neo.neo4j_tools import Neo4jConnect, re, dict_cursor
 from .neo.query_wrapper import QueryWrapper, batch_query
@@ -107,9 +107,7 @@ class VfbConnect:
                                 lookup=self.lookup)
         self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
 
-        multi_query_json = pkg_resources.resource_filename(
-                            "vfb_connect",
-                            "resources/VFB_results_multi_input.json")
+        multi_query_json = str(files("vfb_connect") / "resources" / "VFB_results_multi_input.json")
         with open(multi_query_json, 'r') as f:
             self.queries = json.loads(saxutils.unescape(f.read()))
 

@@ -1,6 +1,6 @@
 """
 A version helper in the spirit of versioneer.
-Minimalistic and able to run without build step using pkg_resources.
+Minimalistic and able to run without build step using importlib.metadata.
 """
 
 # __version__ is defined at the very end of this file.
@@ -127,19 +127,19 @@ def get_version_from_git(parent):
 def get_version_from_metadata(name: str, parent: Optional[Path] = None):
     logger.info(f"metadata: Trying to get version for {name} in dir {parent}")
     try:
-        from pkg_resources import get_distribution, DistributionNotFound
+        from importlib.metadata import distribution, PackageNotFoundError
     except ImportError:
-        logger.info("metadata: Failed; could not import pkg_resources")
+        logger.info("metadata: Failed; could not import importlib.metadata")
         return None
 
     try:
-        pkg = get_distribution(name)
-    except DistributionNotFound:
+        pkg = distribution(name)
+    except PackageNotFoundError:
         logger.info(f"metadata: Failed; could not find distribution {name}")
         return None
 
     # For an installed package, the parent is the install location
-    path_pkg = Path(pkg.location).resolve()
+    path_pkg = Path(pkg.locate_file('')).resolve()
     if parent is not None and path_pkg != parent.resolve():
         msg = f"""\
             metadata: Failed; distribution and package paths do not match:

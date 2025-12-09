@@ -147,6 +147,27 @@ class VfbConnectTest(unittest.TestCase):
         print(bar)
         self.assertTrue(len(bar) > 9)
 
+    def test_get_transcriptomic_profile(self):
+        # Test single cell type
+        df_single = self.vc.get_transcriptomic_profile(cell_type='Dm8a', query_by_label=True)
+        self.assertGreater(len(df_single), 0)
+        # Check for new gene count columns
+        self.assertIn('cluster_filtered_gene_count', df_single.columns)
+        self.assertIn('cluster_total_gene_count', df_single.columns)
+        
+        # Test list of cell types
+        df_list = self.vc.get_transcriptomic_profile(cell_type=['Dm8a', 'Dm9'], query_by_label=True)
+        self.assertGreater(len(df_list), 0)
+        # Check for new gene count columns
+        self.assertIn('cluster_filtered_gene_count', df_list.columns)
+        self.assertIn('cluster_total_gene_count', df_list.columns)
+        
+        # Test with FBbt IDs
+        df_id = self.vc.get_transcriptomic_profile(cell_type='FBbt_00013774', query_by_label=False)
+        self.assertGreater(len(df_id), 0)
+        self.assertIn('cluster_filtered_gene_count', df_id.columns)
+        self.assertIn('cluster_total_gene_count', df_id.columns)
+
     def test_xref_to_id(self):
         fu = self.vc.xref_2_vfb_id('FlyEM-HB:1353544607')
         self.assertTrue(fu)

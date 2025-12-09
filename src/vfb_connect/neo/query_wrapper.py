@@ -8,7 +8,7 @@ from string import Template
 from time import sleep
 from xml.sax import saxutils
 import pandas as pd
-import pkg_resources
+from importlib.resources import files
 import requests
 from functools import wraps
 import pysolr
@@ -273,9 +273,7 @@ class QueryWrapper(Neo4jConnect):
 
     def __init__(self, *args, **kwargs):
         super(QueryWrapper, self).__init__(*args, **kwargs)
-        query_json = pkg_resources.resource_filename(
-                            "vfb_connect",
-                            "resources/VFB_TermInfo_queries.json")
+        query_json = str(files("vfb_connect") / "resources" / "VFB_TermInfo_queries.json")
         with open(query_json, 'r') as f:
             self.queries = json.loads(saxutils.unescape(f.read()))
 
