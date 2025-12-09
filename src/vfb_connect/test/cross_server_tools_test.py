@@ -162,7 +162,7 @@ class VfbConnectTest(unittest.TestCase):
         
         # Test with FBbt IDs
         df_id = self.vc.get_transcriptomic_profile(cell_type='FBbt_00013774', query_by_label=False)
-        self.assertTrue(len(df_id) > 0)
+        self.assertGreater(len(df_id), 0)
         self.assertIn('cluster_filtered_gene_count', df_id.columns)
         self.assertIn('cluster_total_gene_count', df_id.columns)
 
