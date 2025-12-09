@@ -148,7 +148,7 @@ class VfbConnectTest(unittest.TestCase):
     def test_get_transcriptomic_profile(self):
         # Test single cell type
         df_single = self.vc.get_transcriptomic_profile(cell_type='Dm8a', query_by_label=True)
-        self.assertTrue(len(df_single) > 0)
+        self.assertGreater(len(df_single), 0)
         # Check for new gene count columns
         self.assertIn('cluster_filtered_gene_count', df_single.columns)
         self.assertIn('cluster_total_gene_count', df_single.columns)
