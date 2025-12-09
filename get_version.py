@@ -139,7 +139,7 @@ def get_version_from_metadata(name: str, parent: Optional[Path] = None):
         return None
 
     # For an installed package, the parent is the install location
-    path_pkg = Path(pkg.locate_file('')).parent.resolve()
+    path_pkg = Path(pkg.locate_file('')).resolve()
     if parent is not None and path_pkg != parent.resolve():
         msg = f"""\
             metadata: Failed; distribution and package paths do not match:
