@@ -39,11 +39,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
       - name: Cache VFB lookup tables
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
@@ -85,11 +85,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
       - name: Cache VFB lookup tables
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
@@ -131,11 +131,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
       - name: Cache VFB lookup tables
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
@@ -177,11 +177,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
       - name: Cache VFB lookup tables
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
@@ -223,11 +223,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
       - name: Cache VFB lookup tables
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
@@ -269,11 +269,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
       - name: Cache VFB lookup tables
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
@@ -315,11 +315,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
       - name: Cache VFB lookup tables
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
