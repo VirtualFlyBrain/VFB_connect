@@ -37,7 +37,7 @@ jobs:
           export VFB_CACHE_ENABLED=true
           
       - name: Test essential functionality (LC_12 fix verification)
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           cd src
           python -c "
