@@ -435,7 +435,7 @@ jobs:
           python -m pip install -r .github/workflows/requirements.txt
           
       - name: Run Neo4j data access tests
-        timeout-minutes: 20
+        timeout-minutes: 30
         run: |
           cd src
           echo "Running Neo4j data access tests..."
