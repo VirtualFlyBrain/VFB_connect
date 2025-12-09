@@ -3,7 +3,7 @@ requires = ["setuptools>=45,<69", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vfb-connect"
+name = "vfb_connect"
 dynamic = ["version"]
 description = "Wrapper for querying VirtualFlyBrain servers."
 readme = "README.md"

@@ -1,10 +1,10 @@
 # VFB_connect - A library for querying VFB
 
 VFB_connect is a Python library that wraps open VFB API endpoints, providing
-canned queries and standard output formats.  It can be installed via [PyPi](https://pypi.org/project/vfb-connect/):
+canned queries and standard output formats.  It can be installed via [PyPi](https://pypi.org/project/vfb_connect/):
 
 ```sh
-pip install vfb-connect
+pip install vfb_connect
 ```
 
 VFB _connect is licensed under [GNU GPLv3](https://github.com/VirtualFlyBrain/VFB_connect/blob/master/LICENSE). The source code is hosted on [GitHub](https://github.com/VirtualFlyBrain/VFB_connect).
