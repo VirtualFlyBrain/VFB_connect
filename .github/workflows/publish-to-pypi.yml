@@ -73,7 +73,7 @@ jobs:
         
         # Verify the source distribution metadata
         echo "Checking source distribution metadata:"
-        SDIST_NAME_BASE="vfb-connect-${VERSION}"
+        SDIST_NAME_BASE="vfb_connect-${VERSION}"
         SDIST_FILE="dist/${SDIST_NAME_BASE}.tar.gz"
         PKG_INFO_PATH="${SDIST_NAME_BASE}/PKG-INFO"
         echo "Extracting Version from PKG-INFO in ${SDIST_FILE} (path: ${PKG_INFO_PATH})"
