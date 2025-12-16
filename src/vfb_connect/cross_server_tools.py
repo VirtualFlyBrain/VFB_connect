@@ -834,7 +834,9 @@ class VfbConnect:
 
         r = self.nc.commit_list([query])
         if not r:
-            warnings.warn("No results returned")
+            warnings.warn(
+                f"No results returned in get_expressed_genes_by_cell_and_gene_type for cell_type={cell_type} and gene_type={gene_type}"
+            )
             return False
         dc = dict_cursor(r)
         if return_dataframe:
