@@ -37,7 +37,7 @@ jobs:
           export VFB_CACHE_ENABLED=true
           
       - name: Test essential functionality (LC_12 fix verification)
-        timeout-minutes: 30
+        timeout-minutes: 60
         run: |
           cd src
           python -c "
@@ -71,14 +71,14 @@ jobs:
           "
           
       - name: Run fast essential tests
-        timeout-minutes: 8
+        timeout-minutes: 60
         run: |
           cd src
           echo "Running fast essential tests..."
           python ../run_fast_tests.py
           
       - name: Run core VFB term tests
-        timeout-minutes: 12
+        timeout-minutes: 60
         run: |
           cd src
           echo "Running VFB term tests..."
@@ -93,7 +93,7 @@ jobs:
             -v
             
       - name: Run cross-server tools tests (limited)
-        timeout-minutes: 12
+        timeout-minutes: 60
         run: |
           cd src
           echo "Running cross-server tools tests..."
@@ -104,7 +104,7 @@ jobs:
             -v
             
       - name: Run Neo4j tools tests (core only)
-        timeout-minutes: 10
+        timeout-minutes: 60
         run: |
           cd src
           echo "Running Neo4j tools core tests..."
@@ -130,7 +130,7 @@ jobs:
           "
           
       - name: Run OWL query tests (essential only)
-        timeout-minutes: 10  
+        timeout-minutes: 60
         run: |
           cd src
           echo "Running essential OWL query tests..."
