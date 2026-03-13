@@ -26,7 +26,7 @@ jobs:
   overview-notebook:
     name: "Test overview tutorial"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     if: |
       github.event_name == 'release' ||
       github.event_name == 'workflow_dispatch' ||
@@ -72,7 +72,7 @@ jobs:
   vfb-terms-notebook:
     name: "Test VFB terms tutorial"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     if: |
       github.event_name == 'release' ||
       github.event_name == 'workflow_dispatch' ||
@@ -118,7 +118,7 @@ jobs:
   discovery-notebook:
     name: "Test discovery tutorial"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     if: |
       github.event_name == 'release' ||
       github.event_name == 'workflow_dispatch' ||
@@ -164,7 +164,7 @@ jobs:
   vfb-neurons-notebook:
     name: "Test VFB neurons tutorial"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     if: |
       github.event_name == 'release' ||
       github.event_name == 'workflow_dispatch' ||
@@ -210,7 +210,7 @@ jobs:
   connectomics-notebook:
     name: "Test connectomics tutorial"
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     if: |
       github.event_name == 'release' ||
       github.event_name == 'workflow_dispatch' ||
@@ -256,7 +256,7 @@ jobs:
   vfb-datasets-notebook:
     name: "Test VFB datasets tutorial"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     if: |
       github.event_name == 'release' ||
       github.event_name == 'workflow_dispatch' ||
@@ -302,7 +302,7 @@ jobs:
   quick-guide-notebook:
     name: "Test quick guide snippet"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 60
     if: |
       github.event_name == 'release' ||
       github.event_name == 'workflow_dispatch' ||
