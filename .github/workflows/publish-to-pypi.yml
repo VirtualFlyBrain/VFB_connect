@@ -94,22 +94,22 @@ jobs:
       run: |
         # Install the wheel
         python -m pip install dist/*.whl
-        
-        # Verify the installed version matches the expected version
+
+        # Verify the installed version matches the expected version without importing vfb_connect
         if [[ -n "$VERSION" ]]; then
-          INSTALLED_VERSION=$(python -c "import vfb_connect; print(getattr(vfb_connect, '__version__', 'unknown'))" | tail -n 1)
+          INSTALLED_VERSION=$(python -c "import importlib.metadata as m; print(m.version('vfb-connect'))" | tail -n 1)
           echo "Expected version: $VERSION"
           echo "Installed version: $INSTALLED_VERSION"
-          
+
           if [[ "$VERSION" != "$INSTALLED_VERSION" ]]; then
             echo "ERROR: Version mismatch!"
             exit 1
           fi
-          
+
           echo "Version verification successful"
         else
           echo "No explicit version set, skipping version verification"
-          python -c "import vfb_connect; print(f'Installed version: {getattr(vfb_connect, \"__version__\", \"unknown\")}')"
+          python -c "import importlib.metadata as m; print(f'Installed version: {m.version(\'vfb-connect\')}')"
         fi
     
     - name: Publish distribution 📦 to PyPI
