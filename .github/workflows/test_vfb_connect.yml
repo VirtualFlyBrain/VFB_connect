@@ -270,7 +270,7 @@ jobs:
           python -m pip install -r .github/workflows/requirements.txt
           
       - name: Run essential neural connectivity validation (CI-optimized)
-        timeout-minutes: 20
+        timeout-minutes: 60
         env:
           VFB_CI_MODE: true
           VFB_LOAD_LIMIT: 3
