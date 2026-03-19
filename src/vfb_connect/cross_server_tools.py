@@ -599,7 +599,7 @@ class VfbConnect:
                              "pairwise_connections, "
                              "total_weight, "
                              "total_weight/pairwise_connections as average_weight "
-                             "ORDER BY pairwise_connections DESC, average_weight DESC"
+                             "ORDER BY percent_connected DESC, average_weight DESC"
                              % ("-[:database_cross_reference]->(s:Individual:Site {is_data_source:[True]}) \n"
                                 "WHERE NOT (s.short_form IN %s) \n"
                                 "AND NOT (s.symbol[0] IN %s) "
