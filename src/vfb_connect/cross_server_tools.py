@@ -543,8 +543,14 @@ class VfbConnect:
             print("At least one of upstream_type or downstream_type must be specified")
             return 1
         if query_by_label:
-            if upstream_type: upstream_type = self.lookup_id(dequote(upstream_type))
-            if downstream_type: downstream_type = self.lookup_id(dequote(downstream_type))
+            if upstream_type:
+                upstream_type = self.lookup_id(dequote(upstream_type))
+                if not upstream_type:
+                    raise ValueError("'upstream_type' not recognised")
+            if downstream_type:
+                downstream_type = self.lookup_id(dequote(downstream_type))
+                if not downstream_type:
+                    raise ValueError("'downstream_type' not recognised")
         cypher_ql = []
 
         cypher_ql.append(
