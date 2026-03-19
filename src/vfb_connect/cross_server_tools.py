@@ -835,7 +835,7 @@ class VfbConnect:
                  % (cell_type_short_form, gene_label, equal_condition, gene_label))
         if verbose:
             print(query)
-            
+
         r = self.nc.commit_list([query])
         dc = dict_cursor(r)
         if return_dataframe:
@@ -1460,11 +1460,14 @@ class VfbConnect:
         :return: A DataFrame with neurotransmitter receptors in downstream neurons of the specified neuron type.
         :rtype: pandas.DataFrame or list of dicts
         """
-        upstream_type = self.lookup_id(upstream_type)
-        downstream_type = self.lookup_id(downstream_type)
+        upstream_type = self.lookup_id(upstream_type.replace('FBbt:','FBbt_'))
+        downstream_type = self.lookup_id(downstream_type.replace('FBbt:','FBbt_'))
 
         # get all types of all connected neurons that are instances of downstream_type
-        downstream = self.get_connected_neurons_by_type(upstream_type=upstream_type, downstream_type=downstream_type, weight=weight)
+        downstream = self.get_connected_neurons_by_type(upstream_type=upstream_type, downstream_type=downstream_type, weight=weight, group_by_class=False, verbose=verbose, exclude_dbs=[])
+        if downstream.empty:
+            print("No connections found between %s and %s neurons." % (upstream_type, downstream_type))
+            return pd.DataFrame() if return_dataframe else []
         downstream['downstream_class'] = downstream['downstream_class'].apply(
             lambda x: x.split('|') if isinstance(x, str) else x)
         downstream_classes = downstream.explode('downstream_class')['downstream_class'].drop_duplicates().to_list()
