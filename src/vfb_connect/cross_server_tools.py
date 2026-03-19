@@ -770,7 +770,7 @@ class VfbConnect:
         else:
             return dc
 
-    def get_expressed_genes_by_cell_and_gene_type(self, cell_type, gene_type, no_subtypes=False, query_by_label=True, return_dataframe=True):
+    def get_expressed_genes_by_cell_and_gene_type(self, cell_type, gene_type, no_subtypes=False, query_by_label=True, return_dataframe=True, verbose=False):
         """Get expressed genes (as a list) for scRNAseq clusters of a given cell type.
 
         Returns a DataFrame with one cluster per row, annotated as the specified cell type (or subtypes).
@@ -833,7 +833,16 @@ class VfbConnect:
                  "ds.total_gene_count[0] AS dataset_total_gene_count, cluster_genes, "
                  "apoc.coll.sort(apoc.coll.subtract(dataset_genes, cluster_genes)) AS genes_in_dataset_not_cluster"
                  % (cell_type_short_form, gene_label, equal_condition, gene_label))
-        print(query)
+        if verbose:
+            print(query)
+            
+        r = self.nc.commit_list([query])
+        dc = dict_cursor(r)
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
+        else:
+            return dc
+
     def get_cell_types_by_genes(self, genes=None, gene_type=False, cell_type=None, query_by_label=True,
                                 return_dataframe=True, verbose=False):
         """Get cell types that express a given gene, list of genes and/or type of gene based on transcriptomics data.
