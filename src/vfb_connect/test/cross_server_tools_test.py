@@ -80,6 +80,9 @@ class VfbConnectTest(unittest.TestCase):
         self.assertTrue(len(fu) > 0)
         fu = self.vc.get_connected_neurons_by_type(weight=10, upstream_type='C2', downstream_type='visual projection neuron', group_by_class=True)
         self.assertTrue(len(fu) > 0)
+        with self.assertRaises(ValueError):
+            self.vc.get_connected_neurons_by_type(weight=5, upstream_type='fake neuron', downstream_type='FBbt_00048096', group_by_class=True, verbose=True)
+
 
 
     def test_get_vfb_link(self):
@@ -132,10 +135,10 @@ class VfbConnectTest(unittest.TestCase):
         self.assertEqual(fu[0]['n']['label'], 'fan-shaped body')
 
     def test_nt_receptors_in_downstream_neurons(self):
-        fu = self.vc.get_nt_receptors_in_downstream_neurons(upstream_type='Dm8', downstream_type='Dm9', weight=10)
+        fu = self.vc.get_nt_receptors_in_downstream_neurons(upstream_type='FBbt:00013774', downstream_type='Dm9', weight=10)
         print(fu)
         self.assertTrue(len(fu) > 9)
-        bar = self.vc.get_nt_receptors_in_downstream_neurons(upstream_type='Dm8', downstream_type='Dm9', weight=10, return_dataframe=False)
+        bar = self.vc.get_nt_receptors_in_downstream_neurons(upstream_type='Dm8a', downstream_type='Dm9', weight=10, return_dataframe=False)
         print(bar)
         self.assertTrue(len(bar) > 9)
 

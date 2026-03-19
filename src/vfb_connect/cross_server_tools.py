@@ -543,8 +543,14 @@ class VfbConnect:
             print("At least one of upstream_type or downstream_type must be specified")
             return 1
         if query_by_label:
-            if upstream_type: upstream_type = self.lookup_id(dequote(upstream_type))
-            if downstream_type: downstream_type = self.lookup_id(dequote(downstream_type))
+            if upstream_type:
+                upstream_type = self.lookup_id(dequote(upstream_type))
+                if not upstream_type:
+                    raise ValueError("'upstream_type' not recognised")
+            if downstream_type:
+                downstream_type = self.lookup_id(dequote(downstream_type))
+                if not downstream_type:
+                    raise ValueError("'downstream_type' not recognised")
         cypher_ql = []
 
         cypher_ql.append(
@@ -593,7 +599,7 @@ class VfbConnect:
                              "pairwise_connections, "
                              "total_weight, "
                              "total_weight/pairwise_connections as average_weight "
-                             "ORDER BY pairwise_connections DESC, average_weight DESC"
+                             "ORDER BY percent_connected DESC, average_weight DESC"
                              % ("-[:database_cross_reference]->(s:Individual:Site {is_data_source:[True]}) \n"
                                 "WHERE NOT (s.short_form IN %s) \n"
                                 "AND NOT (s.symbol[0] IN %s) "
@@ -764,7 +770,7 @@ class VfbConnect:
         else:
             return dc
 
-    def get_expressed_genes_by_cell_and_gene_type(self, cell_type, gene_type, no_subtypes=False, query_by_label=True, return_dataframe=True):
+    def get_expressed_genes_by_cell_and_gene_type(self, cell_type, gene_type, no_subtypes=False, query_by_label=True, return_dataframe=True, verbose=False):
         """Get expressed genes (as a list) for scRNAseq clusters of a given cell type.
 
         Returns a DataFrame with one cluster per row, annotated as the specified cell type (or subtypes).
@@ -827,7 +833,16 @@ class VfbConnect:
                  "ds.total_gene_count[0] AS dataset_total_gene_count, cluster_genes, "
                  "apoc.coll.sort(apoc.coll.subtract(dataset_genes, cluster_genes)) AS genes_in_dataset_not_cluster"
                  % (cell_type_short_form, gene_label, equal_condition, gene_label))
-        print(query)
+        if verbose:
+            print(query)
+
+        r = self.nc.commit_list([query])
+        dc = dict_cursor(r)
+        if return_dataframe:
+            return pd.DataFrame.from_records(dc)
+        else:
+            return dc
+
     def get_cell_types_by_genes(self, genes=None, gene_type=False, cell_type=None, query_by_label=True,
                                 return_dataframe=True, verbose=False):
         """Get cell types that express a given gene, list of genes and/or type of gene based on transcriptomics data.
@@ -1445,11 +1460,14 @@ class VfbConnect:
         :return: A DataFrame with neurotransmitter receptors in downstream neurons of the specified neuron type.
         :rtype: pandas.DataFrame or list of dicts
         """
-        upstream_type = self.lookup_id(upstream_type)
-        downstream_type = self.lookup_id(downstream_type)
+        upstream_type = self.lookup_id(upstream_type.replace('FBbt:','FBbt_'))
+        downstream_type = self.lookup_id(downstream_type.replace('FBbt:','FBbt_'))
 
         # get all types of all connected neurons that are instances of downstream_type
-        downstream = self.get_connected_neurons_by_type(upstream_type=upstream_type, downstream_type=downstream_type, weight=weight)
+        downstream = self.get_connected_neurons_by_type(upstream_type=upstream_type, downstream_type=downstream_type, weight=weight, group_by_class=False, verbose=verbose, exclude_dbs=[])
+        if downstream.empty:
+            print("No connections found between %s and %s neurons." % (upstream_type, downstream_type))
+            return pd.DataFrame() if return_dataframe else []
         downstream['downstream_class'] = downstream['downstream_class'].apply(
             lambda x: x.split('|') if isinstance(x, str) else x)
         downstream_classes = downstream.explode('downstream_class')['downstream_class'].drop_duplicates().to_list()
