@@ -2,7 +2,6 @@ requests
 psycopg2-binary
 pandas
 pandasql
-setuptools
 neuprint-python
 pysolr
 backports.tarfile
