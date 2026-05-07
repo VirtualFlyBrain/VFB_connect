@@ -523,14 +523,24 @@ class VfbConnect:
                                       group_by_class=False, exclude_dbs=['hb', 'fafb'], return_dataframe=True, verbose=False):
 
         """Get all synaptic connections between individual neurons of `upstream_type` and `downstream_type` where
-             synapse count >= `weight`.  At least one of 'upstream_type' or downstream_type must be specified.
+             synapse count >= `weight`. At least one of `upstream_type` or `downstream_type` must be specified.
 
+             When `group_by_class=True`, results are aggregated by class with subclass closure: a connection
+             contributes to the row for every (upstream_ancestor, downstream_ancestor) pair within the
+             `upstream_type`/`downstream_type` scope, not only the directly asserted INSTANCEOF class. This
+             means a single connection appears in multiple rows (once per ancestor pair) and the per-row
+             `pairwise_connections` and `total_weight` will not sum to the underlying connection counts.
+             `total_upstream_count` is also computed with subclass closure, so `percent_connected` is
+             internally consistent within each row.
+
+             :param weight: Minimum synapse count for a connection to be included.
              :param upstream_type: The upstream neuron type (e.g., 'GABAergic neuron').
              :param downstream_type: The downstream neuron type (e.g., 'Descending neuron').
-             :param group_by_class: If `True`, return connectivity results aggregated by class rather than per neuron. Default `False`.
              :param query_by_label: Optional. Specify neuron type by label if `True` (default) or by short_form ID if `False`.
+             :param group_by_class: Optional. If `True`, return connectivity results aggregated by class (with subclass closure, see note above) rather than per neuron. Default `False`.
              :param exclude_dbs: Optional. List of databases (short_forms or symbols) to exclude from results. Hemibrain and catmaid FAFB excluded by default.
              :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+             :param verbose: Optional. If `True`, print the Cypher queries used. Default `False`.
              :return: A DataFrame or list of synaptic connections between specified neuron types.
              :rtype: pandas.DataFrame or list of dicts
              """
@@ -584,26 +594,126 @@ class VfbConnect:
                              "s2.short_form AS down_data_source, r2.accession[0] AS down_accession ")
 
         else:
-            cypher_ql.append("WITH c1, c2, count(*) as pairwise_connections, sum(r.weight[0]) as total_weight, "
-                             "count(distinct n1) as connected_upstream_count \n\n"
-                             "MATCH (c1)<-[:INSTANCEOF]-(all_n1:Individual:has_neuron_connectivity)%s \n\n"
-                             "WITH c1, c2, pairwise_connections, total_weight, connected_upstream_count, "
-                             "count(distinct all_n1) as total_upstream_count \n\n"
-                             "RETURN c1.label AS upstream_class, "
-                             "c1.short_form AS upstream_class_id, "
-                             "c2.label AS downstream_class, "
-                             "c2.short_form AS downstream_class_id, "
-                             "total_upstream_count, "
-                             "connected_upstream_count, "
-                             "round((toFloat(connected_upstream_count)/toFloat(total_upstream_count))*100) as percent_connected, "
-                             "pairwise_connections, "
-                             "total_weight, "
-                             "total_weight/pairwise_connections as average_weight "
-                             "ORDER BY percent_connected DESC, average_weight DESC"
-                             % ("-[:database_cross_reference]->(s:Individual:Site {is_data_source:[True]}) \n"
-                                "WHERE NOT (s.short_form IN %s) \n"
-                                "AND NOT (s.symbol[0] IN %s) "
-                                % (exclude_dbs, exclude_dbs) if exclude_dbs else ""))
+            # Aggregate in Python so that connections also count for ancestor classes
+            # (within the upstream_type/downstream_type scope), not just the directly
+            # asserted INSTANCEOF class. Doing the closure traversal in Cypher would
+            # blow up the query plan; this keeps the connection match fast and pushes
+            # hierarchy expansion to a small follow-up query restricted to the
+            # neurons actually involved.
+            cypher_ql.append(
+                "RETURN DISTINCT n1.short_form AS upstream_neuron_id, "
+                "n2.short_form AS downstream_neuron_id, "
+                "r.weight[0] AS weight"
+            )
+            cypher_q = ' \n\n'.join(cypher_ql)
+            print("Connectivity query:\n%s" % cypher_q) if verbose else None
+            r = self.nc.commit_list([cypher_q])
+            if not r:
+                warnings.warn("No results returned")
+                return False
+            conns = dict_cursor(r)
+            if not conns:
+                warnings.warn("No results returned")
+                return False
+
+            def _scope_prefix(type_id):
+                if type_id:
+                    return '(:Class:Neuron {short_form:"%s"})<-[:SUBCLASSOF*0..]-' % type_id
+                return ''
+
+            n1_ids = list({c['upstream_neuron_id'] for c in conns})
+            n2_ids = list({c['downstream_neuron_id'] for c in conns})
+
+            ancestor_q = (
+                "MATCH %s(c:Class:Neuron)<-[:SUBCLASSOF*0..]-(:Class)<-[:INSTANCEOF]-(n:Individual) "
+                "WHERE n.short_form IN %s "
+                "RETURN n.short_form AS nid, "
+                "collect(DISTINCT {id: c.short_form, label: c.label}) AS classes"
+            )
+            up_q = ancestor_q % (_scope_prefix(upstream_type), n1_ids)
+            down_q = ancestor_q % (_scope_prefix(downstream_type), n2_ids)
+            print("Upstream ancestor query:\n%s" % up_q) if verbose else None
+            print("Downstream ancestor query:\n%s" % down_q) if verbose else None
+            up_rows = dict_cursor(self.nc.commit_list([up_q]))
+            down_rows = dict_cursor(self.nc.commit_list([down_q]))
+            if not up_rows or not down_rows:
+                raise RuntimeError(
+                    "Ancestor class lookup returned no rows for neurons that "
+                    "appeared in the connectivity query. This indicates a "
+                    "missing INSTANCEOF edge or a failed ancestor query."
+                )
+            n1_classes = {row['nid']: row['classes'] for row in up_rows}
+            n2_classes = {row['nid']: row['classes'] for row in down_rows}
+
+            from collections import defaultdict
+            pairwise = defaultdict(int)
+            weight_sum = defaultdict(int)
+            connected_n1s = defaultdict(set)
+            class_labels = {}
+            for c in conns:
+                ups = n1_classes.get(c['upstream_neuron_id'], [])
+                downs = n2_classes.get(c['downstream_neuron_id'], [])
+                for a1 in ups:
+                    class_labels[a1['id']] = a1['label']
+                    for a2 in downs:
+                        class_labels[a2['id']] = a2['label']
+                        key = (a1['id'], a2['id'])
+                        pairwise[key] += 1
+                        weight_sum[key] += c['weight']
+                        connected_n1s[key].add(c['upstream_neuron_id'])
+
+            upstream_class_ids = list({k[0] for k in pairwise})
+            db_filter = ""
+            if exclude_dbs:
+                db_filter = (
+                    "MATCH (all_n1)-[:database_cross_reference]->"
+                    "(s:Individual:Site {is_data_source:[True]}) "
+                    "WHERE NOT (s.short_form IN %s) "
+                    "AND NOT (s.symbol[0] IN %s) "
+                    % (exclude_dbs, exclude_dbs)
+                )
+            totals = {}
+            if upstream_class_ids:
+                total_q = (
+                    "MATCH %s(c:Class:Neuron) WHERE c.short_form IN %s "
+                    "MATCH (c)<-[:SUBCLASSOF*0..]-(:Class)<-[:INSTANCEOF]-"
+                    "(all_n1:Individual:has_neuron_connectivity) "
+                    "%s"
+                    "RETURN c.short_form AS cid, count(DISTINCT all_n1) AS total"
+                    % (_scope_prefix(upstream_type), upstream_class_ids, db_filter)
+                )
+                print("Total upstream count query:\n%s" % total_q) if verbose else None
+                total_rows = dict_cursor(self.nc.commit_list([total_q]))
+                if not total_rows:
+                    raise RuntimeError(
+                        "total_upstream_count query returned no rows for "
+                        "upstream classes that appeared in the connectivity "
+                        "results. This indicates a failed query."
+                    )
+                totals = {row['cid']: row['total'] for row in total_rows}
+
+            rows = []
+            for (c1_id, c2_id), pw in pairwise.items():
+                tw = weight_sum[(c1_id, c2_id)]
+                cu = len(connected_n1s[(c1_id, c2_id)])
+                tot = totals.get(c1_id, 0)
+                pct = round((cu / tot) * 100) if tot else 0
+                rows.append({
+                    'upstream_class': class_labels.get(c1_id),
+                    'upstream_class_id': c1_id,
+                    'downstream_class': class_labels.get(c2_id),
+                    'downstream_class_id': c2_id,
+                    'total_upstream_count': tot,
+                    'connected_upstream_count': cu,
+                    'percent_connected': pct,
+                    'pairwise_connections': pw,
+                    'total_weight': tw,
+                    'average_weight': tw // pw if pw else 0,
+                })
+            rows.sort(key=lambda r: (-r['percent_connected'], -r['average_weight']))
+            if return_dataframe:
+                return pd.DataFrame.from_records(rows)
+            return rows
 
         cypher_q = ' \n\n'.join(cypher_ql)
         print(cypher_q) if verbose else None
