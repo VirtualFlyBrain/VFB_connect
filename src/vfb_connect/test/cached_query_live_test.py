@@ -229,9 +229,11 @@ class CachedPropertyIdsTest(unittest.TestCase):
     """Every wired property must get a usable ID list from its cached query."""
 
     def test_ids_are_wellformed(self):
+        # limit=5: this checks the shape of an ID, not how many there are, and
+        # ImagesNeurons on this region is 226,524 rows.
         for query_type, property_name in CACHED_PROPERTIES.items():
             with self.subTest(query=query_type, property=property_name):
-                ids = vfb.cached_query_ids(REGION, query_type, use_cached=True)
+                ids = vfb.cached_query_ids(REGION, query_type, limit=5, use_cached=True)
                 self.assertIsNotNone(ids, f'{query_type} returned no cached result')
                 for term_id in ids:
                     self.assertNotIn('](', term_id)
