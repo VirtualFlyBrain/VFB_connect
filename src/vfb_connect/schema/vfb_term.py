@@ -2313,7 +2313,10 @@ class VFBTerm:
             """
             if self._subtypes is None:
                 print("Loading subtypes for the first time...") if self.debug else None
-                self._subtypes = VFBTerms(self.vfb.oc.get_subclasses(query=f"<{self.term.core.iri}>", query_by_label=False), query_by_label=False)
+                ids = self.vfb.cached_query_ids(self.id, 'SubclassesOf', verbose=self.debug)
+                if ids is None:
+                    ids = self.vfb.oc.get_subclasses(query=f"<{self.term.core.iri}>", query_by_label=False)
+                self._subtypes = VFBTerms(ids, query_by_label=False)
             return self._subtypes
 
         @property

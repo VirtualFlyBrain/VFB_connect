@@ -30,6 +30,8 @@ from vfb_connect.cached_query import CachedQueryClient
 NEURON = 'VFB_jrchk00s'
 REGION = 'FBbt_00003748'   # medulla
 NEURON_CLASS = 'FBbt_00047573'  # descending neuron DNa02
+# Medulla has no subclasses, so SubclassesOf is checked on a class that does.
+SUBCLASSED = 'FBbt_00005155'  # Kenyon cell
 
 # Properties wired to a cached query, with the query each uses.
 CACHED_PROPERTIES = {
@@ -162,6 +164,14 @@ class CachedPropertyIdsTest(unittest.TestCase):
                 for term_id in ids:
                     self.assertNotIn('](', term_id)
                     self.assertRegex(term_id, r'^[A-Za-z][A-Za-z0-9_]+$')
+
+    def test_subclasses_of_ids_are_wellformed(self):
+        ids = vfb.cached_query_ids(SUBCLASSED, 'SubclassesOf', use_cached=True)
+        self.assertIsNotNone(ids, 'SubclassesOf returned no cached result')
+        self.assertTrue(len(ids) > 100, f'expected a large subclass closure, got {len(ids)}')
+        for term_id in ids:
+            self.assertNotIn('](', term_id)
+            self.assertRegex(term_id, r'^[A-Za-z][A-Za-z0-9_]+$')
 
     def test_a_property_hydrates_to_terms(self):
         term = vfb.term(REGION, verbose=False)
