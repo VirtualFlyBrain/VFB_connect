@@ -1,0 +1,80 @@
+name: Cached query converter tests
+
+# Guards the conversion from VFBquery's pre-computed, web-formatted rows into
+# VFB_connect's own return shapes. The offline job is the blocking gate on the
+# converter itself; the live job checks the converted methods still return what
+# they always returned, against production.
+
+on:
+  push:
+    paths:
+      - 'src/vfb_connect/cached_query.py'
+      - 'src/vfb_connect/cross_server_tools.py'
+      - 'src/vfb_connect/schema/vfb_term.py'
+      - 'src/vfb_connect/test/cached_query_test.py'
+      - 'src/vfb_connect/test/cached_query_live_test.py'
+      - 'src/vfb_connect/test/fixtures/**'
+      - '.github/workflows/test_cached_query.yml'
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Weekly, so drift between the released cache and Owlery stays visible.
+    - cron: '0 3 * * 1'
+
+jobs:
+  converter-tests:
+    name: "Converter tests (offline)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.10.14
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r .github/workflows/requirements.txt
+
+      - name: Run converter tests against committed fixtures
+        run: |
+          cd src
+          python -m unittest -v vfb_connect.test.cached_query_test
+
+  live-parity-tests:
+    name: "Cached vs live parity"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: converter-tests
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.10.14
+
+      - name: Cache VFB lookup tables
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/vfb_connect/lookup_cache.pkl
+            ~/.cache/vfb_connect/
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            vfb-lookup-cache-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r .github/workflows/requirements.txt
+
+      - name: Compare converted output against the live query
+        run: |
+          cd src
+          python -m unittest -v vfb_connect.test.cached_query_live_test

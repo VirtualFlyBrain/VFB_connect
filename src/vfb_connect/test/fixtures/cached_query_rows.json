@@ -1,0 +1,207 @@
+{
+  "LineageClonesIn": {
+    "id": "FBbt_00003748",
+    "rows": [
+      {
+        "id": "FBbt_00050143",
+        "label": "[adult DM6 lineage clone](FBbt_00050143)",
+        "tags": "Adult|Clone|lineage_DM6_CM3",
+        "technique": "confocal microscopy",
+        "template": "[JRC2018U](VFB_00101567)",
+        "thumbnail": "[![DM6 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0204/VFB_00101567/thumbnail.png 'DM6 clone of Ito 2013 aligned to JRC2018U')](VFB_00020204); [![DM6 clone of Ito 2013 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/0204/VFB_00017894/thumbnail.png 'DM6 clone of Ito 2013 aligned to JFRC2')](VFB_00020204); [![DM6 clone of Yu 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0048/VFB_00101567/thumbnail.png 'DM6 clone of Yu 2013 aligned to JRC2018U')](VFB_00020048); [![DM6 clone of Yu 2013 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/0048/VFB_00017894/thumbnail.png 'DM6 clone of Yu 2013 aligned to JFRC2')](VFB_00020048)"
+      },
+      {
+        "id": "FBbt_00050167",
+        "label": "[adult LALv1 lineage clone](FBbt_00050167)",
+        "tags": "Adult|Clone|lineage_LALv1_BAmv1",
+        "technique": "confocal microscopy",
+        "template": "[JFRC2](VFB_00017894)",
+        "thumbnail": "[![LALv1 clone of Ito 2013 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/0209/VFB_00017894/thumbnail.png 'LALv1 clone of Ito 2013 aligned to JFRC2')](VFB_00020209); [![LALv1 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0209/VFB_00101567/thumbnail.png 'LALv1 clone of Ito 2013 aligned to JRC2018U')](VFB_00020209); [![LALv1 clone of Yu 2013 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/0056/VFB_00017894/thumbnail.png 'LALv1 clone of Yu 2013 aligned to JFRC2')](VFB_00020056); [![LALv1 clone of Yu 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0056/VFB_00101567/thumbnail.png 'LALv1 clone of Yu 2013 aligned to JRC2018U')](VFB_00020056)"
+      },
+      {
+        "id": "FBbt_00050185",
+        "label": "[adult DL1 lineage clone](FBbt_00050185)",
+        "tags": "Adult|Clone|lineage_DL1_CP2",
+        "technique": "confocal microscopy",
+        "template": "[JFRC2](VFB_00017894)",
+        "thumbnail": "[![DL1 clone of Ito 2013 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/0197/VFB_00017894/thumbnail.png 'DL1 clone of Ito 2013 aligned to JFRC2')](VFB_00020197); [![DL1 clone of Ito 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0197/VFB_00101567/thumbnail.png 'DL1 clone of Ito 2013 aligned to JRC2018U')](VFB_00020197); [![DL1 clone of Yu 2013 aligned to JFRC2](https://www.virtualflybrain.org/data/VFB/i/0002/0062/VFB_00017894/thumbnail.png 'DL1 clone of Yu 2013 aligned to JFRC2')](VFB_00020062); [![DL1 clone of Yu 2013 aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0002/0062/VFB_00101567/thumbnail.png 'DL1 clone of Yu 2013 aligned to JRC2018U')](VFB_00020062)"
+      }
+    ]
+  },
+  "NeuronsPartHere": {
+    "id": "FBbt_00003748",
+    "rows": [
+      {
+        "id": "FBbt_00110069",
+        "label": "[Dm8b](FBbt_00110069)",
+        "source": "",
+        "source_id": "",
+        "tags": "Adult|Nervous_system|Neuron|Visual_system",
+        "technique": "serial block face SEM (SBFSEM)",
+        "template": "[JRC2018U](VFB_00101567)",
+        "thumbnail": "[![Dm8b_L (MaleCNS:78403) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/2z52/VFB_00101567/thumbnail.png 'Dm8b_L (MaleCNS:78403) aligned to JRC2018U')](VFB_jrmc2z52); [![Dm8b_L (MaleCNS:77262) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/2z2x/VFB_00101567/thumbnail.png 'Dm8b_L (MaleCNS:77262) aligned to JRC2018U')](VFB_jrmc2z2x); [![ME.23931 (FlyWire:720575940624177225) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw09/1095/VFB_00101567/thumbnail.png 'ME.23931 (FlyWire:720575940624177225) aligned to JRC2018U')](VFB_fw091095); [![Dm8b_R (MaleCNS:73119) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/2z78/VFB_00101567/thumbnail.png 'Dm8b_R (MaleCNS:73119) aligned to JRC2018U')](VFB_jrmc2z78); [![Dm8b_L (MaleCNS:544308) aligned to JRCVNC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/2z7g/VFB_00200000/thumbnail.png 'Dm8b_L (MaleCNS:544308) aligned to JRCVNC2018U')](VFB_jrmc2z7g); [![Dm8b_L (MaleCNS:544308) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/2z7g/VFB_00101567/thumbnail.png 'Dm8b_L (MaleCNS:544308) aligned to JRC2018U')](VFB_jrmc2z7g); [![Dm8b_R (JRC_OpticLobe:138225) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/3rtp/VFB_00101567/thumbnail.png 'Dm8b_R (JRC_OpticLobe:138225) aligned to JRC2018U')](VFB_00103rtp); [![ME.18156 (FlyWire:720575940648574596) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw06/3511/VFB_00101567/thumbnail.png 'ME.18156 (FlyWire:720575940648574596) aligned to JRC2018U')](VFB_fw063511); [![Dm8b_R (MaleCNS:100449) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/2zb2/VFB_00101567/thumbnail.png 'Dm8b_R (MaleCNS:100449) aligned to JRC2018U')](VFB_jrmc2zb2); [![Dm8b_R (JRC_OpticLobe:67684) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/3rzw/VFB_00101567/thumbnail.png 'Dm8b_R (JRC_OpticLobe:67684) aligned to JRC2018U')](VFB_00103rzw)"
+      },
+      {
+        "id": "FBbt_00111640",
+        "label": "[MC](FBbt_00111640)",
+        "source": "",
+        "source_id": "",
+        "tags": "Adult|Nervous_system|Neuron|Visual_system",
+        "technique": "serial block face SEM (SBFSEM)",
+        "template": "[JRC2018U](VFB_00101567)",
+        "thumbnail": "[![MeTu4a_R (MaleCNS:81595) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/1uje/VFB_00101567/thumbnail.png 'MeTu4a_R (MaleCNS:81595) aligned to JRC2018U')](VFB_jrmc1uje); [![MeTu4e_L (MaleCNS:101049) aligned to JRCVNC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/1uq5/VFB_00200000/thumbnail.png 'MeTu4e_L (MaleCNS:101049) aligned to JRCVNC2018U')](VFB_jrmc1uq5); [![MeTu4e_L (MaleCNS:101049) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/1uq5/VFB_00101567/thumbnail.png 'MeTu4e_L (MaleCNS:101049) aligned to JRC2018U')](VFB_jrmc1uq5); [![MeTu4a_L (MaleCNS:44994) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/1uim/VFB_00101567/thumbnail.png 'MeTu4a_L (MaleCNS:44994) aligned to JRC2018U')](VFB_jrmc1uim); [![MeTu4a_L (MaleCNS:14020) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/1uk6/VFB_00101567/thumbnail.png 'MeTu4a_L (MaleCNS:14020) aligned to JRC2018U')](VFB_jrmc1uk6); [![ME.LO.9489 (FlyWire:720575940616021899) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/fw04/7544/VFB_00101567/thumbnail.png 'ME.LO.9489 (FlyWire:720575940616021899) aligned to JRC2018U')](VFB_fw047544); [![MeTu4a_R (JRC_OpticLobe:48506) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/0010/40f2/VFB_00101567/thumbnail.png 'MeTu4a_R (JRC_OpticLobe:48506) aligned to JRC2018U')](VFB_001040f2); [![MC64 (FlyEM-HB:5812986257) aligned to JRCFIB2018Fum](https://www.virtualflybrain.org/data/VFB/i/jrch/k0sx/VFB_00101384/thumbnail.png 'MC64 (FlyEM-HB:5812986257) aligned to JRCFIB2018Fum')](VFB_jrchk0sx); [![MC64 (FlyEM-HB:5812986257) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrch/k0sx/VFB_00101567/thumbnail.png 'MC64 (FlyEM-HB:5812986257) aligned to JRC2018U')](VFB_jrchk0sx); [![MeTu4d_L (MaleCNS:67792) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrmc/1uoj/VFB_00101567/thumbnail.png 'MeTu4d_L (MaleCNS:67792) aligned to JRC2018U')](VFB_jrmc1uoj)"
+      },
+      {
+        "id": "FBbt_20001883",
+        "label": "[PS128](FBbt_20001883)",
+        "source": "",
+        "source_id": "",
+        "tags": "Adult|Nervous_system|Neuron",
+        "technique": "focussed ion beam scanning electron microscopy (FIB-SEM)",
+        "template": "[JRC2018U](VFB_00101567)",
+        "thumbnail": "[![PS128_R (FlyEM-HB:1288301181) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrch/k4e3/VFB_00101567/thumbnail.png 'PS128_R (FlyEM-HB:1288301181) aligned to JRC2018U')](VFB_jrchk4e3); [![PS128_R (FlyEM-HB:1288301181) aligned to JRCFIB2018Fum](https://www.virtualflybrain.org/data/VFB/i/jrch/k4e3/VFB_00101384/thumbnail.png 'PS128_R (FlyEM-HB:1288301181) aligned to JRCFIB2018Fum')](VFB_jrchk4e3)"
+      }
+    ]
+  },
+  "PartsOf": {
+    "id": "FBbt_00003748",
+    "rows": [
+      {
+        "id": "FBbt_00111364",
+        "label": "[adult chandelier glial cell](FBbt_00111364)",
+        "tags": "Adult|Glial_cell|Nervous_system|Visual_system",
+        "technique": "",
+        "template": "",
+        "thumbnail": ""
+      },
+      {
+        "id": "FBbt_00111365",
+        "label": "[adult distal medulla astrocyte-like glial cell](FBbt_00111365)",
+        "tags": "Adult|Glial_cell|Nervous_system|Visual_system",
+        "technique": "",
+        "template": "",
+        "thumbnail": ""
+      },
+      {
+        "id": "FBbt_00100528",
+        "label": "[distal medulla glial cell](FBbt_00100528)",
+        "tags": "Adult|Glial_cell|Nervous_system|Visual_system",
+        "technique": "",
+        "template": "",
+        "thumbnail": ""
+      }
+    ]
+  },
+  "SimilarMorphologyTo": {
+    "id": "VFB_jrchk00s",
+    "rows": [
+      {
+        "id": "VFB_jrchjzyl",
+        "name": "[LPC1 (FlyEM-HB:1806885186)](VFB_jrchjzyl)",
+        "score": "0.76",
+        "source": "[Neuprint web interface - hemibrain:v1.2.1](neuprint_JRC_Hemibrain_1point2point1)",
+        "source_id": "[1806885186](https://neuprint.janelia.org/results?dataset=hemibrain:v1.2.1&qt=findneurons&tab=0&ftab=&q=1&qr[0][code]=fn&qr[0][ds]=hemibrain:v1.2.1&qr[0][pm][dataset]=hemibrain:v1.2.1&qr[0][pm][all_segments]=false&qr[0][pm][enable_contains]=true&qr[0][visProps][rowsPerPage]=25&qr[0][pm][neuron_id]=1806885186)",
+        "tags": "Nervous_system|Visual_system|Adult|Cholinergic",
+        "technique": "focussed ion beam scanning electron microscopy (FIB-SEM)",
+        "template": "[JRC2018U](VFB_00101567)",
+        "thumbnail": "[![LPC1 (FlyEM-HB:1806885186) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrch/jzyl/VFB_00101567/thumbnail.png 'LPC1 (FlyEM-HB:1806885186) aligned to JRC2018U')](VFB_00101567,VFB_jrchjzyl); [![LPC1 (FlyEM-HB:1806885186) aligned to JRCFIB2018Fum](https://www.virtualflybrain.org/data/VFB/i/jrch/jzyl/VFB_00101384/thumbnail.png 'LPC1 (FlyEM-HB:1806885186) aligned to JRCFIB2018Fum')](VFB_00101384,VFB_jrchjzyl)",
+        "type": "[lobula plate columnar neuron LPC1](FBbt_00111767)"
+      },
+      {
+        "id": "VFB_jrchk00t",
+        "name": "[LPC1 (FlyEM-HB:1807238852)](VFB_jrchk00t)",
+        "score": "0.75",
+        "source": "[Neuprint web interface - hemibrain:v1.2.1](neuprint_JRC_Hemibrain_1point2point1)",
+        "source_id": "[1807238852](https://neuprint.janelia.org/results?dataset=hemibrain:v1.2.1&qt=findneurons&tab=0&ftab=&q=1&qr[0][code]=fn&qr[0][ds]=hemibrain:v1.2.1&qr[0][pm][dataset]=hemibrain:v1.2.1&qr[0][pm][all_segments]=false&qr[0][pm][enable_contains]=true&qr[0][visProps][rowsPerPage]=25&qr[0][pm][neuron_id]=1807238852)",
+        "tags": "Nervous_system|Visual_system|Adult|Cholinergic",
+        "technique": "focussed ion beam scanning electron microscopy (FIB-SEM)",
+        "template": "[JRC2018U](VFB_00101567)",
+        "thumbnail": "[![LPC1 (FlyEM-HB:1807238852) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrch/k00t/VFB_00101567/thumbnail.png 'LPC1 (FlyEM-HB:1807238852) aligned to JRC2018U')](VFB_00101567,VFB_jrchk00t); [![LPC1 (FlyEM-HB:1807238852) aligned to JRCFIB2018Fum](https://www.virtualflybrain.org/data/VFB/i/jrch/k00t/VFB_00101384/thumbnail.png 'LPC1 (FlyEM-HB:1807238852) aligned to JRCFIB2018Fum')](VFB_00101384,VFB_jrchk00t)",
+        "type": "[lobula plate columnar neuron LPC1](FBbt_00111767)"
+      },
+      {
+        "id": "VFB_jrchjzy8",
+        "name": "[LPC1 (FlyEM-HB:5812993604)](VFB_jrchjzy8)",
+        "score": "0.75",
+        "source": "[Neuprint web interface - hemibrain:v1.2.1](neuprint_JRC_Hemibrain_1point2point1)",
+        "source_id": "[5812993604](https://neuprint.janelia.org/results?dataset=hemibrain:v1.2.1&qt=findneurons&tab=0&ftab=&q=1&qr[0][code]=fn&qr[0][ds]=hemibrain:v1.2.1&qr[0][pm][dataset]=hemibrain:v1.2.1&qr[0][pm][all_segments]=false&qr[0][pm][enable_contains]=true&qr[0][visProps][rowsPerPage]=25&qr[0][pm][neuron_id]=5812993604)",
+        "tags": "Nervous_system|Adult|Visual_system|Cholinergic",
+        "technique": "focussed ion beam scanning electron microscopy (FIB-SEM)",
+        "template": "[JRCFIB2018Fum](VFB_00101384)",
+        "thumbnail": "[![LPC1 (FlyEM-HB:5812993604) aligned to JRCFIB2018Fum](https://www.virtualflybrain.org/data/VFB/i/jrch/jzy8/VFB_00101384/thumbnail.png 'LPC1 (FlyEM-HB:5812993604) aligned to JRCFIB2018Fum')](VFB_00101384,VFB_jrchjzy8); [![LPC1 (FlyEM-HB:5812993604) aligned to JRC2018U](https://www.virtualflybrain.org/data/VFB/i/jrch/jzy8/VFB_00101567/thumbnail.png 'LPC1 (FlyEM-HB:5812993604) aligned to JRC2018U')](VFB_00101567,VFB_jrchjzy8)",
+        "type": "[lobula plate columnar neuron LPC1](FBbt_00111767)"
+      }
+    ]
+  },
+  "TractsNervesInnervatingHere": {
+    "id": "FBbt_00003748",
+    "rows": [
+      {
+        "id": "FBbt_00003922",
+        "label": "[second optic chiasma](FBbt_00003922)",
+        "tags": "Adult|Nervous_system|Neuron_projection_bundle|Visual_system",
+        "technique": "",
+        "template": "",
+        "thumbnail": ""
+      },
+      {
+        "id": "FBbt_00005810",
+        "label": "[first optic chiasma](FBbt_00005810)",
+        "tags": "Adult|Nervous_system|Neuron_projection_bundle|Visual_system",
+        "technique": "",
+        "template": "",
+        "thumbnail": ""
+      },
+      {
+        "id": "FBbt_00007427",
+        "label": "[posterior optic commissure](FBbt_00007427)",
+        "tags": "Adult|Nervous_system|Neuron_projection_bundle",
+        "technique": "computer graphic",
+        "template": "[JRCFIB2018Fum](VFB_00101384)",
+        "thumbnail": "[![POC on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum](https://www.virtualflybrain.org/data/VFB/i/0010/1485/VFB_00101384/thumbnail.png 'POC on JRC_FlyEM_Hemibrain aligned to JRCFIB2018Fum')](VFB_00101485); [![posterior optic commissure on adult brain template Ito2014 aligned to adult brain template Ito2014](https://www.virtualflybrain.org/data/VFB/i/0003/0828/VFB_00030786/thumbnail.png 'posterior optic commissure on adult brain template Ito2014 aligned to adult brain template Ito2014')](VFB_00030828)"
+      }
+    ]
+  },
+  "query_connectivity": {
+    "connections": [
+      {
+        "average_weight": 40,
+        "connected_upstream_count": 4,
+        "downstream_class": "adult VNC neuron",
+        "downstream_class_id": "FBbt_00059289",
+        "pairwise_connections": 243,
+        "percent_connected": 67.0,
+        "total_upstream_count": 6,
+        "total_weight": 9733,
+        "upstream_class": "descending neuron of the anterior dorsal brain DNa02",
+        "upstream_class_id": "FBbt_00047573"
+      },
+      {
+        "average_weight": 48,
+        "connected_upstream_count": 4,
+        "downstream_class": "prothoracic neuron",
+        "downstream_class_id": "FBbt_00001984",
+        "pairwise_connections": 89,
+        "percent_connected": 67.0,
+        "total_upstream_count": 6,
+        "total_weight": 4287,
+        "upstream_class": "descending neuron of the anterior dorsal brain DNa02",
+        "upstream_class_id": "FBbt_00047573"
+      },
+      {
+        "average_weight": 30,
+        "connected_upstream_count": 4,
+        "downstream_class": "metathoracic neuron",
+        "downstream_class_id": "FBbt_00001986",
+        "pairwise_connections": 85,
+        "percent_connected": 67.0,
+        "total_upstream_count": 6,
+        "total_weight": 2597,
+        "upstream_class": "descending neuron of the anterior dorsal brain DNa02",
+        "upstream_class_id": "FBbt_00047573"
+      }
+    ],
+    "upstream_type": "FBbt_00047573",
+    "weight": 10
+  }
+}

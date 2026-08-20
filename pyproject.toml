@@ -48,7 +48,7 @@ where = ["src"]
 include = ["vfb_connect*"]
 
 [tool.setuptools.package-data]
-vfb_connect = ["resources/*.json", "*.pkl"]
+vfb_connect = ["resources/*.json", "*.pkl", "test/fixtures/*.json"]
 
 [tool.setuptools_scm]
 write_to = "src/vfb_connect/_version.py"
