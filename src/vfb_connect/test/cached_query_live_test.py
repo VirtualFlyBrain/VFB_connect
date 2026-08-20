@@ -31,7 +31,7 @@ NEURON = 'VFB_jrchk00s'
 REGION = 'FBbt_00003748'   # medulla
 NEURON_CLASS = 'FBbt_00047573'  # descending neuron DNa02
 # Medulla has no subclasses, so SubclassesOf is checked on a class that does.
-SUBCLASSED = 'FBbt_00005155'  # Kenyon cell
+SUBCLASSED = 'FBbt_00005155'  # sense organ, 853 subclasses
 
 # Properties wired to a cached query, with the query each uses.
 CACHED_PROPERTIES = {
