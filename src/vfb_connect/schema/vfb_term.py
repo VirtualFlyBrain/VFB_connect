@@ -45,6 +45,35 @@ if is_notebook():
 else:
     from tqdm import tqdm
 
+
+def cached_or_owl_ids(vfb, short_form, query_type, owl_query, query_instances=False,
+                      use_cached=None, verbose=False):
+    """Return the ID list for a named query, preferring VFBquery's cached result.
+
+    VFBquery owns these query specifications and serves their results
+    pre-computed from the same source the VFB website reads, so the cached
+    answer is the current release's. When it is unavailable the OWL query runs
+    here as before, which keeps every property working through an outage.
+
+    :param vfb: The :class:`~vfb_connect.cross_server_tools.VfbConnect` session.
+    :param short_form: The term the query is about.
+    :param query_type: A VFBquery query name, e.g. ``'NeuronsSynaptic'``.
+    :param owl_query: The equivalent OWL class expression, used as the fallback.
+    :param query_instances: Optional. Fall back to instances rather than subclasses.
+    :param use_cached: Optional. Force the cached path on or off.
+    :param verbose: Optional. Report which path was taken.
+    :return: A list of short_form IDs.
+    :rtype: list of str
+    """
+    ids = vfb.cached_query_ids(short_form, query_type, use_cached=use_cached, verbose=verbose)
+    if ids is not None:
+        return ids
+    print(f"Falling back to an OWL query for {query_type}({short_form})") if verbose else None
+    if query_instances:
+        return vfb.oc.get_instances(query=owl_query, verbose=verbose)
+    return vfb.oc.get_subclasses(query=owl_query, verbose=verbose)
+
+
 class MinimalEntityInfo:
     def __init__(self, short_form: str, iri: str, label: str, types: List[str], unique_facets: Optional[List[str]] = None, symbol: Optional[str] = None):
         """
@@ -2118,7 +2147,11 @@ class VFBTerm:
             """
             if self._innervating is None:
                 print("Loading innervating neurons/tracts for the first time...") if self.debug else None
-                self._innervating = self.vfb.owl_subclasses(query=f"'neuron projection bundle' and 'innervates' some '{self.id}'", return_dataframe=False, verbose=self.debug)
+                ids = self.vfb.cached_query_ids(self.id, 'TractsNervesInnervatingHere', verbose=self.debug)
+                if ids is None:
+                    self._innervating = self.vfb.owl_subclasses(query=f"'neuron projection bundle' and 'innervates' some '{self.id}'", return_dataframe=False, verbose=self.debug)
+                else:
+                    self._innervating = self.vfb.terms(ids, verbose=self.debug)
             return self._innervating
 
         # Dynamically add the property to the instance
@@ -2144,7 +2177,10 @@ class VFBTerm:
             """
             if self._lineage_clone_types is None:
                 print("Loading lineage clones for the first time...") if self.debug else None
-                ids = self.vfb.oc.get_subclasses(query=f"'neuroblast lineage clone' and 'overlaps' some '{self.id}'", verbose=self.debug)
+                ids = cached_or_owl_ids(
+                    self.vfb, self.id, 'LineageClonesIn',
+                    f"'neuroblast lineage clone' and 'overlaps' some '{self.id}'",
+                    verbose=self.debug)
                 self._lineage_clone_types = VFBTerms(ids, verbose=self.debug)
             return self._lineage_clone_types
 
@@ -2287,7 +2323,10 @@ class VFBTerm:
             """
             if self._subparts is None:
                 print("Loading subparts for the first time...") if self.debug else None
-                self._subparts = VFBTerms(self.vfb.oc.get_subclasses(query=f"'is part of' some '{self.id}'"), query_by_label=True)
+                ids = cached_or_owl_ids(self.vfb, self.id, 'PartsOf',
+                                        f"'is part of' some '{self.id}'",
+                                        verbose=self.debug)
+                self._subparts = VFBTerms(ids, query_by_label=True)
             return self._subparts
 
         @property
@@ -2320,7 +2359,10 @@ class VFBTerm:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
                 print(f"Loading neuron types that overlap {self.name} for the first time...") if self.debug else None
-                self._neuron_types_that_overlap = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'overlaps' some '{id}'", query_by_label=True))
+                ids = cached_or_owl_ids(self.vfb, id, 'NeuronsPartHere',
+                                        f"'neuron' that 'overlaps' some '{id}'",
+                                        verbose=self.debug)
+                self._neuron_types_that_overlap = VFBTerms(terms=ids)
             return self._neuron_types_that_overlap
 
         @property
@@ -2337,7 +2379,10 @@ class VFBTerm:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
                 print(f"Loading neuron types with synaptic terminals in {self.name} for the first time...") if self.debug else None
-                self._neuron_types_with_synaptic_terminals_here = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'has synaptic terminal in' some '{id}'", query_by_label=True))
+                ids = cached_or_owl_ids(self.vfb, id, 'NeuronsSynaptic',
+                                        f"'neuron' that 'has synaptic terminal in' some '{id}'",
+                                        verbose=self.debug)
+                self._neuron_types_with_synaptic_terminals_here = VFBTerms(terms=ids)
             return self._neuron_types_with_synaptic_terminals_here
 
         @property
@@ -2419,7 +2464,10 @@ class VFBTerm:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
                 print(f"Loading downstream neuron types for the first time...") if self.debug else None
-                self._downstream_neuron_types = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'has presynaptic terminals in' some '{id}'", query_by_label=True))
+                ids = cached_or_owl_ids(self.vfb, id, 'NeuronsPresynapticHere',
+                                        f"'neuron' that 'has presynaptic terminals in' some '{id}'",
+                                        verbose=self.debug)
+                self._downstream_neuron_types = VFBTerms(terms=ids)
             return self._downstream_neuron_types
 
         @property
@@ -2435,7 +2483,10 @@ class VFBTerm:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
                 print(f"Loading upstream neuron types for the first time...") if self.debug else None
-                self._upstream_neuron_types = VFBTerms(terms=self.vfb.oc.get_subclasses(f"'neuron' that 'has postsynaptic terminal in' some '{id}'", query_by_label=True))
+                ids = cached_or_owl_ids(self.vfb, id, 'NeuronsPostsynapticHere',
+                                        f"'neuron' that 'has postsynaptic terminal in' some '{id}'",
+                                        verbose=self.debug)
+                self._upstream_neuron_types = VFBTerms(terms=ids)
             return self._upstream_neuron_types
 
         # Dynamically add the property to the instance

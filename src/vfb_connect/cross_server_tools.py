@@ -11,6 +11,8 @@ from .neo.neo4j_tools import Neo4jConnect, re, dict_cursor
 from .neo.query_wrapper import QueryWrapper, batch_query
 from .default_servers import get_default_servers
 from .schema.vfb_term import VFBTerm, VFBTerms, Partner
+from .cached_query import (get_default_client, rows_to_ids, rows_to_records,
+                           SIMILAR_NEURONS_COLUMNS, CONNECTED_NEURONS_BY_TYPE_COLUMNS)
 import pandas as pd
 import numpy as np
 from colormath.color_objects import LabColor, sRGBColor
@@ -300,6 +302,59 @@ class VfbConnect:
             return '0.0.0'
         return '0.0.0'
 
+    def cached_query_rows(self, short_form, query_type, use_cached=None, verbose=False):
+        """Fetch the rows of a pre-computed VFBquery result, or ``None``.
+
+        ``None`` means the cached result was unavailable, incomplete or
+        disabled, and the caller should run its own query. See
+        :mod:`vfb_connect.cached_query`.
+
+        :param short_form: The term the query is about, as a short_form ID.
+        :param query_type: A VFBquery query name, e.g. ``'NeuronsSynaptic'``.
+        :param use_cached: Optional. Force the cached path on or off. Defaults
+            to the ``VFB_USE_CACHED_QUERIES`` setting.
+        :param verbose: Optional. Report why a cached result was rejected.
+        :return: A list of row dicts, or `None`.
+        :rtype: list of dicts or None
+        """
+        if use_cached is False:
+            return None
+        client = get_default_client(verbose=verbose)
+        if use_cached is True:
+            # An explicit request overrides the environment default, so the
+            # two paths can be compared in a single process (see the tests).
+            previous = os.environ.get('VFB_USE_CACHED_QUERIES')
+            os.environ['VFB_USE_CACHED_QUERIES'] = 'true'
+            try:
+                return client.run_query(short_form, query_type)
+            finally:
+                if previous is None:
+                    os.environ.pop('VFB_USE_CACHED_QUERIES', None)
+                else:
+                    os.environ['VFB_USE_CACHED_QUERIES'] = previous
+        return client.run_query(short_form, query_type)
+
+    def cached_query_ids(self, short_form, query_type, use_cached=None, verbose=False):
+        """Fetch the ID list of a pre-computed VFBquery result, or ``None``.
+
+        The lossless conversion: callers that build terms from IDs get the same
+        objects as the Owlery route, without the second lookup.
+
+        :param short_form: The term the query is about, as a short_form ID.
+        :param query_type: A VFBquery query name, e.g. ``'PartsOf'``.
+        :param use_cached: Optional. Force the cached path on or off.
+        :param verbose: Optional. Report why a cached result was rejected.
+        :return: A list of short_form IDs, or `None`.
+        :rtype: list of str or None
+        """
+        rows = self.cached_query_rows(short_form, query_type,
+                                      use_cached=use_cached, verbose=verbose)
+        if rows is None:
+            return None
+        ids = rows_to_ids(rows)
+        print(f"Cached {query_type}({short_form}): {len(ids)} terms") if verbose else None
+        return ids
+
     def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True, return_dataframe=True):
         """Generate TermInfo reports for all terms relevant to annotating a specific region, optionally limited to cells.
 
@@ -435,17 +490,26 @@ class VfbConnect:
         else:
             return dc
 
-    def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', query_by_label=True, return_dataframe=True, verbose=False):
+    def get_similar_neurons(self, neuron, similarity_score='NBLAST_score', query_by_label=True, return_dataframe=True, use_cached=None, verbose=False):
         """Get JSON report of individual neurons similar to the input neuron.
 
         :param neuron: The neuron to find similar neurons to.
         :param similarity_score: Optional. Specify the similarity score to use (e.g., 'NBLAST_score'). Default 'NBLAST_score'.
         :param query_by_label: Optional. Query neuron by label if `True`, or by ID if `False`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :param use_cached: Optional. Force the pre-computed VFBquery result on or off. Default follows `VFB_USE_CACHED_QUERIES`.
         :return: A DataFrame or list of similar neurons (id, label, tags, source (db) id, accession_in_source) + similarity score.
         :rtype: pandas.DataFrame or list of dicts
         """
         id = neuron if query_by_label else self.lookup_id(neuron)
+        # SimilarMorphologyTo is the NBLAST_score form of this query. Any other
+        # score is not pre-computed, so it always takes the live path.
+        if similarity_score == 'NBLAST_score':
+            rows = self.cached_query_rows(id, 'SimilarMorphologyTo',
+                                          use_cached=use_cached, verbose=verbose)
+            if rows is not None:
+                dc = rows_to_records(rows, SIMILAR_NEURONS_COLUMNS)
+                return pd.DataFrame.from_records(dc) if return_dataframe else dc
         query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1:Individual)-[r:has_similar_morphology_to]-(n2:Individual)-[:INSTANCEOF]->(c2:Class) " \
                 "WHERE n1.short_form = '%s'  and exists(r.%s) " \
                 "WITH c1, n1, r, n2, c2 " \
@@ -463,17 +527,28 @@ class VfbConnect:
         else:
             return dc
         
-    def get_potential_drivers(self, neuron, similarity_score='NBLAST_score', query_by_label=True, return_dataframe=True, verbose=False):
+    def get_potential_drivers(self, neuron, similarity_score='NBLAST_score', query_by_label=True, return_dataframe=True, use_cached=None, verbose=False):
         """Get JSON report of driver expression likely to contain the input neuron.
 
         :param neuron: The neuron to find similar drivers for.
         :param similarity_score: Optional. Specify the similarity score to use (e.g., 'NBLAST_score', 'neuronbridge_score'). Default 'NBLAST_score'.
         :param query_by_label: Optional. Query neuron by label if `True`, or by ID if `False`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+        :param use_cached: Optional. Force the pre-computed VFBquery result on or off. Default follows `VFB_USE_CACHED_QUERIES`.
         :return: A DataFrame or list of potranial drivers (id, label, tags) + similarity score.
         :rtype: pandas.DataFrame or list of dicts
         """
         id = neuron if query_by_label else self.lookup_id(neuron)
+        # SimilarMorphologyToPartOf is the has_similar_morphology_to_part_of
+        # form. As above, only the NBLAST_score variant is pre-computed.
+        if similarity_score == 'NBLAST_score':
+            rows = self.cached_query_rows(id, 'SimilarMorphologyToPartOf',
+                                          use_cached=use_cached, verbose=verbose)
+            if rows is not None:
+                columns = {k: v for k, v in SIMILAR_NEURONS_COLUMNS.items()
+                           if k not in ('source_id', 'accession_in_source')}
+                dc = rows_to_records(rows, columns)
+                return pd.DataFrame.from_records(dc) if return_dataframe else dc
         query = "MATCH (c1:Class)<-[:INSTANCEOF]-(n1:Individual)-[r:has_similar_morphology_to_part_of]-(n2:Individual)-[:INSTANCEOF]->(c2:Class) " \
                 "WHERE n1.short_form = '%s'  and exists(r.%s) " \
                 "WITH c1, n1, r, n2, c2 " \
@@ -519,8 +594,9 @@ class VfbConnect:
                                               classification=classification, query_by_label=query_by_label,
                                               return_dataframe=return_dataframe, verbose=verbose)
 
-    def get_connected_neurons_by_type(self, weight, upstream_type=None, downstream_type=None, query_by_label=True, 
-                                      group_by_class=False, exclude_dbs=['hb', 'fafb'], return_dataframe=True, verbose=False):
+    def get_connected_neurons_by_type(self, weight, upstream_type=None, downstream_type=None, query_by_label=True,
+                                      group_by_class=False, exclude_dbs=['hb', 'fafb'], return_dataframe=True,
+                                      use_cached=None, verbose=False):
 
         """Get all synaptic connections between individual neurons of `upstream_type` and `downstream_type` where
              synapse count >= `weight`. At least one of `upstream_type` or `downstream_type` must be specified.
@@ -540,6 +616,7 @@ class VfbConnect:
              :param group_by_class: Optional. If `True`, return connectivity results aggregated by class (with subclass closure, see note above) rather than per neuron. Default `False`.
              :param exclude_dbs: Optional. List of databases (short_forms or symbols) to exclude from results. Hemibrain and catmaid FAFB excluded by default.
              :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
+             :param use_cached: Optional. Force the pre-computed VFBquery result on or off (`group_by_class=True` only). Default follows `VFB_USE_CACHED_QUERIES`.
              :param verbose: Optional. If `True`, print the Cypher queries used. Default `False`.
              :return: A DataFrame or list of synaptic connections between specified neuron types.
              :rtype: pandas.DataFrame or list of dicts
@@ -561,6 +638,19 @@ class VfbConnect:
                 downstream_type = self.lookup_id(dequote(downstream_type))
                 if not downstream_type:
                     raise ValueError("'downstream_type' not recognised")
+
+        # VFBquery serves this aggregation ready-made, on the same inputs and
+        # with the same row shape. Only the class-aggregated form is
+        # pre-computed; the per-neuron form still runs here.
+        if group_by_class and use_cached is not False:
+            client = get_default_client(verbose=verbose)
+            connections = client.query_connectivity(
+                upstream_type=upstream_type, downstream_type=downstream_type,
+                weight=weight, group_by_class=True, exclude_dbs=exclude_dbs)
+            if connections is not None:
+                rows = rows_to_records(connections, CONNECTED_NEURONS_BY_TYPE_COLUMNS)
+                return pd.DataFrame.from_records(rows) if return_dataframe else rows
+
         cypher_ql = []
 
         cypher_ql.append(

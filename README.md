@@ -33,3 +33,19 @@ vfb.get_terms_by_region('fan-shaped body')
 TermInfo returns a pandas DataFrame by default but can also return a dict summary or full VFBTerms.
 
 For more examples see our [Quick Guide Jupyter Notebook](https://github.com/VirtualFlyBrain/VFB_connect/blob/master/snippets/VFB_connect_Quick_Guide.ipynb)
+
+## Cached query results
+
+Several queries — similar morphology, the neuron types in a region, parts, lineage clones,
+innervating tracts and class-level connectivity — are answered from VFBquery's pre-computed
+results at https://v3-cached.virtualflybrain.org, the same source the Virtual Fly Brain website
+reads. Results and column names are unchanged; the query is simply not re-derived. If the service
+is unavailable, slow or returns an incomplete result, the original Neo4j/Owlery query runs
+instead, so nothing depends on it being up.
+
+Two environment variables control this:
+
+* `VFB_USE_CACHED_QUERIES=false` — always run queries directly.
+* `VFB_CACHED_QUERY_URL` — point at a different VFBquery deployment.
+
+Methods that use it also take `use_cached=True|False` to override per call.
