@@ -24,7 +24,8 @@ import unittest
 import pandas as pd
 
 from vfb_connect import vfb
-from vfb_connect.cached_query import CachedQueryClient, rows_to_ids
+from vfb_connect.cached_query import (CONNECTED_NEURONS_BY_TYPE_COLUMNS, CachedQueryClient,
+                                      get_default_client, rows_to_ids, rows_to_records)
 
 # A neuron with NBLAST similarity data, and a region with neurons in it.
 NEURON = 'VFB_jrchk00s'
@@ -118,10 +119,20 @@ class SimilarNeuronsParityTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # A fallback would make `cached` a second copy of the live result, and
+        # every assertion below would pass without testing anything. Count them.
+        client = get_default_client()
+        before = client.fallbacks
         cls.cached = vfb.get_similar_neurons(NEURON, query_by_label=False,
                                              return_dataframe=False, use_cached=True)
+        cls.fell_back = client.fallbacks > before
         cls.live = vfb.get_similar_neurons(NEURON, query_by_label=False,
                                            return_dataframe=False, use_cached=False)
+
+    def test_the_cached_path_was_actually_used(self):
+        self.assertFalse(self.fell_back,
+                         'the cached call fell back to a live query, so the comparisons '
+                         'below would be the live path against itself')
 
     def test_cached_path_returned_something(self):
         self.assertTrue(self.cached, 'cached SimilarMorphologyTo returned no rows')
@@ -160,30 +171,58 @@ class SimilarNeuronsParityTest(unittest.TestCase):
         self.assertEqual(mismatches[:10], [], f'{len(mismatches)} converted values differ')
 
 
-class ConnectedNeuronsByTypeParityTest(unittest.TestCase):
-    """get_connected_neurons_by_type(group_by_class=True): cached vs live."""
+class ConnectivityDivergenceTest(unittest.TestCase):
+    """Why get_connected_neurons_by_type is *not* served from the cache.
+
+    The row shape matches, which makes this look convertible. It is not:
+    `/query_connectivity` aggregates against the directly asserted class, while
+    this method has aggregated with subclass closure since #276, counting a
+    connection for every ancestor pair in scope.
+
+    This test asserts the divergence rather than the agreement. If VFBquery
+    adopts the closure it will go red, which is the signal to wire the method up
+    — the converter and client method are already in place.
+    """
 
     @classmethod
     def setUpClass(cls):
-        cls.cached = vfb.get_connected_neurons_by_type(
+        # A long timeout: at the default this call can exceed its budget and
+        # return None, which would read as agreement by absence.
+        client = CachedQueryClient(timeout=300)
+        connections = client.query_connectivity(
+            upstream_type=NEURON_CLASS, weight=10, group_by_class=True,
+            exclude_dbs=('hb', 'fafb'))
+        cls.cached = rows_to_records(connections or [], CONNECTED_NEURONS_BY_TYPE_COLUMNS)
+        cls.live = vfb.get_connected_neurons_by_type(
             weight=10, upstream_type=NEURON_CLASS, query_by_label=False,
-            group_by_class=True, return_dataframe=False, use_cached=True)
+            group_by_class=True, return_dataframe=False)
 
-    def test_cached_path_returned_something(self):
-        self.assertTrue(self.cached)
+    def test_both_paths_returned_rows(self):
+        self.assertTrue(self.cached, 'no cached connectivity result to compare')
+        self.assertTrue(self.live, 'live connectivity query returned nothing')
 
-    def test_column_contract(self):
-        self.assertEqual(
-            sorted(_columns(self.cached)),
-            sorted(['upstream_class', 'upstream_class_id', 'downstream_class',
-                    'downstream_class_id', 'total_upstream_count',
-                    'connected_upstream_count', 'percent_connected',
-                    'pairwise_connections', 'total_weight', 'average_weight']))
+    def test_column_contract_matches(self):
+        self.assertEqual(sorted(_columns(self.cached)), sorted(_columns(self.live)))
 
     def test_no_markdown_in_labels(self):
         for row in self.cached:
             self.assertNotIn('](', str(row['upstream_class']))
             self.assertNotIn('](', str(row['downstream_class']))
+
+    def test_the_aggregations_still_differ(self):
+        key = lambda row: (row['upstream_class_id'], row['downstream_class_id'])
+        cached = {key(row): row for row in self.cached}
+        live = {key(row): row for row in self.live}
+        shared = set(cached) & set(live)
+        value_diffs = [k for k in shared
+                       if cached[k]['pairwise_connections'] != live[k]['pairwise_connections']]
+        print(f'\nquery_connectivity({NEURON_CLASS}): cached {len(cached)} rows, '
+              f'live {len(live)}, {len(set(live) - set(cached))} live-only, '
+              f'{len(value_diffs)} of {len(shared)} shared rows differ')
+        if len(cached) == len(live) and not value_diffs:
+            self.fail('cached and live connectivity now agree — VFBquery appears to have '
+                      'adopted subclass closure, so get_connected_neurons_by_type can be '
+                      'routed through /query_connectivity')
 
 
 class CachedPropertyIdsTest(unittest.TestCase):

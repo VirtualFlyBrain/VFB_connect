@@ -642,7 +642,7 @@ class VfbConnect:
              :param group_by_class: Optional. If `True`, return connectivity results aggregated by class (with subclass closure, see note above) rather than per neuron. Default `False`.
              :param exclude_dbs: Optional. List of databases (short_forms or symbols) to exclude from results. Hemibrain and catmaid FAFB excluded by default.
              :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
-             :param use_cached: Optional. Force the pre-computed VFBquery result on or off (`group_by_class=True` only). Default follows `VFB_USE_CACHED_QUERIES`.
+             :param use_cached: Unused. This query is always run here — VFBquery's pre-computed form aggregates without subclass closure and does not match (see the note in the body).
              :param verbose: Optional. If `True`, print the Cypher queries used. Default `False`.
              :return: A DataFrame or list of synaptic connections between specified neuron types.
              :rtype: pandas.DataFrame or list of dicts
@@ -665,18 +665,14 @@ class VfbConnect:
                 if not downstream_type:
                     raise ValueError("'downstream_type' not recognised")
 
-        # VFBquery serves this aggregation ready-made, on the same inputs and
-        # with the same row shape. Only the class-aggregated form is
-        # pre-computed; the per-neuron form still runs here.
-        if group_by_class and use_cached is not False:
-            client = get_default_client(verbose=verbose)
-            connections = client.query_connectivity(
-                upstream_type=upstream_type, downstream_type=downstream_type,
-                weight=weight, group_by_class=True, exclude_dbs=exclude_dbs)
-            if connections is not None:
-                rows = rows_to_records(connections, CONNECTED_NEURONS_BY_TYPE_COLUMNS)
-                return pd.DataFrame.from_records(rows) if return_dataframe else rows
-
+        # Deliberately NOT served from VFBquery's /query_connectivity, though the
+        # row shape matches. That endpoint aggregates against the directly
+        # asserted class only, while this method has aggregated with subclass
+        # closure since #276 — a connection counts for every ancestor pair in
+        # scope. On DNa02 at weight 10 that is 218 rows against 340, with
+        # pairwise_connections and total_weight differing by up to 16x on the
+        # rows they share. The converter and client method are kept for when
+        # VFBquery adopts the closure; see cached_query_test.py.
         cypher_ql = []
 
         cypher_ql.append(

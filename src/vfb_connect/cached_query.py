@@ -293,27 +293,37 @@ class CachedQueryClient:
         self.progress = progress
         self.verbose = verbose
         self._session = requests.Session()
+        # A fallback is invisible from the outside: the caller runs its own
+        # query and returns a good answer either way. That makes it easy to
+        # believe a result came from the cache when it did not — a parity test
+        # written that way compares the live path against itself and passes on
+        # anything. Count them so a test can insist it exercised what it claims.
+        self.hits = 0
+        self.fallbacks = 0
 
     def _warn(self, message):
         if self.verbose:
             print(f'\033[33mWarning:\033[0m {message}')
 
+    def _fall_back(self, message=None):
+        """Record that this call could not be served, and return ``None``."""
+        self.fallbacks += 1
+        self._warn(message) if message else None
+        return None
+
     def _get(self, path, params):
         if not cached_queries_enabled():
-            return None
+            return self._fall_back()
         try:
             response = self._session.get(f'{self.url}{path}', params=params, timeout=self.timeout)
         except requests.RequestException as error:
-            self._warn(f'cached query unavailable ({error}); using a live query.')
-            return None
+            return self._fall_back(f'cached query unavailable ({error}); using a live query.')
         if response.status_code != 200:
-            self._warn(f'cached query returned HTTP {response.status_code}; using a live query.')
-            return None
+            return self._fall_back(f'cached query returned HTTP {response.status_code}; using a live query.')
         try:
             return response.json()
         except ValueError:
-            self._warn('cached query returned a non-JSON body; using a live query.')
-            return None
+            return self._fall_back('cached query returned a non-JSON body; using a live query.')
 
     @staticmethod
     def _rows_of(payload):
@@ -367,10 +377,11 @@ class CachedQueryClient:
         })
         rows, count = self._rows_of(payload)
         if rows is None:
-            return None
+            return self._fall_back()
 
         # count == -1 means "uncounted", not "empty" — the rows are still whole.
         if not isinstance(count, int) or count < 0 or count <= len(rows):
+            self.hits += 1
             return rows[:limit] if limit else rows
 
         wanted = count
@@ -385,6 +396,7 @@ class CachedQueryClient:
                   f'to take them all.')
 
         if len(rows) >= wanted:
+            self.hits += 1
             return rows[:wanted]
 
         bar = None
@@ -401,14 +413,15 @@ class CachedQueryClient:
                 if not page:
                     # Stopping early would hand back a short list that looks
                     # complete. Give up on the cached result instead.
-                    self._warn(f'cached {query_type}({short_form}) stopped paging at '
-                               f'{len(rows)} of {wanted} rows; using a live query.')
-                    return None
+                    return self._fall_back(
+                        f'cached {query_type}({short_form}) stopped paging at '
+                        f'{len(rows)} of {wanted} rows; using a live query.')
                 rows.extend(page)
                 bar.update(len(page)) if bar else None
         finally:
             bar.close() if bar else None
 
+        self.hits += 1
         return rows[:wanted]
 
     def query_connectivity(self, upstream_type=None, downstream_type=None, weight=5,
@@ -426,10 +439,14 @@ class CachedQueryClient:
             params['exclude_dbs'] = ','.join(exclude_dbs)
         payload = self._get('/query_connectivity', params)
         if not isinstance(payload, dict):
-            return None
+            return self._fall_back()
         for warning in payload.get('warnings') or []:
             self._warn(f'cached connectivity query: {warning}')
-        return payload.get('connections')
+        connections = payload.get('connections')
+        if connections is None:
+            return self._fall_back()
+        self.hits += 1
+        return connections
 
 
 _default_client = None

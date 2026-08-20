@@ -36,8 +36,8 @@ For more examples see our [Quick Guide Jupyter Notebook](https://github.com/Virt
 
 ## Cached query results
 
-Several queries — similar morphology, the neuron types in a region, parts, lineage clones,
-innervating tracts and class-level connectivity — are answered from VFBquery's pre-computed
+Several queries — similar morphology, the neurons and neuron types in a region, parts,
+subtypes, lineage clones and innervating tracts — are answered from VFBquery's pre-computed
 results at https://v3-cached.virtualflybrain.org, the same source the Virtual Fly Brain website
 reads. Results and column names are unchanged; the query is simply not re-derived. If the service
 is unavailable, slow or returns an incomplete result, the original Neo4j/Owlery query runs
