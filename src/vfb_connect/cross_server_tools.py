@@ -294,13 +294,16 @@ class VfbConnect:
 
     @property
     def __version__(self):
-        from importlib.metadata import version, PackageNotFoundError
-        return version('vfb_connect')
-        try:
-            return version('vfb_connect')
-        except PackageNotFoundError:
-            return '0.0.0'
-        return '0.0.0'
+        """The version of vfb_connect in use.
+
+        Always the same value as `vfb_connect.__version__` — both come from
+        :func:`vfb_connect.version.get_version`.
+
+        :return: A PEP 440 version string, or `'0.0.0'` in an unbuilt checkout.
+        :rtype: str
+        """
+        from .version import __version__ as package_version
+        return package_version
 
     def cached_query_rows(self, short_form, query_type, limit=None, use_cached=None, verbose=False):
         """Fetch the rows of a pre-computed VFBquery result, or ``None``.
