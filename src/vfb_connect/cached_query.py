@@ -39,6 +39,12 @@ from urllib.parse import unquote
 
 import requests
 
+try:
+    # tqdm.auto picks the notebook bar when there is one, as vfb_term does.
+    from tqdm.auto import tqdm
+except ImportError:  # pragma: no cover - tqdm is a hard dependency in practice
+    tqdm = None
+
 __all__ = [
     'CachedQueryClient',
     'get_default_client',
@@ -254,11 +260,16 @@ DEFAULT_CACHED_QUERY_URL = 'https://v3-cached.virtualflybrain.org'
 # overrunning it falls through to the live path.
 DEFAULT_TIMEOUT = 30
 
-# The service caps a single response; anything longer has to be paged.
+# The service caps a single response at 25,000 rows; anything longer is paged.
+# A page of that size is roughly 10MB and takes a few seconds, so a very large
+# result (ImagesNeurons on a whole neuropil is 226,524 rows) is a real download
+# and gets a progress bar.
 _PAGE_SIZE = 25000
 
-# Above this, paging costs more than the query it replaces. Falls through.
-DEFAULT_MAX_ROWS = 100000
+# Paging beyond this many rows without the caller having asked for it is more
+# likely a mistake than an intention, so it truncates and says so. Raise it, or
+# pass limit=0, to take everything.
+DEFAULT_MAX_ROWS = int(os.getenv('VFB_CACHED_QUERY_MAX_ROWS', '250000'))
 
 
 def cached_queries_enabled():
@@ -274,10 +285,12 @@ class CachedQueryClient:
     signal to run its own query instead.
     """
 
-    def __init__(self, url=None, timeout=DEFAULT_TIMEOUT, max_rows=DEFAULT_MAX_ROWS, verbose=False):
+    def __init__(self, url=None, timeout=DEFAULT_TIMEOUT, max_rows=DEFAULT_MAX_ROWS,
+                 progress=True, verbose=False):
         self.url = (url or os.getenv('VFB_CACHED_QUERY_URL', DEFAULT_CACHED_QUERY_URL)).rstrip('/')
         self.timeout = timeout
         self.max_rows = max_rows
+        self.progress = progress
         self.verbose = verbose
         self._session = requests.Session()
 
@@ -311,43 +324,92 @@ class CachedQueryClient:
             rows = payload.get('data')
         return rows, payload.get('count')
 
-    def run_query(self, short_form, query_type):
-        """Return every row of a named VFBquery query, or ``None``.
+    def get_term_info(self, short_form):
+        """Return the cached term info for a term, or ``None``."""
+        payload = self._get('/get_term_info', {'id': short_form})
+        return payload if isinstance(payload, dict) else None
 
-        Results longer than one response are paged until the reported ``count``
-        is reached. A payload that neither completes nor pages cleanly is
-        rejected: a caller cannot tell a truncated preview from a genuinely
-        short answer, and guessing wrong loses rows silently.
+    def query_counts(self, short_form, term_info=None):
+        """Return ``{query_type: count}`` for every query available on a term.
+
+        One request answers "how many results would each of these queries give",
+        for all of them at once and without running any — the term info carries
+        the counts VFBquery already computed. Use it to size a job before
+        starting it, or to answer a count question outright.
+
+        A count of ``-1`` means VFBquery could not count that query; it is not
+        zero and must not be reported as "no results".
         """
+        term_info = term_info if term_info is not None else self.get_term_info(short_form)
+        if not term_info:
+            return None
+        queries = term_info.get('Queries') or term_info.get('queries') or []
+        return {query.get('query'): query.get('count')
+                for query in queries if query.get('query')}
+
+    def run_query(self, short_form, query_type, limit=None):
+        """Return the rows of a named VFBquery query, or ``None``.
+
+        The service caps one response at 25,000 rows, so a larger result is
+        paged. Paging reports progress, because a whole-neuropil query is
+        hundreds of thousands of rows and tens of megabytes and should not look
+        like a hang.
+
+        :param limit: Stop after this many rows. ``0`` or ``None`` takes
+            everything, subject to ``max_rows``. Truncation is always announced;
+            it is never silent, since a truncated ID list is indistinguishable
+            from a short one downstream.
+        :return: A list of row dicts, or `None` if the result cannot be trusted.
+        """
+        first_page = _PAGE_SIZE if not limit else min(limit, _PAGE_SIZE)
         payload = self._get('/run_query', {
-            'id': short_form, 'query_type': query_type, 'limit': 0, 'offset': 0,
+            'id': short_form, 'query_type': query_type, 'limit': first_page, 'offset': 0,
         })
         rows, count = self._rows_of(payload)
         if rows is None:
             return None
 
         # count == -1 means "uncounted", not "empty" — the rows are still whole.
-        if not isinstance(count, int) or count < 0 or count == len(rows):
-            return rows
+        if not isinstance(count, int) or count < 0 or count <= len(rows):
+            return rows[:limit] if limit else rows
 
-        if count > self.max_rows:
-            self._warn(f'cached {query_type}({short_form}) has {count} rows, above the '
-                       f'{self.max_rows} paging limit; using a live query.')
-            return None
+        wanted = count
+        if limit and limit < wanted:
+            wanted = limit
+            print(f'{query_type}({short_form}): {count} results, loading the first {wanted}.')
+        elif count > self.max_rows:
+            wanted = self.max_rows
+            print(f'\033[33mWarning:\033[0m {query_type}({short_form}) has {count} results, '
+                  f'above the {self.max_rows} row limit. Loading the first {wanted}. '
+                  f'Pass limit=0 with a higher max_rows, or set VFB_CACHED_QUERY_MAX_ROWS, '
+                  f'to take them all.')
 
-        while len(rows) < count:
-            page_payload = self._get('/run_query', {
-                'id': short_form, 'query_type': query_type,
-                'limit': _PAGE_SIZE, 'offset': len(rows),
-            })
-            page, _ = self._rows_of(page_payload)
-            if not page:
-                self._warn(f'cached {query_type}({short_form}) stopped paging at '
-                           f'{len(rows)} of {count} rows; using a live query.')
-                return None
-            rows.extend(page)
+        if len(rows) >= wanted:
+            return rows[:wanted]
 
-        return rows
+        bar = None
+        if self.progress and tqdm is not None:
+            bar = tqdm(total=wanted, initial=len(rows), unit='row', unit_scale=True,
+                       desc=f'Loading {query_type}')
+        try:
+            while len(rows) < wanted:
+                page_payload = self._get('/run_query', {
+                    'id': short_form, 'query_type': query_type,
+                    'limit': min(_PAGE_SIZE, wanted - len(rows)), 'offset': len(rows),
+                })
+                page, _ = self._rows_of(page_payload)
+                if not page:
+                    # Stopping early would hand back a short list that looks
+                    # complete. Give up on the cached result instead.
+                    self._warn(f'cached {query_type}({short_form}) stopped paging at '
+                               f'{len(rows)} of {wanted} rows; using a live query.')
+                    return None
+                rows.extend(page)
+                bar.update(len(page)) if bar else None
+        finally:
+            bar.close() if bar else None
+
+        return rows[:wanted]
 
     def query_connectivity(self, upstream_type=None, downstream_type=None, weight=5,
                            group_by_class=False, exclude_dbs=('hb', 'fafb')):

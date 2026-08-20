@@ -302,7 +302,7 @@ class VfbConnect:
             return '0.0.0'
         return '0.0.0'
 
-    def cached_query_rows(self, short_form, query_type, use_cached=None, verbose=False):
+    def cached_query_rows(self, short_form, query_type, limit=None, use_cached=None, verbose=False):
         """Fetch the rows of a pre-computed VFBquery result, or ``None``.
 
         ``None`` means the cached result was unavailable, incomplete or
@@ -311,6 +311,9 @@ class VfbConnect:
 
         :param short_form: The term the query is about, as a short_form ID.
         :param query_type: A VFBquery query name, e.g. ``'NeuronsSynaptic'``.
+        :param limit: Optional. Stop after this many rows. Defaults to this
+            session's `_load_limit`; `0` takes everything. Truncation is always
+            reported.
         :param use_cached: Optional. Force the cached path on or off. Defaults
             to the ``VFB_USE_CACHED_QUERIES`` setting.
         :param verbose: Optional. Report why a cached result was rejected.
@@ -319,6 +322,8 @@ class VfbConnect:
         """
         if use_cached is False:
             return None
+        if limit is None:
+            limit = self._load_limit or None
         client = get_default_client(verbose=verbose)
         if use_cached is True:
             # An explicit request overrides the environment default, so the
@@ -326,15 +331,34 @@ class VfbConnect:
             previous = os.environ.get('VFB_USE_CACHED_QUERIES')
             os.environ['VFB_USE_CACHED_QUERIES'] = 'true'
             try:
-                return client.run_query(short_form, query_type)
+                return client.run_query(short_form, query_type, limit=limit)
             finally:
                 if previous is None:
                     os.environ.pop('VFB_USE_CACHED_QUERIES', None)
                 else:
                     os.environ['VFB_USE_CACHED_QUERIES'] = previous
-        return client.run_query(short_form, query_type)
+        return client.run_query(short_form, query_type, limit=limit)
 
-    def cached_query_ids(self, short_form, query_type, use_cached=None, verbose=False):
+    def query_counts(self, short_form, verbose=False):
+        """How many results each query on a term would give, without running any.
+
+        One request returns the counts VFBquery has already computed for every
+        query available on the term, which is the cheap way to size a job before
+        starting it — or to answer a "how many" question outright.
+
+        A count of `-1` means VFBquery could not count that query. That is not
+        zero, and does not mean there are no results.
+
+        :param short_form: The term to report on, as a short_form ID.
+        :return: A dict of query name to count, or `None` if unavailable.
+        :rtype: dict or None
+
+        >>> vfb.query_counts('FBbt_00003748')['ImagesNeurons']
+        226524
+        """
+        return get_default_client(verbose=verbose).query_counts(short_form)
+
+    def cached_query_ids(self, short_form, query_type, limit=None, use_cached=None, verbose=False):
         """Fetch the ID list of a pre-computed VFBquery result, or ``None``.
 
         The lossless conversion: callers that build terms from IDs get the same
@@ -342,12 +366,14 @@ class VfbConnect:
 
         :param short_form: The term the query is about, as a short_form ID.
         :param query_type: A VFBquery query name, e.g. ``'PartsOf'``.
+        :param limit: Optional. Stop after this many rows. Defaults to this
+            session's `_load_limit`; `0` takes everything.
         :param use_cached: Optional. Force the cached path on or off.
         :param verbose: Optional. Report why a cached result was rejected.
         :return: A list of short_form IDs, or `None`.
         :rtype: list of str or None
         """
-        rows = self.cached_query_rows(short_form, query_type,
+        rows = self.cached_query_rows(short_form, query_type, limit=limit,
                                       use_cached=use_cached, verbose=verbose)
         if rows is None:
             return None

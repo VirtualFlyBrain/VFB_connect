@@ -24,7 +24,7 @@ import unittest
 import pandas as pd
 
 from vfb_connect import vfb
-from vfb_connect.cached_query import CachedQueryClient
+from vfb_connect.cached_query import CachedQueryClient, rows_to_ids
 
 # A neuron with NBLAST similarity data, and a region with neurons in it.
 NEURON = 'VFB_jrchk00s'
@@ -73,11 +73,40 @@ class CachedQueryFallbackTest(unittest.TestCase):
         client = CachedQueryClient(timeout=30)
         self.assertIsNone(client.run_query(REGION, 'NoSuchQueryType'))
 
-    def test_result_above_the_paging_limit(self):
-        # ImagesNeurons on a large region is far bigger than one response and
-        # bigger than the paging budget; it must decline rather than truncate.
-        client = CachedQueryClient(timeout=60, max_rows=100)
-        self.assertIsNone(client.run_query(REGION, 'ImagesNeurons'))
+    def test_a_result_above_max_rows_truncates_and_says_so(self):
+        # ImagesNeurons on a whole neuropil is 226,524 rows. Above max_rows it
+        # must stop at the limit rather than pretend, and must not fail.
+        client = CachedQueryClient(timeout=120, max_rows=26000, progress=False)
+        rows = client.run_query(REGION, 'ImagesNeurons')
+        self.assertEqual(len(rows), 26000)
+
+
+class PagingTest(unittest.TestCase):
+    """Results larger than one response are paged, counted and truncatable."""
+
+    def test_query_counts_without_running_the_queries(self):
+        counts = vfb.query_counts(REGION)
+        self.assertIsNotNone(counts)
+        self.assertIn('ImagesNeurons', counts)
+        self.assertGreater(counts['ImagesNeurons'], 25000,
+                           'expected a result larger than one response')
+        # The counts must agree with what the query actually returns.
+        self.assertEqual(counts['PartsOf'], len(vfb.cached_query_ids(REGION, 'PartsOf', limit=0)))
+
+    def test_limit_spans_pages_exactly(self):
+        client = CachedQueryClient(timeout=120, progress=False)
+        rows = client.run_query(REGION, 'ImagesNeurons', limit=30000)
+        self.assertEqual(len(rows), 30000, 'limit must be honoured across a page boundary')
+        ids = rows_to_ids(rows)
+        self.assertEqual(len(ids), 30000, 'paging returned duplicate rows')
+
+    def test_load_limit_truncates(self):
+        previous = vfb._load_limit
+        vfb._load_limit = 5
+        try:
+            self.assertEqual(len(vfb.cached_query_ids(REGION, 'ImagesNeurons')), 5)
+        finally:
+            vfb._load_limit = previous
 
 
 class SimilarNeuronsParityTest(unittest.TestCase):

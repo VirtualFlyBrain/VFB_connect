@@ -43,9 +43,24 @@ reads. Results and column names are unchanged; the query is simply not re-derive
 is unavailable, slow or returns an incomplete result, the original Neo4j/Owlery query runs
 instead, so nothing depends on it being up.
 
-Two environment variables control this:
+Results larger than one response (25,000 rows) are paged, with a progress bar — a whole
+neuropil can be hundreds of thousands of rows. `vfb._load_limit` truncates them, and any
+truncation is reported rather than silent.
+
+`vfb.query_counts(id)` returns how many results *every* query on a term would give, in
+one request and without running any of them:
+
+```python
+vfb.query_counts('FBbt_00003748')
+# {'NeuronsSynaptic': 464, 'PartsOf': 28, 'ImagesNeurons': 226524, ...}
+```
+
+A count of `-1` there means VFBquery could not count that query — not that it is empty.
+
+Environment variables:
 
 * `VFB_USE_CACHED_QUERIES=false` — always run queries directly.
 * `VFB_CACHED_QUERY_URL` — point at a different VFBquery deployment.
+* `VFB_CACHED_QUERY_MAX_ROWS` — row ceiling before a result is truncated (default 250,000).
 
 Methods that use it also take `use_cached=True|False` to override per call.
