@@ -42,7 +42,11 @@ CACHED_PROPERTIES = {
     'NeuronsPostsynapticHere': 'upstream_neuron_types',
     'LineageClonesIn': 'lineage_clone_types',
     'TractsNervesInnervatingHere': 'innervating',
+    'ImagesNeurons': 'neurons_that_overlap',
 }
+
+# A region small enough to compare an individual-level result set in full.
+SMALL_REGION = 'FBbt_00040051'
 
 
 def _columns(result):
@@ -201,6 +205,22 @@ class CachedPropertyIdsTest(unittest.TestCase):
         for term_id in ids:
             self.assertNotIn('](', term_id)
             self.assertRegex(term_id, r'^[A-Za-z][A-Za-z0-9_]+$')
+
+    def test_images_neurons_matches_the_owl_instance_query(self):
+        # ImagesNeurons is the individual-level `neuron that overlaps some X`,
+        # which is exactly what neurons_that_overlap asked Owlery for. Checked
+        # on a region small enough to compare the whole set.
+        owl = ("<http://purl.obolibrary.org/obo/FBbt_00005106> and "
+               "<http://purl.obolibrary.org/obo/RO_0002131> some "
+               f"<http://purl.obolibrary.org/obo/{SMALL_REGION}>")
+        live = set(vfb.oc.get_instances(owl, query_by_label=False))
+        cached = set(vfb.cached_query_ids(SMALL_REGION, 'ImagesNeurons',
+                                          limit=0, use_cached=True))
+        self.assertTrue(cached, 'no cached ImagesNeurons result')
+        overlap = len(cached & live) / max(len(live), 1)
+        print(f'\nImagesNeurons({SMALL_REGION}): cached {len(cached)}, live {len(live)}, '
+              f'overlap {overlap:.3%}')
+        self.assertGreater(overlap, 0.98, 'cached and live instance sets have diverged')
 
     def test_a_property_hydrates_to_terms(self):
         term = vfb.term(REGION, verbose=False)

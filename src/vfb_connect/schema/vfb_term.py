@@ -2402,7 +2402,10 @@ class VFBTerm:
                     id = self.parents[0].id
                     print("Running query against parent type: ", self.parents[0].name)
                 print(f"Loading neurons that overlap {self.name} for the first time...") if self.debug else None
-                self._neurons_that_overlap = VFBTerms(terms=self.vfb.oc.get_instances(f"'neuron' that 'overlaps' some '{id}'", query_by_label=True))
+                ids = cached_or_owl_ids(self.vfb, id, 'ImagesNeurons',
+                                        f"'neuron' that 'overlaps' some '{id}'",
+                                        query_instances=True, verbose=self.debug)
+                self._neurons_that_overlap = VFBTerms(terms=ids)
             return self._neurons_that_overlap
 
         @property
