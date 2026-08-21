@@ -193,18 +193,34 @@ jobs:
           echo "🧪 Running VFB term advanced functionality tests (CI-optimized)..."
           echo "⚡ Using load limit 5 and skipping slowest tests for CI"
           
-          # Run fast essential tests first
-          python -m unittest \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_load_skeleton \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_load_mesh \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_load_volume \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_subparts \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_subtypes \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_cache \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterms_get_colours_for_terms \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_site \
-            vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_xref \
-            -v
+          run_vfb_term_tests() {
+            python -m unittest \
+              vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_load_skeleton \
+              vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_load_mesh \
+              vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_load_volume \
+              vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_subparts \
+              vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_subtypes \
+              vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_cache \
+              vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterms_get_colours_for_terms \
+              vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_site \
+              vfb_connect.schema.test.vfb_term_test.VfbTermTest.test_vfbterm_xref \
+              -v
+          }
+
+          test_status=1
+          for attempt in 1 2 3; do
+            if run_vfb_term_tests; then
+              test_status=0
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "VFB asset service may be temporarily unavailable; retrying in 15 seconds (attempt $((attempt + 1))/3)..."
+              sleep 15
+            fi
+          done
+          if [ "$test_status" -ne 0 ]; then
+            exit 1
+          fi
             
           echo ""
           echo "⏭️  SKIPPED SLOW TESTS (run locally for complete validation):"

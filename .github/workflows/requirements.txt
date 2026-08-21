@@ -1,4 +1,5 @@
 vfb_connect
+numpy>=2.0
 flybrains
 neuprint-python
 python-catmaid
