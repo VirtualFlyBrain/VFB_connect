@@ -28,7 +28,7 @@ dependencies = [
     "jsonpath_rw",
     "pysolr",
     "navis",
-    "numpy>=1.26.4, <2.0.0",
+    "numpy>=1.26.4",
     "seaborn>0.13",
     "colormath",
     "tqdm",
