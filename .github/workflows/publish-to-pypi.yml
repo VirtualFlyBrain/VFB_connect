@@ -113,4 +113,8 @@ jobs:
         fi
     
     - name: Publish distribution 📦 to PyPI
-      uses: pypa/gh-action-pypi-publish@v1.12.2
+      # v1.12.2 bundles a twine that only understands Metadata-Version up to
+      # 2.3, and setuptools has emitted 2.4 since late 2024. Every release
+      # since v2.3.15 built and verified cleanly and then failed at this step,
+      # which is why PyPI stopped at 2.3.14 in December.
+      uses: pypa/gh-action-pypi-publish@v1.14.2
