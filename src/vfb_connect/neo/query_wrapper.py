@@ -16,7 +16,6 @@ from itertools import chain
 
 
 
-# from jsonpath_rw import parse as parse_jpath
 from vfb_connect.neo.neo4j_tools import chunks, Neo4jConnect, dict_cursor, escape_string
 
 # Connect to the VFB SOLR server
