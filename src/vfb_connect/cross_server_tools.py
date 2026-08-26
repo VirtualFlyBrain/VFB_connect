@@ -15,8 +15,7 @@ from .cached_query import (get_default_client, rows_to_ids, rows_to_records,
                            SIMILAR_NEURONS_COLUMNS, CONNECTED_NEURONS_BY_TYPE_COLUMNS)
 import pandas as pd
 import numpy as np
-from colormath.color_objects import LabColor, sRGBColor
-from colormath.color_conversions import convert_color
+from .color_conversion import lab_to_srgb_clamped
 from scipy.spatial import KDTree
 
 VFB_DBS_2_SYMBOLS = {"JRC_OpticLobe":"neuprint_JRC_OpticLobe_v1_0_1", "FAFB":"catmaid_fafb", "L1EM":"catmaid_l1em", "MANC":"neuprint_JRC_Manc_1_2_1", 
@@ -1876,11 +1875,10 @@ class VfbConnect:
 
         # Convert Lab to RGB
         for lab in selected_lab_colors:
-            lab_color = LabColor(lab[0], lab[1], lab[2])
-            rgb_color = convert_color(lab_color, sRGBColor)
-            rgb_tuple = (int(round(rgb_color.clamped_rgb_r * 255)),
-                         int(round(rgb_color.clamped_rgb_g * 255)),
-                         int(round(rgb_color.clamped_rgb_b * 255)))
+            rgb = lab_to_srgb_clamped(lab[0], lab[1], lab[2])
+            rgb_tuple = (int(round(rgb[0] * 255)),
+                         int(round(rgb[1] * 255)),
+                         int(round(rgb[2] * 255)))
             rgb_colors.append(rgb_tuple)
 
         if verbose:

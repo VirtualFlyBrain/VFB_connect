@@ -25,12 +25,10 @@ requires-python = ">=3.8"
 dependencies = [
     "requests",
     "pandas",
-    "jsonpath_rw",
     "pysolr",
     "navis",
     "numpy>=1.26.4",
     "seaborn>0.13",
-    "colormath",
     "tqdm",
 ]
 
