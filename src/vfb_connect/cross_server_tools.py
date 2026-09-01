@@ -644,7 +644,7 @@ class VfbConnect:
              :param group_by_class: Optional. If `True`, return connectivity results aggregated by class (with subclass closure, see note above) rather than per neuron. Default `False`.
              :param exclude_dbs: Optional. List of databases (short_forms or symbols) to exclude from results. Hemibrain and catmaid FAFB excluded by default.
              :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns list of dicts. Default `True`.
-             :param use_cached: Unused. This query is always run here — VFBquery's pre-computed form aggregates without subclass closure and does not match (see the note in the body).
+             :param use_cached: Optional. For `group_by_class=True`: `None` (default) uses VFBquery's cached `/query_connectivity` when available and falls back to the live query otherwise; `True` forces the cached path (warns and runs live if the endpoint is unavailable); `False` forces the live query. The per-neuron form (`group_by_class=False`) always runs live.
              :param verbose: Optional. If `True`, print the Cypher queries used. Default `False`.
              :return: A DataFrame or list of synaptic connections between specified neuron types.
              :rtype: pandas.DataFrame or list of dicts
@@ -667,14 +667,33 @@ class VfbConnect:
                 if not downstream_type:
                     raise ValueError("'downstream_type' not recognised")
 
-        # Deliberately NOT served from VFBquery's /query_connectivity, though the
-        # row shape matches. That endpoint aggregates against the directly
-        # asserted class only, while this method has aggregated with subclass
-        # closure since #276 — a connection counts for every ancestor pair in
-        # scope. On DNa02 at weight 10 that is 218 rows against 340, with
-        # pairwise_connections and total_weight differing by up to 16x on the
-        # rows they share. The converter and client method are kept for when
-        # VFBquery adopts the closure; see cached_query_test.py.
+        # group_by_class here matches VFBquery's /query_connectivity: both roll
+        # up over the subclass closure (VFBquery adopted the closure in #101,
+        # aligning with #276), so a grouped query is served from the cached
+        # endpoint unless the caller forces it off. The endpoint's rows are
+        # re-sorted to this method's (-percent_connected, -average_weight)
+        # contract so cached and live output are identical. Falls through to the
+        # local query below when the endpoint is unavailable, or for the
+        # per-neuron (group_by_class=False) form.
+        if group_by_class and use_cached is not False:
+            connections = get_default_client(verbose=verbose).query_connectivity(
+                upstream_type=upstream_type, downstream_type=downstream_type,
+                weight=weight, group_by_class=True,
+                exclude_dbs=tuple(exclude_dbs or ()),
+            )
+            if connections is not None:
+                records = rows_to_records(
+                    connections, CONNECTED_NEURONS_BY_TYPE_COLUMNS)
+                records.sort(key=lambda r: (-r['percent_connected'],
+                                            -r['average_weight']))
+                if return_dataframe:
+                    return pd.DataFrame.from_records(records)
+                return records
+            if use_cached is True:
+                warnings.warn(
+                    "use_cached=True but the cached connectivity endpoint was "
+                    "unavailable; running the live query instead.")
+
         cypher_ql = []
 
         cypher_ql.append(

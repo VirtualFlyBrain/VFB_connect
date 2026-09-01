@@ -180,5 +180,25 @@ class ConnectivityConversionTest(unittest.TestCase):
             self.assertNotIn('](', str(record['upstream_class']))
 
 
+class ConnectivityCachedMatchesLiveTest(unittest.TestCase):
+    """After VFBquery adopted the subclass-closure rollup (#101), the cached
+    endpoint must match the live query for group_by_class=True."""
+
+    def test_cached_grouped_matches_live(self):
+        from vfb_connect import vfb  # integration: hits production
+        kw = dict(upstream_type="FBbt_00047030", downstream_type="FBbt_00003655",
+                  weight=1, group_by_class=True, query_by_label=False,
+                  exclude_dbs=[], return_dataframe=False)
+        cached = vfb.get_connected_neurons_by_type(**kw, use_cached=True)
+        live = vfb.get_connected_neurons_by_type(**kw, use_cached=False)
+        key = lambda r: (r['upstream_class_id'], r['downstream_class_id'])
+        self.assertEqual(
+            {key(r): (r['total_weight'], r['pairwise_connections'],
+                      r['percent_connected']) for r in cached},
+            {key(r): (r['total_weight'], r['pairwise_connections'],
+                      r['percent_connected']) for r in live},
+        )
+
+
 if __name__ == '__main__':
     unittest.main()
