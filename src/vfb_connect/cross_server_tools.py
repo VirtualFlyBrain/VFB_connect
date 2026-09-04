@@ -383,7 +383,7 @@ class VfbConnect:
         print(f"Cached {query_type}({short_form}): {len(ids)} terms") if verbose else None
         return ids
 
-    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True, return_dataframe=True):
+    def get_terms_by_region(self, region, cells_only=False, verbose=False, query_by_label=True, summary=True, return_dataframe=True, include_deprecated=False):
         """Generate TermInfo reports for all terms relevant to annotating a specific region, optionally limited to cells.
 
         :param region: The name (rdfs:label) of the brain region (or CURIE style ID if query_by_label is False).
@@ -392,6 +392,7 @@ class VfbConnect:
         :param query_by_label: Optional. Query using region labels if `True`, or IDs if `False`. Default `True`.
         :param summary: Optional. Returns summary reports if `True`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns a list of dicts. Default `True`.
+        :param include_deprecated: Optional. Include deprecated terms if `True`. Default `False`.
         :return: A DataFrame or list of terms as nested Python data structures following VFB_json or summary_report_json.
         :rtype: pandas.DataFrame or list of dicts
         """
@@ -402,7 +403,7 @@ class VfbConnect:
         if verbose:
             print("Running query: %s" % owl_query)
 
-        terms = self.oc.get_subclasses(owl_query, query_by_label=query_by_label, verbose=verbose)
+        terms = self.oc.get_subclasses(owl_query, query_by_label=query_by_label, verbose=verbose, include_deprecated=include_deprecated)
         if verbose:
             print("Found: %d terms" % len(terms))
         results = self.get_TermInfo(terms, summary=summary, return_dataframe=False)
@@ -410,7 +411,7 @@ class VfbConnect:
             return pd.DataFrame.from_records(results)
         return results
 
-    def get_subclasses(self, class_expression, query_by_label=True, direct=False, summary=True, return_dataframe=True, verbose=False):
+    def get_subclasses(self, class_expression, query_by_label=True, direct=False, summary=True, return_dataframe=True, verbose=False, include_deprecated=False):
         """Generate JSON report of all subclasses of a given class expression.
 
         :param class_expression: A valid OWL class expression, e.g., the name of a class.
@@ -418,18 +419,19 @@ class VfbConnect:
         :param direct: Optional. Return only direct subclasses if `True`. Default `False`.
         :param summary: Optional. Returns summary reports if `True`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns a list of dicts. Default `True`.
+        :param include_deprecated: Optional. Include deprecated classes if `True`. Default `False`.
         :return: A DataFrame or list of terms as nested Python data structures following VFB_json or summary_report_json.
         :rtype: pandas.DataFrame or list of dicts
         """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
-        terms = self.oc.get_subclasses("%s" % class_expression, direct=direct, query_by_label=query_by_label, verbose=verbose)
+        terms = self.oc.get_subclasses("%s" % class_expression, direct=direct, query_by_label=query_by_label, verbose=verbose, include_deprecated=include_deprecated)
         results = self.get_TermInfo(terms, summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
 
-    def get_superclasses(self, class_expression, query_by_label=True, direct=False, summary=True, return_dataframe=True):
+    def get_superclasses(self, class_expression, query_by_label=True, direct=False, summary=True, return_dataframe=True, include_deprecated=False):
         """Generate JSON report of all superclasses of a given class expression.
 
         :param class_expression: A valid OWL class expression, e.g., the name of a class.
@@ -437,18 +439,19 @@ class VfbConnect:
         :param direct: Optional. Return only direct superclasses if `True`. Default `False`.
         :param summary: Optional. Returns summary reports if `True`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns a list of dicts. Default `True`.
+        :param include_deprecated: Optional. Include deprecated classes if `True`. Default `False`.
         :return: A DataFrame or list of terms as nested Python data structures following VFB_json or summary_report_json.
         :rtype: pandas.DataFrame or list of dicts
         """
         if not re.search("'", class_expression):
             class_expression = "'" + class_expression + "'"
-        terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label, direct=direct)
+        terms = self.oc.get_superclasses("%s" % class_expression, query_by_label=query_by_label, direct=direct, include_deprecated=include_deprecated)
         results = self.get_TermInfo(terms, summary=summary, return_dataframe=False)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(results)
         return results
 
-    def get_instances(self, class_expression, query_by_label=True, summary=True, return_dataframe=True, limit=None, return_id_only=False, verbose=False):
+    def get_instances(self, class_expression, query_by_label=True, summary=True, return_dataframe=True, limit=None, return_id_only=False, verbose=False, include_deprecated=False):
         """Generate JSON report of all instances of a given class expression.
 
         Instances are specific examples of a type/class, e.g., a neuron of type DA1 adPN from the FAFB_catmaid database.
@@ -457,6 +460,7 @@ class VfbConnect:
         :param query_by_label: Optional. Query using class labels if `True`, or IDs if `False`. Default `True`.
         :param summary: Optional. Returns summary reports if `True`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns a list of dicts. Default `True`.
+        :param include_deprecated: Optional. Include deprecated instances if `True`. Default `False`.
         :return: A DataFrame or list of terms as nested Python data structures following VFB_json or summary_report_json.
         :rtype: pandas.DataFrame or list of dicts
         """
@@ -466,13 +470,16 @@ class VfbConnect:
             out = self.neo_query_wrapper._get_anatomical_individual_TermInfo_by_type(class_expression,
                                                                                      summary=summary, return_dataframe=False, limit=limit, verbose=verbose)
         else:
-            terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label, verbose=verbose)
+            terms = self.oc.get_instances("%s" % class_expression, query_by_label=query_by_label, verbose=verbose, include_deprecated=include_deprecated)
             if return_id_only:
                 return terms
             if limit:
                 print(f"Limiting to {limit} terms out of {len(terms)}")
                 terms = terms[:limit]
             out = self.get_TermInfo(terms, summary=summary, return_dataframe=False, limit=limit, verbose=verbose)
+        # The Owlery path already drops deprecated terms via includeDeprecated;
+        # the Neo4j Anatomy_by_type path does not, so filter here for consistency.
+        out = self.neo_query_wrapper.filter_deprecated(out, include_deprecated=include_deprecated)
         if return_dataframe and summary:
             return pd.DataFrame.from_records(out)
         return out
@@ -841,21 +848,26 @@ class VfbConnect:
         else:
             return dc
 
-    def get_instances_by_dataset(self, dataset, query_by_label=True, summary=True, return_dataframe=True, return_id_only=False):
+    def get_instances_by_dataset(self, dataset, query_by_label=True, summary=True, return_dataframe=True, return_id_only=False, include_deprecated=False):
         """Get JSON report of all individuals in a specified dataset.
 
         :param dataset: The dataset ID.
         :param summary: Optional. Returns summary reports if `True`. Default `True`.
         :param return_dataframe: Optional. Returns pandas DataFrame if `True`, otherwise returns a list of dicts. Default `True`.
+        :param include_deprecated: Optional. Include deprecated individuals if `True`. Default `False`.
         :return: A DataFrame or list of terms as nested Python data structures following VFB_json or summary_report_json.
         :rtype: pandas.DataFrame or list of dicts
         """
         if query_by_label:
             dataset = self.lookup_id(dataset)
         if dataset:
+            # Exclude deprecated individuals at the query level so both the
+            # id-only and TermInfo returns are consistent with the other
+            # enumeration queries (Owlery uses includeDeprecated=false).
+            deprecated_filter = '' if include_deprecated else 'AND NOT i:Deprecated '
             query = "MATCH (ds:DataSet)<-[:has_source]-(i:Individual) " \
-                    "WHERE ds.short_form = '%s' " \
-                    "RETURN collect(distinct i.short_form) as inds" % dataset
+                    "WHERE ds.short_form = '%s' %s" \
+                    "RETURN collect(distinct i.short_form) as inds" % (dataset, deprecated_filter)
             dc = self.neo_query_wrapper._query(query) # TODO - Would better to use the original column oriented return!
             if return_id_only:
                 return dc[0]['inds']
