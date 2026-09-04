@@ -647,6 +647,47 @@ class QueryWrapper(Neo4jConnect):
         else:
             return self._query(qs)
 
+    def filter_deprecated(self, results, include_deprecated=False):
+        """Drop Deprecated individuals/terms from a result set.
+
+        Consistency helper for the enumeration queries (``get_instances`` etc.):
+        Owlery-backed paths already exclude deprecated terms via
+        ``includeDeprecated=false``, but Neo4j paths (e.g. the ``Anatomy_by_type``
+        term-info query) do not, so their results are filtered here to match.
+
+        Handles the shapes VFB_connect returns:
+          * a list of summary dicts (each carrying a ``tags`` list),
+          * a list of raw VFB_json TermInfo dicts (types under ``term.core.types``),
+          * a pandas DataFrame with a ``tags`` column.
+        Anything else (e.g. a bare list of short_form ids) is returned unchanged,
+        since deprecation cannot be determined from it here.
+
+        :param results: query results (DataFrame, list of dicts, or list of ids)
+        :param include_deprecated: if `True`, return results unchanged
+        :return: results with Deprecated entries removed
+        """
+        if include_deprecated or results is None or len(results) == 0:
+            return results
+
+        if isinstance(results, pd.DataFrame):
+            if 'tags' in results.columns:
+                keep = ~results['tags'].apply(lambda t: 'Deprecated' in (t or []))
+                return results[keep].reset_index(drop=True)
+            return results
+
+        if isinstance(results, list):
+            first = results[0]
+            if isinstance(first, dict) and 'tags' in first:
+                return [d for d in results if 'Deprecated' not in (d.get('tags') or [])]
+            if isinstance(first, dict) and 'term' in first:
+                def _raw_deprecated(r):
+                    try:
+                        return 'Deprecated' in r['term']['core']['types']
+                    except (KeyError, TypeError):
+                        return False
+                return [r for r in results if not _raw_deprecated(r)]
+        return results
+
     def _termInfo_2_summary(self, TermInfo, typ, verbose=False):
         # type_2_summary = {
         #     'Get JSON for Individual': '_populate_instance_summary_tab',

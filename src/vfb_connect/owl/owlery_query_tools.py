@@ -52,7 +52,8 @@ class OWLeryConnect:
         self.curies.update(c)
 
     def query(self, query_type, return_type,
-              query, query_by_label=True, direct=False, verbose=False):
+              query, query_by_label=True, direct=False, verbose=False,
+              include_deprecated=False):
         """
         A wrapper for querying Owlery Endpoints.  See
         https://owlery.phenoscape.org/api/ for doc
@@ -78,7 +79,9 @@ class OWLeryConnect:
                 processed_query = self.labels_and_ids_2_iris(query)
         if verbose:
             print("Running query: " + processed_query)
-        payload = {'object': processed_query, 'direct': direct, 'includeDeprecated': 'false', 'includeEquivalent': 'true'}
+        payload = {'object': processed_query, 'direct': direct,
+                   'includeDeprecated': 'true' if include_deprecated else 'false',
+                   'includeEquivalent': 'true'}
         # No longer send prefixes since we use full IRIs
         # print(payload)
         try:
@@ -86,7 +89,8 @@ class OWLeryConnect:
         except requests.exceptions.RequestException as e:
             print("\033[31mConnection Error:\033[0m " + str(e))
             sleep(15)
-            return self.query(query_type, return_type, query, query_by_label, direct, verbose)
+            return self.query(query_type, return_type, query, query_by_label, direct, verbose,
+                              include_deprecated=include_deprecated)
         if verbose:
             print("Query URL: " + r.url)
         if r.status_code == 200:
@@ -96,21 +100,24 @@ class OWLeryConnect:
         else:
             print("\033[31mConnection Error:\033[0m " + str(r.content))
             sleep(15)
-            return self.query(query_type, return_type, query, query_by_label, direct, verbose)
+            return self.query(query_type, return_type, query, query_by_label, direct, verbose,
+                              include_deprecated=include_deprecated)
 
-    def get_subclasses(self, query, query_by_label=True, direct=False, return_short_forms=True, verbose=False):
+    def get_subclasses(self, query, query_by_label=True, direct=False, return_short_forms=True, verbose=False,
+                       include_deprecated=False):
         """Generate list of IDs of all subclasses of class_expression.
 
                 :param class_expression: A valid OWL class expression, e.g. the name of a class.
                 :param query_by_label: Optional.  If `False``, class_expression takes CURIEs instead of labels.  Default `False`
                 :param direct: Return direct subclasses only.  Default `False`
                 :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs. Default `True`
+                :param include_deprecated: Optional.  If `True`, includes deprecated classes.  Default `False`
                 :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
                 :rtype: list of IRIs or short_forms (depending on return_short_form option)
                 """
         out = self.query(query_type='subclasses', return_type='superClassOf',
                           query=query, query_by_label=query_by_label,
-                          direct=direct, verbose=verbose)
+                          direct=direct, verbose=verbose, include_deprecated=include_deprecated)
         if not isinstance(out,list):
             print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
             print("Query: " + query)
@@ -123,19 +130,21 @@ class OWLeryConnect:
         else:
             return out
 
-    def get_instances(self, query, query_by_label=True, direct=False, return_short_forms=True, verbose=False):
+    def get_instances(self, query, query_by_label=True, direct=False, return_short_forms=True, verbose=False,
+                      include_deprecated=False):
         """Generate list of IDs of all instances of class_expression.
 
                 :param class_expression: A valid OWL class expression, e.g. the name of a class.
                 :param query_by_label: Optional.  If `False``, class_expression takes CURIEs instead of labels.  Default `False`
                 :param direct: Return direct instances only.  Default `False`
                 :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs. Default `True`
+                :param include_deprecated: Optional.  If `True`, includes deprecated instances.  Default `False`
                 :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
                 :rtype: list of IRIs or short_forms (depending on return_short_form option)
                 """
         out = self.query(query_type='instances', return_type='hasInstance',
                           query=query, query_by_label=query_by_label,
-                          direct=direct, verbose=verbose)
+                          direct=direct, verbose=verbose, include_deprecated=include_deprecated)
         if not isinstance(out,list):
             print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
             print("Query: " + query)
@@ -148,19 +157,21 @@ class OWLeryConnect:
         else:
             return out
 
-    def get_superclasses(self, query, query_by_label=True, direct=False, return_short_forms=True, verbose=False):
+    def get_superclasses(self, query, query_by_label=True, direct=False, return_short_forms=True, verbose=False,
+                         include_deprecated=False):
         """Generate list of IDs of all superclasses of class_expression.
 
         :param class_expression: A valid OWL class expression, e.g. the name (or CURIE) of a class.
         :param query_by_label: Optional.  If `False``, class_expression takes CURIEs instead of labels.  Default `False`
         :param direct: Return direct instances only.  Default `False`
         :param return_short_forms: Optional.  If `True`, returns short_forms instead of IRIs. Default `True`
+        :param include_deprecated: Optional.  If `True`, includes deprecated classes.  Default `False`
         :return: Returns a list of terms as nested python data structures following VFB_json or a summary_report_json
         :rtype: list of IRIs or short_forms (depending on return_short_form option)
         """
         out = self.query(query_type='superclasses', return_type='subClassOf',
                           query=query, query_by_label=query_by_label,
-                          direct=direct, verbose=verbose)
+                          direct=direct, verbose=verbose, include_deprecated=include_deprecated)
         if not isinstance(out,list):
             print("\033[33mWarning:\033[0m No results! This is likely due to a query error")
             print("Query: " + query)
