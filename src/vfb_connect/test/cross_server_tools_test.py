@@ -83,6 +83,49 @@ class VfbConnectTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.vc.get_connected_neurons_by_type(weight=5, upstream_type='fake neuron', downstream_type='FBbt_00048096', group_by_class=True, verbose=True)
 
+    def test_get_connected_neurons_by_type_ancestor_aggregation(self):
+        """Regression test for the group_by_class=True subclass-closure fix:
+        connections from instances of a subclass should also count toward each
+        of its ancestor classes within the upstream/downstream scope.
+        """
+        fu = self.vc.get_connected_neurons_by_type(
+            weight=5, upstream_type='Kenyon cell',
+            downstream_type='mushroom body output neuron',
+            group_by_class=True, exclude_dbs=[],
+        )
+        self.assertTrue(len(fu) > 0)
+        # Multiple upstream subclasses should appear (proves SUBCLASSOF expansion).
+        self.assertGreater(len(set(fu['upstream_class_id'])), 1,
+                           msg="Expected upstream_class_id to vary across rows")
+        # Find any (parent, child) pair within the returned upstream classes
+        # and verify the parent row's stats are at least as large as any child
+        # row's (set-union semantics).
+        upstream_ids = sorted(set(fu['upstream_class_id']))
+        q = (
+            "MATCH (p:Class)<-[:SUBCLASSOF*1..]-(c:Class) "
+            "WHERE p.short_form IN %s AND c.short_form IN %s "
+            "RETURN p.short_form AS parent, c.short_form AS child LIMIT 1"
+            % (upstream_ids, upstream_ids)
+        )
+        from vfb_connect.neo.neo4j_tools import dict_cursor
+        pairs = dict_cursor(self.vc.nc.commit_list([q]))
+        self.assertTrue(pairs, "Expected at least one parent/child pair among upstream classes")
+        parent_id, child_id = pairs[0]['parent'], pairs[0]['child']
+        parent_rows = fu[fu['upstream_class_id'] == parent_id]
+        child_rows = fu[fu['upstream_class_id'] == child_id]
+        # For the same downstream class, the parent's connected_upstream_count
+        # should subsume the child's.
+        for _, crow in child_rows.iterrows():
+            prow = parent_rows[parent_rows['downstream_class_id'] == crow['downstream_class_id']]
+            if prow.empty:
+                continue
+            self.assertGreaterEqual(
+                int(prow.iloc[0]['connected_upstream_count']),
+                int(crow['connected_upstream_count']),
+                msg=(f"Parent {parent_id} connected count should subsume child "
+                     f"{child_id} for downstream {crow['downstream_class_id']}"),
+            )
+
 
 
     def test_get_vfb_link(self):
