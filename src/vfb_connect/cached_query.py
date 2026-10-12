@@ -277,6 +277,39 @@ def cached_queries_enabled():
     return os.getenv('VFB_USE_CACHED_QUERIES', 'true').lower() not in ('false', '0', 'no', 'off')
 
 
+def dataset_summary_from_term_info(term_info):
+    """Map a VFBquery ``get_term_info`` payload for a DataSet onto the summary
+    dict that ``QueryWrapper.get_DataSet_TermInfo`` has always returned
+    (label, symbol, id, tags, description, miniref, FlyBase, PMID, DOI).
+
+    Returns ``None`` if the payload is not a DataSet term.
+    """
+    if not isinstance(term_info, dict) or 'DataSet' not in (term_info.get('SuperTypes') or []):
+        return None
+    meta = term_info.get('Meta') or {}
+    description = meta.get('Description') or ''
+    d = {
+        'label': term_info.get('Name', ''),
+        'symbol': '',
+        'id': term_info.get('Id', ''),
+        'tags': list(term_info.get('SuperTypes') or []),
+        'description': [description] if description else [],
+        'miniref': [], 'FlyBase': [], 'PMID': [], 'DOI': [],
+    }
+    for pub in term_info.get('Publications') or []:
+        d['miniref'].append(str(pub.get('title', '')))
+        if str(pub.get('short_form', '')).startswith('FBrf'):
+            d['FlyBase'].append(str(pub['short_form']))
+        for ref in pub.get('refs') or []:
+            m = re.search(r'pubmed/\?term=(\d+)', ref)
+            if m:
+                d['PMID'].append(m.group(1))
+            m = re.search(r'doi\.org/(.+)$', ref)
+            if m:
+                d['DOI'].append(m.group(1))
+    return d
+
+
 class CachedQueryClient:
     """Fetch pre-computed VFBquery results, or ``None`` if they cannot be trusted.
 
