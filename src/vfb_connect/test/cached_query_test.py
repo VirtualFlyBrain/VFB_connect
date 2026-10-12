@@ -182,3 +182,32 @@ class ConnectivityConversionTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class DatasetSummaryFromTermInfoTest(unittest.TestCase):
+    """VFBquery DataSet term info maps onto the legacy dataset summary dict."""
+
+    def test_mapping(self):
+        from vfb_connect.cached_query import dataset_summary_from_term_info
+        ti = {
+            'Name': 'Ito lab adult brain lineage clone image set', 'Id': 'Ito2013',
+            'SuperTypes': ['Entity', 'Individual', 'DataSet', 'has_image'],
+            'Meta': {'Description': 'A set of clones.'},
+            'Publications': [{
+                'title': 'Ito et al., 2013, Curr. Biol. 23(8): 644--655', 'short_form': 'FBrf0221438',
+                'refs': ['http://www.ncbi.nlm.nih.gov/pubmed/?term=23541729',
+                         'http://flybase.org/reports/FBrf0221438',
+                         'https://doi.org/10.1016/j.cub.2013.03.015']}],
+        }
+        d = dataset_summary_from_term_info(ti)
+        self.assertEqual(d['id'], 'Ito2013')
+        self.assertEqual(d['description'], ['A set of clones.'])
+        self.assertEqual(d['miniref'], ['Ito et al., 2013, Curr. Biol. 23(8): 644--655'])
+        self.assertEqual(d['FlyBase'], ['FBrf0221438'])
+        self.assertEqual(d['PMID'], ['23541729'])
+        self.assertEqual(d['DOI'], ['10.1016/j.cub.2013.03.015'])
+
+    def test_non_dataset_returns_none(self):
+        from vfb_connect.cached_query import dataset_summary_from_term_info
+        self.assertIsNone(dataset_summary_from_term_info({'Id': 'FBbt_1', 'SuperTypes': ['Class']}))
+        self.assertIsNone(dataset_summary_from_term_info(None))
