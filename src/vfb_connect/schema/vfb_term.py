@@ -4279,7 +4279,7 @@ class VFBTerms:
         :param template: Template short form to include in the URL.
         :param verbose: Print additional information if True.
         """
-        url = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto"
+        url = "https://v3.virtualflybrain.org/org.geppetto.frontend/geppetto"
         space = self.vfb.lookup_id(template) + "," if template else ""
         images = "?i=" + space + ",".join(self.get_ids())
         print("Opening VFB browser with URL: ", url + images) if verbose else None

@@ -106,7 +106,7 @@ class VfbConnect:
         self.reverse_lookup = {v: k for k, v in self.lookup.items()}
         self.oc = OWLeryConnect(endpoint=owlery_endpoint,
                                 lookup=self.lookup)
-        self.vfb_base = "https://v2.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
+        self.vfb_base = "https://v3.virtualflybrain.org/org.geppetto.frontend/geppetto?id="
 
         multi_query_json = str(files("vfb_connect") / "resources" / "VFB_results_multi_input.json")
         with open(multi_query_json, 'r') as f:
