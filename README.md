@@ -38,7 +38,7 @@ For more examples see our [Quick Guide Jupyter Notebook](https://github.com/Virt
 
 Several queries — similar morphology, the neurons and neuron types in a region, parts,
 subtypes, lineage clones and innervating tracts — are answered from VFBquery's pre-computed
-results at https://v3-cached.virtualflybrain.org, the same source the Virtual Fly Brain website
+results at https://api.virtualflybrain.org, the same source the Virtual Fly Brain website
 reads. Results and column names are unchanged; the query is simply not re-derived. If the service
 is unavailable, slow or returns an incomplete result, the original Neo4j/Owlery query runs
 instead, so nothing depends on it being up.
