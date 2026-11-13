@@ -24,7 +24,7 @@ on:
 jobs:
   converter-tests:
     name: "Converter tests (offline)"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest moved to 26.04, which has no Python 3.10.x builds
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +47,7 @@ jobs:
 
   live-parity-tests:
     name: "Cached vs live parity"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest moved to 26.04, which has no Python 3.10.x builds
     timeout-minutes: 45
     needs: converter-tests
     steps:
