@@ -794,10 +794,11 @@ class QueryWrapper(Neo4jConnect):
         short_forms = list(short_forms)
         if not summary:
             return self._get_TermInfo(short_forms, typ='Get JSON for DataSet', summary=False, return_dataframe=return_dataframe)
-        # Summaries come from VFBquery's cached term info: the equivalent
-        # Neo4j query walks has_source|SUBCLASSOF|INSTANCEOF* unbounded and can
-        # run for many minutes on large datasets. Anything VFBquery cannot
-        # serve falls back to Neo4j.
+        # Summaries come from VFBquery's cached term info. Anything VFBquery
+        # cannot serve falls back to Neo4j (whose image walk is bounded with
+        # apoc.path.subgraphNodes since 2026-11; it used an unbounded
+        # has_source|SUBCLASSOF|INSTANCEOF* pattern that never finished on
+        # large datasets).
         from vfb_connect.cached_query import get_default_client, dataset_summary_from_term_info
         client = get_default_client()
         found = {}
