@@ -703,16 +703,30 @@ class VfbConnect:
 
         cypher_ql = []
 
-        cypher_ql.append(
-            "MATCH %s(c1:Class:Neuron) "
-            % ('(:Class:Neuron {short_form:"' + upstream_type + '"})<-[:SUBCLASSOF*0..]-' if upstream_type else ""))
-        cypher_ql.append(
-            "MATCH %s(c2:Class:Neuron) "
-            % ('(:Class:Neuron {short_form:"' + downstream_type + '"})<-[:SUBCLASSOF*0..]-' if downstream_type else ""))
-
-        cypher_ql.append("MATCH (c1)<-[:INSTANCEOF]-(n1:Individual:Neuron:has_neuron_connectivity)-"
-                         "[r:synapsed_to]->(n2:Individual:Neuron:has_neuron_connectivity)-[:INSTANCEOF]->(c2) "
-                         "WHERE r.weight[0] >= %s " % weight)
+        # Collect each side's class closure first, then walk the connections out
+        # from one side and check the other side's class against its closure.
+        # Matching both closures up front and joining them through the
+        # connections let the planner build the product of the two class sets,
+        # which ran into the pdb query timeout for broad types.
+        closure = 'MATCH (:Class:Neuron {short_form:"%s"})<-[:SUBCLASSOF*0..]-(%s:Class:Neuron) '
+        if upstream_type:
+            cypher_ql.append(closure % (upstream_type, 'u') + "WITH collect(DISTINCT u) AS ups ")
+        if downstream_type:
+            cypher_ql.append(closure % (downstream_type, 'd')
+                             + "WITH %scollect(DISTINCT d) AS downs " % ('ups, ' if upstream_type else ''))
+        if downstream_type:
+            cypher_ql.append("UNWIND downs AS c2 "
+                             "MATCH (c2)<-[:INSTANCEOF]-(n2:Individual:Neuron:has_neuron_connectivity)"
+                             "<-[r:synapsed_to]-(n1:Individual:Neuron:has_neuron_connectivity) "
+                             "WHERE r.weight[0] >= %s " % weight)
+            cypher_ql.append("MATCH (n1)-[:INSTANCEOF]->(c1:Class:Neuron) %s"
+                             % ("WHERE c1 IN ups " if upstream_type else ""))
+        else:
+            cypher_ql.append("UNWIND ups AS c1 "
+                             "MATCH (c1)<-[:INSTANCEOF]-(n1:Individual:Neuron:has_neuron_connectivity)"
+                             "-[r:synapsed_to]->(n2:Individual:Neuron:has_neuron_connectivity) "
+                             "WHERE r.weight[0] >= %s " % weight)
+            cypher_ql.append("MATCH (n2)-[:INSTANCEOF]->(c2:Class:Neuron) ")
 
         if exclude_dbs:
             cypher_ql.append("MATCH (n1)-[:database_cross_reference]->(s:Individual:Site {is_data_source:[True]}) \n"
