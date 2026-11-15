@@ -5,7 +5,7 @@ jobs:
   # Essential tests that must pass - run first and fastest
   core-tests:
     name: "Core Tests (Essential)"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest moved to 26.04, which has no Python 3.10.x builds
     steps:
       - uses: actions/checkout@v4
 
@@ -14,15 +14,22 @@ jobs:
         with:
           python-version: 3.10.14
           
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
 
       - name: Install dependencies
         run: |
@@ -158,7 +165,7 @@ jobs:
   # Advanced VFB term functionality tests  
   vfb-term-tests:
     name: "VFB Term Tests (Advanced)"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest moved to 26.04, which has no Python 3.10.x builds
     needs: core-tests
     steps:
       - uses: actions/checkout@v4
@@ -167,15 +174,22 @@ jobs:
         with:
           python-version: 3.10.14
           
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
 
       - name: Install dependencies
         run: |
@@ -260,7 +274,7 @@ jobs:
   # Neural connectivity and neuron-specific tests
   neural-connectivity-tests:
     name: "Neural Connectivity Tests"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest moved to 26.04, which has no Python 3.10.x builds
     needs: core-tests
     steps:
       - uses: actions/checkout@v4
@@ -269,15 +283,22 @@ jobs:
         with:
           python-version: 3.10.14
           
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
 
       - name: Install dependencies
         run: |
@@ -425,7 +446,7 @@ jobs:
   # Data access and query tests
   data-access-tests:
     name: "Data Access & Query Tests"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest moved to 26.04, which has no Python 3.10.x builds
     needs: core-tests
     steps:
       - uses: actions/checkout@v4
@@ -434,15 +455,22 @@ jobs:
         with:
           python-version: 3.10.14
           
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
 
       - name: Install dependencies
         run: |
@@ -484,7 +512,7 @@ jobs:
   # Cross-reference and ID mapping tests
   xref-mapping-tests:
     name: "Cross-Reference & ID Mapping Tests"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest moved to 26.04, which has no Python 3.10.x builds
     needs: core-tests
     steps:
       - uses: actions/checkout@v4
@@ -493,15 +521,22 @@ jobs:
         with:
           python-version: 3.10.14
           
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
 
       - name: Install dependencies
         run: |
@@ -533,7 +568,7 @@ jobs:
   # OWL reasoning and advanced query tests
   owl-reasoning-tests:
     name: "OWL Reasoning Tests"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest moved to 26.04, which has no Python 3.10.x builds
     needs: core-tests
     steps:
       - uses: actions/checkout@v4
@@ -542,15 +577,22 @@ jobs:
         with:
           python-version: 3.10.14
           
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
 
       - name: Install dependencies
         run: |
@@ -582,7 +624,7 @@ jobs:
   # scRNA-seq and transcriptomic tests
   transcriptomic-tests:
     name: "Transcriptomic & scRNA-seq Tests"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest moved to 26.04, which has no Python 3.10.x builds
     needs: core-tests
     steps:
       - uses: actions/checkout@v4
@@ -591,15 +633,22 @@ jobs:
         with:
           python-version: 3.10.14
           
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
 
       - name: Install dependencies
         run: |
@@ -631,7 +680,7 @@ jobs:
   # Image and visualization tests (potentially slow, so isolated)
   visualization-tests:
     name: "Visualization & Image Tests"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest moved to 26.04, which has no Python 3.10.x builds
     needs: core-tests
     steps:
       - uses: actions/checkout@v4
@@ -640,15 +689,22 @@ jobs:
         with:
           python-version: 3.10.14
           
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
 
       - name: Install dependencies
         run: |

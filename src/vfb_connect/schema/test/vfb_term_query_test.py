@@ -12,7 +12,7 @@ class VfbTermTest(unittest.TestCase):
 
     def test_scRNAseq_cluster_to_genes(self):
         # Get all gene terms expressed in a given cluster
-        cluster = self.vfb.term("FBlc0006144")
+        cluster = self.vfb.term("VFBseq_00000409")  # PAM cluster (sub-clustering of cluster 42) (Davie 2018)
         print(cluster)
         genes = cluster.scRNAseq_genes
         self.assertIsNotNone(genes)
@@ -33,17 +33,18 @@ class VfbTermTest(unittest.TestCase):
         print(summary)
         self.assertIsNotNone(summary)
         self.assertTrue(isinstance(summary, pd.DataFrame))
-        self.assertGreater(len(summary), 5)
+        # three PAM clusters since VFB took over the scRNAseq data (was more under FlyBase)
+        self.assertGreater(len(summary), 2)
         expression = term.scRNAseq_expression
         print(expression)
         print(expression[0].summary)
         self.assertIsNotNone(expression)
         self.assertTrue(isinstance(expression, ExpressionList))
-        self.assertGreater(len(expression), 5)
+        self.assertGreater(len(expression), 2)
         print(expression[0].summary)
 
     def test_scRNAseq_datasets(self):
-        cluster = self.vfb.term("FBlc0006144")
+        cluster = self.vfb.term("VFBseq_00000409")  # PAM cluster (sub-clustering of cluster 42) (Davie 2018)
         datasets = cluster.datasets
         self.vfb._load_limit = 10
         datasets[0].debug = True

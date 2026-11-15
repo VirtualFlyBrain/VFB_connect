@@ -808,9 +808,14 @@ class QueryWrapper(Neo4jConnect):
                 found[sf] = r
         missing = [sf for sf in short_forms if sf not in found]
         if missing:
-            for r in self._get_TermInfo(missing, typ='Get JSON for DataSet', summary=True, return_dataframe=return_dataframe):
+            # list of dicts here: with return_dataframe the batched call returns a DataFrame, and iterating
+            # that gives column names, not records
+            for r in self._get_TermInfo(missing, typ='Get JSON for DataSet', summary=True, return_dataframe=False):
                 found[r['id']] = r
-        return [found[sf] for sf in short_forms if sf in found]
+        out = [found[sf] for sf in short_forms if sf in found]
+        if return_dataframe and out:
+            return pd.DataFrame.from_records(out)
+        return out
 
     def get_license_TermInfo(self, short_forms, summary=True, return_dataframe=True):
         """

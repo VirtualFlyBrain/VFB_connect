@@ -7,7 +7,7 @@ on:
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # ubuntu-latest moved to 26.04, which has no Python 3.10.x builds
     permissions:
       id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
