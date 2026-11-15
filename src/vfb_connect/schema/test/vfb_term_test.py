@@ -368,14 +368,14 @@ class VfbTermTest(TimedTestCase):
         self.assertEqual(len(downstream_types), self.vfb._load_limit)
 
     def test_vfbterm_scRNAseq_Clusters(self):
-        term = self.vfb.term('scRNAseq_2018_Davie_FULL_seq_clustering_dopaminergic_PAM_neurons')
+        term = self.vfb.term('VFBseq_00000409')  # PAM cluster (sub-clustering of cluster 42) (Davie 2018)
         print("got term ", term)
         print(term.get_summary(return_dataframe=False))
         print(term.related_terms)
         self.assertTrue(term)
 
     def test_vfbterm_related_terms(self):
-        term = self.vfb.term('scRNAseq_2018_Davie_FULL_seq_clustering_dopaminergic_PAM_neurons')
+        term = self.vfb.term('VFBseq_00000409')  # PAM cluster (sub-clustering of cluster 42) (Davie 2018)
         print("got term ", term)
         self.assertTrue(term)
         rel = term.related_terms
