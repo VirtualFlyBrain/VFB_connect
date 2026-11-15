@@ -280,6 +280,8 @@ jobs:
           echo "VFB_LOAD_LIMIT=5" >> $GITHUB_ENV
           echo "VFB_CACHE_ENABLED=true" >> $GITHUB_ENV
       - name: Execute connectomics notebook
+        env:
+          NEUPRINT_APPLICATION_CREDENTIALS: ${{ secrets.NEUPRINTAUTHTOKEN }}
         run: |
           jupyter nbconvert --to notebook --execute --ExecutePreprocessor.timeout=1800 docs/source/tutorials/connectomics.ipynb
       - uses: actions/upload-artifact@v4
