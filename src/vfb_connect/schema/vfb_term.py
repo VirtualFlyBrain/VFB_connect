@@ -4269,6 +4269,9 @@ class VFBTerms:
                     break
 
         if return_dataframe:
+            if not summaries:
+                # an empty set of terms has no summaries; concat raises on an empty list
+                return pandas.DataFrame()
             return pandas.concat(summaries, ignore_index=True)
         return summaries
 
