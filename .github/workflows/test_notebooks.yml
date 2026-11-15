@@ -42,15 +42,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
       - name: Install dependencies
         run: |
           python -m pip install -U pip
@@ -88,15 +95,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
       - name: Install dependencies
         run: |
           python -m pip install -U pip
@@ -134,15 +148,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
       - name: Install dependencies
         run: |
           python -m pip install -U pip
@@ -180,15 +201,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
       - name: Install dependencies
         run: |
           python -m pip install -U pip
@@ -226,15 +254,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
       - name: Install dependencies
         run: |
           python -m pip install -U pip
@@ -272,15 +307,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
       - name: Install dependencies
         run: |
           python -m pip install -U pip
@@ -318,15 +360,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.10.14
+      # The lookup is a snapshot of pdb, so the key rolls over weekly and there is no
+      # fallback to an older key: a stale lookup cannot resolve newly added terms.
+      - name: Week stamp for the lookup cache key
+        id: lookup-week
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
       - name: Cache VFB lookup tables
+        id: lookup-cache
         uses: actions/cache@v4
         with:
           path: |
             src/vfb_connect/lookup_cache.pkl
             ~/.cache/vfb_connect/
-          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            vfb-lookup-cache-
+          key: vfb-lookup-cache-${{ hashFiles('**/requirements.txt') }}-${{ steps.lookup-week.outputs.week }}
+      - name: Rebuild the lookup from pdb on a cache miss
+        if: steps.lookup-cache.outputs.cache-hit != 'true'
+        run: rm -f src/vfb_connect/lookup_cache.pkl
       - name: Install dependencies
         run: |
           python -m pip install -U pip
